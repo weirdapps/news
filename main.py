@@ -30,7 +30,8 @@ try:
 
             # Print the top 10 articles
             for article in articles:
-                print('Title:', article['title'])
+                # Print the article's title in green font color
+                print('\033[92m' + article['title'] + '\033[0m')
                 print('Summary:', article['description'])
                 print('Source:', article['url'])
                 print('---')
