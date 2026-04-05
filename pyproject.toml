@@ -7,6 +7,9 @@ requires-python = ">=3.12"
 [project.scripts]
 newsreader = "main:main"
 
+[tool.setuptools]
+packages = ["news"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
