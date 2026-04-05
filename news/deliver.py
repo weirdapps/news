@@ -7,7 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markupsafe import Markup
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,10 @@ def render_digest_html(
     Returns:
         Rendered HTML string
     """
-    env = Environment(loader=FileSystemLoader(_TEMPLATES_DIR))
+    env = Environment(
+        loader=FileSystemLoader(_TEMPLATES_DIR),
+        autoescape=select_autoescape(default_for_string=True, default=True),
+    )
     template = env.get_template("digest.html")
 
     # Extract data from synthesis
@@ -53,6 +57,15 @@ def render_digest_html(
 
     # Check if synthesis failed (fallback text present)
     fallback_text = synthesis.get("fallback_text", "")
+
+    # Pre-convert newlines to <br> in synthesis text and mark as safe HTML
+    for section in sections:
+        if "synthesis" in section and section["synthesis"]:
+            text = section["synthesis"].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            section["synthesis"] = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))
+    if fallback_text:
+        text = fallback_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        fallback_text = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))
 
     return template.render(
         subject=subject,
@@ -204,7 +217,9 @@ def notify_macos(title: str, message: str) -> None:
         message: Notification message
     """
     try:
-        script = f'display notification "{message}" with title "{title}"'
+        safe_title = title.replace('"', '\\"')
+        safe_message = message.replace('"', '\\"')
+        script = f'display notification "{safe_message}" with title "{safe_title}"'
         subprocess.run(
             ["osascript", "-e", script],
             capture_output=True,

@@ -1,5 +1,6 @@
 """Article processing: deduplication, classification, scoring, and quality filtering."""
 
+import re
 from datetime import datetime, timezone, timedelta
 from news.models import Article
 
@@ -37,8 +38,6 @@ def deduplicate(
             original = seen[article.content_hash]
             if article.source not in original.also_reported_by:
                 original.also_reported_by.append(article.source)
-            if article.url not in original.also_reported_by:
-                original.also_reported_by.append(article.url)
             dupes.append(article)
         else:
             # First time seeing this hash
@@ -64,10 +63,18 @@ def classify_article(article: Article, categories_config: dict) -> None:
     for category_key, category_info in categories.items():
         keywords = category_info.get("keywords", [])
         for keyword in keywords:
-            if keyword.lower() in text:
+            kw = keyword.lower()
+            # Use word boundary matching for short keywords to avoid false positives
+            # e.g. "ai" matching "maintain", "certain", etc.
+            if len(kw) <= 3:
+                if re.search(r'\b' + re.escape(kw) + r'\b', text):
+                    if category_key not in article.categories:
+                        article.categories.append(category_key)
+                    break
+            elif kw in text:
                 if category_key not in article.categories:
                     article.categories.append(category_key)
-                break  # Found a match, move to next category
+                break
 
 
 def compute_relevance_score(

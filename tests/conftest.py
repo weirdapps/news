@@ -1,6 +1,13 @@
 import sqlite3
+import sys
 from datetime import datetime, timezone
+from pathlib import Path
+
 import pytest
+
+# Ensure project root is on sys.path so 'main' can be imported
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from news.storage import init_db
 from news.models import Article
 

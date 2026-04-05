@@ -81,21 +81,22 @@ def test_get_categories_returns_category_definitions(tmp_path):
     # Create categories.yaml
     categories_file = tmp_path / "categories.yaml"
     categories_file.write_text("""
-business:
-  display_name: "Business & Economy"
-  keywords:
-    - business
-    - economy
-    - markets
-  priority: 1
+categories:
+  business:
+    display_name: "Business & Economy"
+    keywords:
+      - business
+      - economy
+      - markets
+    priority: 1
 
-tech:
-  display_name: "Technology"
-  keywords:
-    - technology
-    - software
-    - hardware
-  priority: 2
+  tech:
+    display_name: "Technology"
+    keywords:
+      - technology
+      - software
+      - hardware
+    priority: 2
 
 display_order:
   - business
@@ -105,14 +106,15 @@ display_order:
     result = get_categories(categories_file)
 
     # Verify structure
-    assert "business" in result
-    assert "tech" in result
+    assert "categories" in result
+    assert "business" in result["categories"]
+    assert "tech" in result["categories"]
     assert "display_order" in result
 
     # Verify business category
-    assert result["business"]["display_name"] == "Business & Economy"
-    assert "business" in result["business"]["keywords"]
-    assert result["business"]["priority"] == 1
+    assert result["categories"]["business"]["display_name"] == "Business & Economy"
+    assert "business" in result["categories"]["business"]["keywords"]
+    assert result["categories"]["business"]["priority"] == 1
 
     # Verify display order
     assert result["display_order"] == ["business", "tech"]

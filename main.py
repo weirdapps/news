@@ -62,29 +62,30 @@ def acquire_lock(lock_path: str) -> bool:
     """
     lock_file = Path(lock_path)
 
-    # Check if lock exists
+    # Check if lock exists and handle stale locks
     if lock_file.exists():
-        # Read PID from lock file
         try:
             pid = int(lock_file.read_text().strip())
-            # Check if process is still running
             try:
                 os.kill(pid, 0)  # Signal 0 just checks if process exists
-                # Process is running, lock is valid
                 logging.warning(f"Lock held by process {pid}")
                 return False
             except OSError:
-                # Process not running, stale lock
                 logging.info(f"Removing stale lock from process {pid}")
                 lock_file.unlink()
         except (ValueError, FileNotFoundError):
-            # Invalid lock file, remove it
             logging.warning("Invalid lock file, removing")
             lock_file.unlink(missing_ok=True)
 
-    # Create lock file with current PID
+    # Atomically create lock file with current PID
     lock_file.parent.mkdir(parents=True, exist_ok=True)
-    lock_file.write_text(str(os.getpid()))
+    try:
+        fd = os.open(str(lock_file), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(fd, str(os.getpid()).encode())
+        os.close(fd)
+    except FileExistsError:
+        logging.warning("Lock file created by another process")
+        return False
     logging.info(f"Lock acquired: {lock_path}")
     return True
 
@@ -326,7 +327,7 @@ async def run_pipeline(run_type: str = "scheduled") -> None:
 
     # SYNTHESIZE: Call Claude for synthesis
     category_display_names = {
-        k: v["name"] for k, v in categories_config.get("categories", {}).items()
+        k: v["display_name"] for k, v in categories_config.get("categories", {}).items()
     }
 
     synthesis_result, synthesis_ok = synthesize(
@@ -402,7 +403,7 @@ async def run_pipeline(run_type: str = "scheduled") -> None:
         article_count=len(relevant_articles),
         synthesis_text=synthesis_text,
         html_output=html_output,
-        sent_at=start_time if email_sent else None,
+        sent_at=None,
     )
     digest_id = insert_digest(conn, digest)
 

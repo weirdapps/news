@@ -1,97 +1,98 @@
 # Category definitions for news classification and scoring
 # 7 categories with display names, keywords, and priority
 
-business:
-  display_name: "Business & Economy"
-  keywords:
-    - business
-    - economy
-    - markets
-    - finance
-    - corporate
-    - commerce
-    - trade
-    - industry
-  priority: 3
+categories:
+  business:
+    display_name: "Business & Economy"
+    keywords:
+      - business
+      - economy
+      - markets
+      - finance
+      - corporate
+      - commerce
+      - trade
+      - industry
+    priority: 3
 
-trading:
-  display_name: "Trading & Investments"
-  keywords:
-    - trading
-    - stocks
-    - investments
-    - portfolio
-    - equity
-    - markets
-    - securities
-    - hedge fund
-    - asset management
-  priority: 4
+  trading:
+    display_name: "Trading & Investments"
+    keywords:
+      - trading
+      - stocks
+      - investments
+      - portfolio
+      - equity
+      - markets
+      - securities
+      - hedge fund
+      - asset management
+    priority: 4
 
-tech:
-  display_name: "Technology"
-  keywords:
-    - technology
-    - software
-    - hardware
-    - digital
-    - innovation
-    - startup
-    - cloud
-    - cybersecurity
-  priority: 6
+  tech:
+    display_name: "Technology"
+    keywords:
+      - technology
+      - software
+      - hardware
+      - digital
+      - innovation
+      - startup
+      - cloud
+      - cybersecurity
+    priority: 6
 
-ai:
-  display_name: "Artificial Intelligence"
-  keywords:
-    - artificial intelligence
-    - machine learning
-    - deep learning
-    - neural network
-    - AI
-    - ML
-    - automation
-    - LLM
-    - generative AI
-  priority: 5
+  ai:
+    display_name: "Artificial Intelligence"
+    keywords:
+      - artificial intelligence
+      - machine learning
+      - deep learning
+      - neural network
+      - AI
+      - ML
+      - automation
+      - LLM
+      - generative AI
+    priority: 5
 
-apple:
-  display_name: "Apple Ecosystem"
-  keywords:
-    - Apple
-    - iPhone
-    - iPad
-    - Mac
-    - iOS
-    - macOS
-    - Tim Cook
-    - App Store
-  priority: 7
+  apple:
+    display_name: "Apple Ecosystem"
+    keywords:
+      - Apple
+      - iPhone
+      - iPad
+      - Mac
+      - iOS
+      - macOS
+      - Tim Cook
+      - App Store
+    priority: 7
 
-greece:
-  display_name: "Greece & Balkans"
-  keywords:
-    - Greece
-    - Greek
-    - Athens
-    - Balkans
-    - Hellenic
-    - Eurozone
-  priority: 2
+  greece:
+    display_name: "Greece & Balkans"
+    keywords:
+      - Greece
+      - Greek
+      - Athens
+      - Balkans
+      - Hellenic
+      - Eurozone
+    priority: 2
 
-banking:
-  display_name: "Banking & Fintech"
-  keywords:
-    - banking
-    - fintech
-    - payments
-    - digital banking
-    - open banking
-    - financial services
-    - NBG
-    - National Bank
-    - cards
-  priority: 1
+  banking:
+    display_name: "Banking & Fintech"
+    keywords:
+      - banking
+      - fintech
+      - payments
+      - digital banking
+      - open banking
+      - financial services
+      - NBG
+      - National Bank
+      - cards
+    priority: 1
 
 # Display order for email digest (highest priority first)
 display_order:

@@ -5,13 +5,13 @@ pipeline:
   relevance_threshold: 20
 
   # Maximum articles per category in final digest
-  max_articles_per_category: 15
+  max_articles_per_category: 5
 
   # Maximum article age in hours
   max_article_age_hours: 36
 
-  # Minimum article length in words
-  min_article_length_words: 100
+  # Minimum article length in words (low for RSS summaries)
+  min_article_length_words: 10
 
   # Number of characters to hash for deduplication
   dedup_hash_chars: 200
@@ -20,8 +20,8 @@ email:
   # Primary recipient
   recipient: plessas@nbg.gr
 
-  # Path to Gmail AppleScript for sending
-  gmail_script: ~/SourceCode/news/scripts/send_via_gmail.scpt
+  # Path to Gmail operations script
+  gmail_script: ~/SourceCode/claude/marketplaces/marketplace-utility/plugins/manage-gmail/skills/manage-gmail/scripts/dist/gmail-operations.js
 
 schedule:
   # Timezone for scheduling
@@ -49,16 +49,16 @@ storage:
 
 synthesis:
   # Claude command path
-  claude_command: /opt/homebrew/bin/claude
+  claude_command: /Users/plessas/.local/bin/claude
 
   # Arguments for Claude synthesis
   claude_args:
+    - "--print"
     - "--model"
-    - "sonnet-4.5"
-    - "--no-stream"
+    - "sonnet"
 
   # Timeout for synthesis in seconds
-  timeout_seconds: 120
+  timeout: 180
 
   # Maximum retries on failure
   max_retries: 1
@@ -70,7 +70,7 @@ newsapi:
   # Page size for NewsAPI requests
   page_size: 20
 
-# Scoring weights and bonuses
+# Scoring weights and bonuses (flat keys matching processor.py)
 scoring:
   # NBG mention bonus
   nbg_mention: 30
@@ -82,13 +82,12 @@ scoring:
   category_match: 10
 
   # Tier bonuses (by source tier)
-  tier_bonus:
-    1: 15
-    2: 10
-    3: 5
+  tier_1_bonus: 15
+  tier_2_bonus: 10
+  tier_3_bonus: 5
 
   # Recency bonuses (by age in hours)
-  recency_bonus:
-    0-12: 15    # Last 12 hours
-    12-24: 10   # 12-24 hours
-    24-36: 5    # 24-36 hours
+  recency_1h: 15
+  recency_4h: 12
+  recency_12h: 10
+  recency_24h: 5
