@@ -1,0 +1,94 @@
+# Pipeline settings for news reader system
+
+pipeline:
+  # Minimum relevance score to include an article
+  relevance_threshold: 20
+
+  # Maximum articles per category in final digest
+  max_articles_per_category: 15
+
+  # Maximum article age in hours
+  max_article_age_hours: 36
+
+  # Minimum article length in words
+  min_article_length_words: 100
+
+  # Number of characters to hash for deduplication
+  dedup_hash_chars: 200
+
+email:
+  # Primary recipient
+  recipient: plessas@nbg.gr
+
+  # Path to Gmail AppleScript for sending
+  gmail_script: ~/SourceCode/news/scripts/send_via_gmail.scpt
+
+schedule:
+  # Timezone for scheduling
+  timezone: Europe/Athens
+
+  # Run times (24-hour format)
+  runs:
+    - "09:00"
+    - "13:00"
+    - "17:00"
+    - "21:00"
+
+storage:
+  # SQLite database path
+  db_path: ~/SourceCode/news/data/news.db
+
+  # Run log path
+  run_log_path: ~/SourceCode/news/data/run.log
+
+  # Archive directory for old articles
+  archive_dir: ~/SourceCode/news/data/archive
+
+  # Days before archiving articles
+  archive_after_days: 30
+
+synthesis:
+  # Claude command path
+  claude_command: /opt/homebrew/bin/claude
+
+  # Arguments for Claude synthesis
+  claude_args:
+    - "--model"
+    - "sonnet-4.5"
+    - "--no-stream"
+
+  # Timeout for synthesis in seconds
+  timeout_seconds: 120
+
+  # Maximum retries on failure
+  max_retries: 1
+
+newsapi:
+  # NewsAPI base URL
+  base_url: https://newsapi.org/v2/everything
+
+  # Page size for NewsAPI requests
+  page_size: 20
+
+# Scoring weights and bonuses
+scoring:
+  # NBG mention bonus
+  nbg_mention: 30
+
+  # Greek banking keyword bonus
+  greek_banking: 20
+
+  # Category match bonus
+  category_match: 10
+
+  # Tier bonuses (by source tier)
+  tier_bonus:
+    1: 15
+    2: 10
+    3: 5
+
+  # Recency bonuses (by age in hours)
+  recency_bonus:
+    0-12: 15    # Last 12 hours
+    12-24: 10   # 12-24 hours
+    24-36: 5    # 24-36 hours

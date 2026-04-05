@@ -1,0 +1,106 @@
+# News sources configuration
+# 22 RSS feeds across 7 categories, NewsAPI keywords, and web search queries
+
+rss_feeds:
+  # Business (tier 1)
+  - url: https://www.reuters.com/business/feed
+    category: business
+    tier: 1
+  - url: https://www.ft.com/?format=rss
+    category: business
+    tier: 1
+  - url: https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml
+    category: business
+    tier: 1
+
+  # Trading (tier 2)
+  - url: https://seekingalpha.com/feed.xml
+    category: trading
+    tier: 2
+  - url: https://www.marketwatch.com/rss/topstories
+    category: trading
+    tier: 2
+
+  # Tech (tier 1 + tier 2)
+  - url: https://techcrunch.com/feed/
+    category: tech
+    tier: 1
+  - url: https://feeds.arstechnica.com/arstechnica/index
+    category: tech
+    tier: 1
+  - url: https://www.theverge.com/rss/index.xml
+    category: tech
+    tier: 1
+  - url: https://www.wired.com/feed/rss
+    category: tech
+    tier: 2
+
+  # AI (tier 1 + tier 2)
+  - url: https://www.technologyreview.com/feed/
+    category: ai
+    tier: 1
+  - url: https://www.artificialintelligence-news.com/feed/
+    category: ai
+    tier: 1
+  - url: https://www.deeplearning.ai/the-batch/feed/
+    category: ai
+    tier: 2
+
+  # Apple (tier 1 + tier 2)
+  - url: https://9to5mac.com/feed/
+    category: apple
+    tier: 1
+  - url: https://feeds.macrumors.com/MacRumors-All
+    category: apple
+    tier: 1
+  - url: https://www.engadget.com/rss.xml
+    category: apple
+    tier: 2
+
+  # Greece (tier 1 + tier 2)
+  - url: https://www.ekathimerini.com/rss
+    category: greece
+    tier: 1
+  - url: https://www.kathimerini.gr/rss
+    category: greece
+    tier: 1
+  - url: https://www.capital.gr/rss
+    category: greece
+    tier: 2
+  - url: https://www.naftemporiki.gr/rss
+    category: greece
+    tier: 2
+
+  # Banking (tier 1 + tier 2)
+  - url: https://www.finextra.com/rss/headlines.aspx
+    category: banking
+    tier: 1
+  - url: https://www.bankingdive.com/feeds/news/
+    category: banking
+    tier: 2
+
+newsapi_keywords:
+  - keyword: "artificial intelligence"
+    category: ai
+  - keyword: "machine learning"
+    category: ai
+  - keyword: "banking technology"
+    category: banking
+  - keyword: "fintech"
+    category: banking
+  - keyword: "Greek economy"
+    category: greece
+  - keyword: "Apple product"
+    category: apple
+  - keyword: "stock market"
+    category: trading
+
+websearch_queries:
+  - query: "Greek banking news National Bank"
+    category: greece
+  - query: "Apple innovation technology"
+    category: apple
+  - query: "AI banking transformation"
+    category: ai
+  - query: "European financial markets"
+    category: business
