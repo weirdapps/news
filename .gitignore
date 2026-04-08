@@ -6,18 +6,38 @@ data/run.log
 data/runs.log
 data/archive/
 data/pipeline.lock
+data/*.err
+data/*.log
 
 # Python
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
 .venv/
 venv/
 *.egg-info/
+dist/
+build/
+*.egg
+
+# Secrets & credentials
+.env
+.env.*
+*.key
+*.pem
+*.p12
+credentials.json
+token.json
+secrets/
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
 # OS
 .DS_Store
+Thumbs.db
