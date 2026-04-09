@@ -122,8 +122,7 @@ def test_build_subject_scheduled():
 
     subject = build_subject(dt)
 
-    assert subject == "news digest — 09:00 sun 5 apr"
-    assert subject.islower()
+    assert subject == "News Digest | Sun 5 APR 09:00"
 
 
 def test_build_subject_adhoc():
@@ -132,9 +131,9 @@ def test_build_subject_adhoc():
 
     subject = build_subject(dt, is_adhoc=True)
 
-    assert "ad hoc" in subject
+    assert "News Digest" in subject
     assert "15:42" in subject
-    assert subject.islower()
+    assert "Sun 5 APR" in subject
 
 
 def test_build_subject_partial_sources():
@@ -229,5 +228,5 @@ def test_build_subject_synthesis_failed():
 
     subject = build_subject(dt, synthesis_failed=True)
 
-    assert "synthesis unavailable" in subject
-    assert subject.endswith("synthesis unavailable")
+    assert "headlines only" in subject
+    assert subject.endswith("headlines only")

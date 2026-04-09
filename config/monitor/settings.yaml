@@ -1,0 +1,94 @@
+# NBG Monitor — Pipeline Settings
+
+pipeline:
+  # Minimum relevance score to include a mention
+  relevance_threshold: 10
+
+  # Maximum article age in hours (monitor checks frequently, so shorter window)
+  max_article_age_hours: 24
+
+  # Minimum article length in words
+  min_article_length_words: 10
+
+  # Hours of articles to include in each monitor report (from DB)
+  digest_window_hours: 24
+
+  # Max articles to send to synthesis
+  max_digest_articles: 100
+
+  # Max articles per source to preserve diversity
+  max_articles_per_source: 10
+
+  # Number of characters to hash for deduplication
+  dedup_hash_chars: 200
+
+  # Skip sending if no new mentions since last run
+  skip_empty: true
+
+email:
+  recipient: plessas@nbg.gr
+  gmail_script: ~/SourceCode/claude/marketplaces/marketplace-utility/plugins/manage-gmail/skills/manage-gmail/scripts/dist/gmail-operations.js
+
+schedule:
+  timezone: Europe/Athens
+  runs:
+    - "07:00"
+    - "08:00"
+    - "09:00"
+    - "10:00"
+    - "11:00"
+    - "12:00"
+    - "13:00"
+    - "14:00"
+    - "15:00"
+    - "16:00"
+    - "17:00"
+    - "18:00"
+    - "19:00"
+    - "20:00"
+    - "21:00"
+    - "22:00"
+    - "23:00"
+
+storage:
+  db_path: ~/SourceCode/news/data/news.db
+  run_log_path: ~/SourceCode/news/data/run.log
+  archive_dir: ~/SourceCode/news/data/archive
+  archive_after_days: 90
+
+synthesis:
+  claude_command: /Users/plessas/.local/bin/claude
+  claude_args:
+    - "--print"
+    - "--model"
+    - "sonnet"
+  timeout: 300
+  max_retries: 2
+
+# Monitor-specific scoring (NBG focus)
+scoring:
+  # NBG direct mention — highest priority
+  nbg_mention: 80
+
+  # Greek banking sector mention
+  greek_banking: 40
+
+  # Competitor mention
+  competitor_mention: 30
+
+  # Regulatory mention
+  regulatory_mention: 35
+
+  # Category match bonus
+  category_match: 10
+
+  # Tier bonuses
+  tier_1_bonus: 15
+  tier_2_bonus: 10
+  tier_3_bonus: 5
+
+  # Recency bonuses (more aggressive for hourly monitoring)
+  recency_1h: 20
+  recency_4h: 15
+  recency_12h: 10
+  recency_24h: 5

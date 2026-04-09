@@ -18,6 +18,10 @@ class Article:
     fetched_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     included_in_digest_id: int | None = None
     also_reported_by: list[str] = field(default_factory=list)
+    pipeline: str = "digest"
+    sentiment: str = ""
+    mention_type: str = ""
+    urgency: str = ""
 
     def compute_hash(self) -> None:
         normalized_title = self.title.strip().lower()
@@ -34,6 +38,7 @@ class Digest:
     synthesis_text: str = ""
     html_output: str = ""
     sent_at: datetime | None = None
+    pipeline: str = "digest"
 
 @dataclass
 class Source:

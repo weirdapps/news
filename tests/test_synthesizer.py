@@ -2,6 +2,7 @@
 
 import json
 import subprocess
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 import pytest
@@ -18,6 +19,7 @@ from news.synthesizer import (
 
 def _make_articles():
     """Helper to create test articles."""
+    now = datetime.now(timezone.utc)
     return [
         Article(
             url="https://example.com/1",
@@ -27,6 +29,8 @@ def _make_articles():
             categories=["banking"],
             language="en",
             relevance_score=70,
+            fetched_at=now,
+            published_at=now,
         ),
         Article(
             url="https://example.com/2",
@@ -36,6 +40,8 @@ def _make_articles():
             categories=["ai"],
             language="en",
             relevance_score=45,
+            fetched_at=now,
+            published_at=now,
         ),
     ]
 
@@ -43,14 +49,10 @@ def _make_articles():
 def test_build_prompt_includes_articles():
     """Verify prompt contains article titles, time window, previous highlights."""
     articles = _make_articles()
-    articles_by_category = {
-        "banking": [articles[0]],
-        "ai": [articles[1]],
-    }
     previous_highlights = ["Previous highlight 1", "Previous highlight 2"]
     time_window = "last 24 hours"
 
-    prompt = build_prompt(articles_by_category, previous_highlights, time_window)
+    prompt = build_prompt(articles, previous_highlights, time_window)
 
     assert "NBG Record Profits" in prompt
     assert "Claude Code Update" in prompt
@@ -62,9 +64,8 @@ def test_build_prompt_includes_articles():
 def test_build_prompt_requests_json_output():
     """Verify 'JSON' appears in prompt."""
     articles = _make_articles()
-    articles_by_category = {"banking": [articles[0]]}
 
-    prompt = build_prompt(articles_by_category, [], "24h")
+    prompt = build_prompt(articles, [], "24h")
 
     assert "JSON" in prompt or "json" in prompt
 
@@ -111,21 +112,16 @@ def test_parse_synthesis_output_extracts_json_from_prose():
 
 
 def test_build_fallback_digest():
-    """Verify fallback contains article titles from both categories."""
+    """Verify fallback contains article titles from sources."""
     articles = _make_articles()
-    articles_by_category = {
-        "banking": [articles[0]],
-        "ai": [articles[1]],
-    }
-    category_display_names = {"banking": "Banking", "ai": "AI"}
 
-    fallback = build_fallback_digest(articles_by_category, category_display_names)
+    fallback = build_fallback_digest(articles)
 
     assert "SYNTHESIS UNAVAILABLE" in fallback
     assert "NBG Record Profits" in fallback
     assert "Claude Code Update" in fallback
-    assert "Banking" in fallback
-    assert "AI" in fallback
+    assert "Reuters" in fallback
+    assert "TechCrunch" in fallback
     assert "https://example.com/1" in fallback
     assert "https://example.com/2" in fallback
 

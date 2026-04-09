@@ -1,19 +1,99 @@
 # Category definitions for news classification and scoring
 # 7 categories with display names, keywords, and priority
+# Lower priority number = higher importance in digest
 
 categories:
-  business:
-    display_name: "Business & Economy"
+  banking:
+    display_name: "Banking & Fintech"
     keywords:
-      - business
-      - economy
+      - banking
+      - fintech
+      - payments
+      - digital banking
+      - open banking
+      - financial services
+      - NBG
+      - National Bank of Greece
+      - cards
+      - PSD2
+      - PSD3
+      - instant payments
+      - SEPA
+      - ECB
+      - European Central Bank
+      - Basel
+      - credit risk
+      - digital wallet
+    priority: 1
+
+  greece:
+    display_name: "Greece & Balkans"
+    keywords:
+      - Greece
+      - Greek
+      - Athens
+      - Balkans
+      - Hellenic
+      - Eurozone
+      - Mitsotakis
+      - Piraeus Bank
+      - Alpha Bank
+      - Eurobank
+      - Greek economy
+      - Greek bonds
+      - ATHEX
+    priority: 2
+
+  business:
+    display_name: "Business & Markets"
+    keywords:
       - markets
-      - finance
+      - economy
+      - recession
+      - GDP
+      - inflation
+      - interest rate
+      - Fed
+      - tariff
+      - trade war
+      - earnings
+      - IPO
+      - M&A
+      - merger
+      - acquisition
       - corporate
-      - commerce
-      - trade
-      - industry
+      - S&P 500
+      - Nasdaq
+      - Dow Jones
+      - bond market
+      - oil price
+      - commodity
     priority: 3
+
+  ai:
+    display_name: "AI & Developer Tools"
+    keywords:
+      - artificial intelligence
+      - machine learning
+      - deep learning
+      - neural network
+      - LLM
+      - generative AI
+      - Claude
+      - Anthropic
+      - Claude Code
+      - MCP
+      - Model Context Protocol
+      - AI agent
+      - agentic
+      - AI coding
+      - copilot
+      - ChatGPT
+      - OpenAI
+      - Gemini
+      - AI regulation
+      - AI safety
+    priority: 4
 
   trading:
     display_name: "Trading & Investments"
@@ -23,11 +103,39 @@ categories:
       - investments
       - portfolio
       - equity
-      - markets
       - securities
       - hedge fund
       - asset management
-    priority: 4
+      - ETF
+      - mutual fund
+      - dividend
+    priority: 5
+
+  learning:
+    display_name: "Learning & Tools"
+    keywords:
+      - tutorial
+      - how to
+      - guide
+      - tips
+      - tricks
+      - workflow
+      - productivity
+      - Claude Code
+      - release notes
+      - changelog
+      - trending
+      - open source
+      - MCP server
+      - hooks
+      - plugins
+      - prompt engineering
+      - agentic workflow
+      - developer tools
+      - GitHub trending
+      - Product Hunt
+      - Show HN
+    priority: 6
 
   tech:
     display_name: "Technology"
@@ -40,21 +148,8 @@ categories:
       - startup
       - cloud
       - cybersecurity
-    priority: 6
-
-  ai:
-    display_name: "Artificial Intelligence"
-    keywords:
-      - artificial intelligence
-      - machine learning
-      - deep learning
-      - neural network
-      - AI
-      - ML
-      - automation
-      - LLM
-      - generative AI
-    priority: 5
+      - semiconductor
+    priority: 7
 
   apple:
     display_name: "Apple Ecosystem"
@@ -67,39 +162,17 @@ categories:
       - macOS
       - Tim Cook
       - App Store
-    priority: 7
-
-  greece:
-    display_name: "Greece & Balkans"
-    keywords:
-      - Greece
-      - Greek
-      - Athens
-      - Balkans
-      - Hellenic
-      - Eurozone
-    priority: 2
-
-  banking:
-    display_name: "Banking & Fintech"
-    keywords:
-      - banking
-      - fintech
-      - payments
-      - digital banking
-      - open banking
-      - financial services
-      - NBG
-      - National Bank
-      - cards
-    priority: 1
+      - WWDC
+      - Apple Intelligence
+    priority: 8
 
 # Display order for email digest (highest priority first)
 display_order:
   - banking
   - greece
   - business
-  - trading
   - ai
+  - trading
+  - learning
   - tech
   - apple

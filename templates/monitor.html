@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{{ subject }}</title>
+    <!--[if mso]>
+    <style type="text/css">
+        table {border-collapse: collapse; border-spacing: 0; margin: 0;}
+        div, td {padding: 0;}
+        div {margin: 0 !important;}
+    </style>
+    <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; background-color: #ffffff; font-family: Aptos, Calibri, Arial, sans-serif; font-size: 12pt; color: #404040; line-height: 1.5;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff;">
+        <tr>
+            <td align="center" style="padding: 20px 10px;">
+                <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px;">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="padding: 20px 0; border-bottom: 3px solid #1a237e;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 20pt; font-weight: bold; color: #1a237e;">
+                                        NBG MONITOR
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 10pt; color: #7f8c8d; padding-top: 5px;">
+                                        {{ date_display }} {{ time_display }} | {{ mention_count }} mentions from {{ source_count }} sources
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Alerts (only if present) -->
+                    {% if alerts %}
+                    <tr>
+                        <td style="padding: 20px 0;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffebee; border-left: 4px solid #c62828;">
+                                <tr>
+                                    <td style="padding: 15px 20px;">
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; color: #c62828; padding-bottom: 10px;">
+                                                    ALERT
+                                                </td>
+                                            </tr>
+                                            {% for alert in alerts %}
+                                            <tr>
+                                                <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 12pt; color: #404040; padding: 3px 0;">
+                                                    {{ alert }}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- Executive Brief -->
+                    {% if executive_brief %}
+                    <tr>
+                        <td style="padding: 20px 0;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #e8eaf6; border-left: 4px solid #1a237e;">
+                                <tr>
+                                    <td style="padding: 15px 20px;">
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; color: #1a237e; padding-bottom: 10px;">
+                                                    KEY TAKEAWAYS
+                                                </td>
+                                            </tr>
+                                            {% for bullet in executive_brief %}
+                                            <tr>
+                                                <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 12pt; color: #404040; padding: 5px 0;">
+                                                    {{ bullet }}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- Sentiment Summary -->
+                    {% if sentiment %}
+                    <tr>
+                        <td style="padding: 15px 0;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #e0e0e0;">
+                                <tr>
+                                    <td style="padding: 15px 20px;">
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 12pt; font-weight: bold; color: #1a237e; padding-bottom: 8px;">
+                                                    SENTIMENT
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 12pt; color: #404040;">
+                                                    <span style="color: #2e7d32;">&#9650; {{ sentiment.positive }} positive</span>
+                                                    &nbsp;&nbsp;
+                                                    <span style="color: #c62828;">&#9660; {{ sentiment.negative }} negative</span>
+                                                    &nbsp;&nbsp;
+                                                    <span style="color: #757575;">&#9679; {{ sentiment.neutral }} neutral</span>
+                                                    {% if sentiment.trend %}
+                                                    <br>Trend: {{ sentiment.trend }}
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- NBG Mentions -->
+                    {% if nbg_mentions %}
+                    <tr>
+                        <td style="padding: 20px 0; border-top: 1px solid #ecf0f1;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; color: #1a237e; padding-bottom: 10px;">
+                                        NBG MENTIONS
+                                    </td>
+                                </tr>
+                                {% for mention in nbg_mentions %}
+                                <tr>
+                                    <td style="padding: 8px 0; border-bottom: 1px solid #f5f5f5;">
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 12pt; color: #404040;">
+                                                    {% if mention.sentiment == 'positive' %}<span style="color: #2e7d32;">&#9650;</span>{% elif mention.sentiment == 'negative' %}<span style="color: #c62828;">&#9660;</span>{% else %}<span style="color: #757575;">&#9679;</span>{% endif %}
+                                                    <strong>{{ mention.title }}</strong>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 11pt; color: #757575; padding-left: 18px;">
+                                                    {{ mention.source }} | {{ mention.type }}
+                                                    {% if mention.summary %}<br>{{ mention.summary }}{% endif %}
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- Sector Context -->
+                    {% if sector_context %}
+                    <tr>
+                        <td style="padding: 20px 0; border-top: 1px solid #ecf0f1;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; color: #1a237e; padding-bottom: 10px;">
+                                        GREEK BANKING SECTOR
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 12pt; color: #404040;">
+                                        {{ sector_context }}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- Competitor Watch -->
+                    {% if competitor_watch and (competitor_watch.piraeus or competitor_watch.alpha or competitor_watch.eurobank) %}
+                    <tr>
+                        <td style="padding: 20px 0; border-top: 1px solid #ecf0f1;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; color: #1a237e; padding-bottom: 10px;">
+                                        COMPETITOR WATCH
+                                    </td>
+                                </tr>
+                                {% if competitor_watch.piraeus %}
+                                <tr>
+                                    <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 12pt; color: #404040; padding: 5px 0;">
+                                        <strong>Piraeus Bank:</strong> {{ competitor_watch.piraeus }}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% if competitor_watch.alpha %}
+                                <tr>
+                                    <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 12pt; color: #404040; padding: 5px 0;">
+                                        <strong>Alpha Bank:</strong> {{ competitor_watch.alpha }}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% if competitor_watch.eurobank %}
+                                <tr>
+                                    <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 12pt; color: #404040; padding: 5px 0;">
+                                        <strong>Eurobank:</strong> {{ competitor_watch.eurobank }}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- Fallback Text (if synthesis failed) -->
+                    {% if fallback_text %}
+                    <tr>
+                        <td style="padding: 20px 0; border-top: 2px solid #e74c3c;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffebee; border-left: 4px solid #e74c3c;">
+                                <tr>
+                                    <td style="padding: 15px 20px;">
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 14pt; font-weight: bold; color: #e74c3c; padding-bottom: 10px;">
+                                                    SYNTHESIS UNAVAILABLE
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 12pt; color: #404040;">
+                                                    {{ fallback_text }}
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 20px 0; border-top: 3px solid #ecf0f1;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 10pt; color: #95a5a6; text-align: center;">
+                                        {{ mention_count }} mentions from {{ source_count }} sources{% if next_scan %}<br>Next scan: {{ next_scan }}{% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

@@ -2,7 +2,7 @@
 # News sources organized by type: RSS feeds, NewsAPI keywords, WebSearch queries
 
 rss_feeds:
-  # Business & Finance
+  # === BUSINESS & FINANCE ===
   - name: "Reuters Business"
     url: "https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com/business&ceid=US:en&hl=en-US&gl=US"
     category: "business"
@@ -13,25 +13,161 @@ rss_feeds:
     category: "business"
     tier: 1
     language: "en"
+  - name: "FT International"
+    url: "https://www.ft.com/rss/home/international"
+    category: "business"
+    tier: 1
+    language: "en"
   - name: "WSJ Markets"
     url: "https://feeds.a.dj.com/rss/RSSMarketsMain.xml"
     category: "business"
     tier: 1
     language: "en"
+  - name: "Bloomberg via Google"
+    url: "https://news.google.com/rss/search?q=when:24h+allinurl:bloomberg.com&ceid=US:en&hl=en-US&gl=US"
+    category: "business"
+    tier: 1
+    language: "en"
+  - name: "CNBC"
+    url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114"
+    category: "business"
+    tier: 1
+    language: "en"
 
-  # Investments & Trading
+  # === TRADING & INVESTMENTS ===
   - name: "Seeking Alpha"
     url: "https://seekingalpha.com/market_currents.xml"
     category: "trading"
     tier: 2
     language: "en"
   - name: "MarketWatch Top Stories"
-    url: "https://feeds.marketwatch.com/marketwatch/topstories"
+    url: "https://feeds.content.dowjones.io/public/rss/mw_topstories"
+    category: "trading"
+    tier: 2
+    language: "en"
+  - name: "TipRanks via Google"
+    url: "https://news.google.com/rss/search?q=when:24h+allinurl:tipranks.com&ceid=US:en&hl=en-US&gl=US"
     category: "trading"
     tier: 2
     language: "en"
 
-  # Tech & Internet
+  # === AI & DEVELOPER TOOLS ===
+  - name: "MIT Technology Review"
+    url: "https://www.technologyreview.com/feed/"
+    category: "ai"
+    tier: 1
+    language: "en"
+  - name: "AI News"
+    url: "https://www.artificialintelligence-news.com/feed/"
+    category: "ai"
+    tier: 2
+    language: "en"
+  - name: "The Batch (deeplearning.ai)"
+    url: "https://news.google.com/rss/search?q=when:7d+allinurl:deeplearning.ai&ceid=US:en&hl=en-US&gl=US"
+    category: "ai"
+    tier: 1
+    language: "en"
+  - name: "Anthropic Blog"
+    url: "https://news.google.com/rss/search?q=when:7d+allinurl:anthropic.com&ceid=US:en&hl=en-US&gl=US"
+    category: "ai"
+    tier: 1
+    language: "en"
+  - name: "Simon Willison"
+    url: "https://simonwillison.net/atom/everything/"
+    category: "ai"
+    tier: 1
+    language: "en"
+  - name: "Medium AI"
+    url: "https://medium.com/feed/tag/artificial-intelligence"
+    category: "ai"
+    tier: 2
+    language: "en"
+  - name: "Medium Machine Learning"
+    url: "https://medium.com/feed/tag/machine-learning"
+    category: "ai"
+    tier: 2
+    language: "en"
+  - name: "Substack AI (via Google)"
+    url: "https://news.google.com/rss/search?q=when:24h+(claude+code+OR+anthropic+OR+agentic+AI+OR+MCP)+site:substack.com&ceid=US:en&hl=en-US&gl=US"
+    category: "ai"
+    tier: 2
+    language: "en"
+
+  # === LEARNING & TOOLS ===
+  - name: "Claude Code Releases"
+    url: "https://github.com/anthropics/claude-code/releases.atom"
+    category: "learning"
+    tier: 1
+    language: "en"
+  - name: "GitHub Trending"
+    url: "https://mshibanami.github.io/GitHubTrendingRSS/daily/all.xml"
+    category: "learning"
+    tier: 2
+    language: "en"
+  - name: "GitHub Trending Python"
+    url: "https://mshibanami.github.io/GitHubTrendingRSS/daily/python.xml"
+    category: "learning"
+    tier: 2
+    language: "en"
+  - name: "Product Hunt"
+    url: "https://www.producthunt.com/feed"
+    category: "learning"
+    tier: 2
+    language: "en"
+  - name: "HN Show"
+    url: "https://hnrss.org/show?points=50"
+    category: "learning"
+    tier: 2
+    language: "en"
+  - name: "Dev.to AI"
+    url: "https://dev.to/feed/tag/ai"
+    category: "learning"
+    tier: 2
+    language: "en"
+  - name: "Changelog"
+    url: "https://changelog.com/feed"
+    category: "learning"
+    tier: 2
+    language: "en"
+  - name: "Lobsters"
+    url: "https://lobste.rs/rss"
+    category: "learning"
+    tier: 2
+    language: "en"
+
+  # === YOUTUBE ===
+  - name: "YouTube: Fireship"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA"
+    category: "ai"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Matt Wolfe"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UChpleBmo18P08aKCIgti38g"
+    category: "ai"
+    tier: 2
+    language: "en"
+  - name: "YouTube: AI Explained"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCNJ1Ymd5yFuUPtn21xtRbbw"
+    category: "ai"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Two Minute Papers"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg"
+    category: "ai"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Bloomberg TV"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCIALMKvObZNtJ6AmdCLP7Lg"
+    category: "business"
+    tier: 1
+    language: "en"
+  - name: "YouTube: NetworkChuck"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC9x0AN7BWHpCDHSm9NiJFJQ"
+    category: "tech"
+    tier: 2
+    language: "en"
+
+  # === TECH ===
   - name: "TechCrunch"
     url: "https://techcrunch.com/feed/"
     category: "tech"
@@ -52,21 +188,13 @@ rss_feeds:
     category: "tech"
     tier: 2
     language: "en"
-
-  # AI & Agents
-  - name: "MIT Technology Review"
-    url: "https://www.technologyreview.com/feed/"
-    category: "ai"
-    tier: 1
-    language: "en"
-  - name: "AI News"
-    url: "https://www.artificialintelligence-news.com/feed/"
-    category: "ai"
+  - name: "Hacker News Best"
+    url: "https://hnrss.org/best"
+    category: "tech"
     tier: 2
     language: "en"
-  # deeplearning.ai has no RSS feed — removed
 
-  # Apple & Gadgets
+  # === APPLE ===
   - name: "9to5Mac"
     url: "https://9to5mac.com/feed/"
     category: "apple"
@@ -83,7 +211,7 @@ rss_feeds:
     tier: 2
     language: "en"
 
-  # Greece & Local
+  # === GREECE ===
   - name: "Kathimerini English"
     url: "https://news.google.com/rss/search?q=when:24h+allinurl:ekathimerini.com&ceid=US:en&hl=en&gl=US"
     category: "greece"
@@ -104,8 +232,13 @@ rss_feeds:
     category: "greece"
     tier: 2
     language: "gr"
+  - name: "Euro2day"
+    url: "https://news.google.com/rss/search?q=when:24h+allinurl:euro2day.gr&ceid=GR:el&hl=el&gl=GR"
+    category: "greece"
+    tier: 2
+    language: "gr"
 
-  # Banking
+  # === BANKING & FINTECH ===
   - name: "Finextra"
     url: "https://www.finextra.com/rss/headlines.aspx"
     category: "banking"
@@ -116,18 +249,22 @@ rss_feeds:
     category: "banking"
     tier: 2
     language: "en"
+  - name: "Pymnts"
+    url: "https://www.pymnts.com/feed/"
+    category: "banking"
+    tier: 2
+    language: "en"
+  - name: "American Banker via Google"
+    url: "https://news.google.com/rss/search?q=when:24h+allinurl:americanbanker.com&ceid=US:en&hl=en-US&gl=US"
+    category: "banking"
+    tier: 2
+    language: "en"
 
 newsapi_keywords:
   - category: "business"
     query: "global markets OR corporate earnings"
-  - category: "trading"
-    query: "algorithmic trading OR automated trading systems OR quantitative finance"
-  - category: "tech"
-    query: "tech industry OR internet regulation"
   - category: "ai"
     query: "Claude Code OR agentic AI OR AI agents OR MCP servers OR LLM tools"
-  - category: "apple"
-    query: "macOS OR Apple gadgets OR consumer tech"
   - category: "greece"
     query: "Greece economy OR Athens"
   - category: "banking"

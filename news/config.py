@@ -1,4 +1,10 @@
-"""Configuration file loader for news reader."""
+"""Configuration file loader for news reader with profile support.
+
+Profiles allow different pipeline configurations (e.g., 'digest' for broad news,
+'monitor' for NBG brand monitoring). Each profile has its own config directory:
+- digest (default): loads from config/
+- monitor: loads from config/monitor/
+"""
 
 from pathlib import Path
 import yaml
@@ -7,6 +13,24 @@ import yaml
 # Project root and config directory paths
 _PROJECT_ROOT = Path(__file__).parent.parent
 _CONFIG_DIR = _PROJECT_ROOT / "config"
+
+VALID_PROFILES = ("digest", "monitor")
+
+
+def _profile_config_dir(profile: str = "digest") -> Path:
+    """Return the config directory for a given profile.
+
+    Args:
+        profile: Profile name ('digest' or 'monitor')
+
+    Returns:
+        Path to the profile's config directory
+    """
+    if profile not in VALID_PROFILES:
+        raise ValueError(f"Unknown profile '{profile}'. Valid: {VALID_PROFILES}")
+    if profile == "digest":
+        return _CONFIG_DIR
+    return _CONFIG_DIR / profile
 
 
 def load_config(path: Path) -> dict:
@@ -26,43 +50,64 @@ def load_config(path: Path) -> dict:
         return yaml.safe_load(f)
 
 
-def get_sources(path: Path | None = None) -> dict:
+def get_sources(path: Path | None = None, profile: str = "digest") -> dict:
     """Load source configuration (RSS feeds, NewsAPI keywords, web search queries).
 
     Args:
-        path: Optional path to sources.yaml. Defaults to config/sources.yaml
+        path: Optional explicit path to sources.yaml
+        profile: Profile name ('digest' or 'monitor')
 
     Returns:
-        Dictionary with keys: rss_feeds, newsapi_keywords, websearch_queries
+        Dictionary with source definitions
     """
     if path is None:
-        path = _CONFIG_DIR / "sources.yaml"
+        path = _profile_config_dir(profile) / "sources.yaml"
     return load_config(path)
 
 
-def get_categories(path: Path | None = None) -> dict:
+def get_categories(path: Path | None = None, profile: str = "digest") -> dict:
     """Load category definitions and display order.
 
     Args:
-        path: Optional path to categories.yaml. Defaults to config/categories.yaml
+        path: Optional explicit path to categories.yaml
+        profile: Profile name ('digest' or 'monitor')
 
     Returns:
         Dictionary with category definitions and display_order list
     """
     if path is None:
-        path = _CONFIG_DIR / "categories.yaml"
+        path = _profile_config_dir(profile) / "categories.yaml"
     return load_config(path)
 
 
-def get_settings(path: Path | None = None) -> dict:
+def get_settings(path: Path | None = None, profile: str = "digest") -> dict:
     """Load pipeline settings, email config, schedule, etc.
 
     Args:
-        path: Optional path to settings.yaml. Defaults to config/settings.yaml
+        path: Optional explicit path to settings.yaml
+        profile: Profile name ('digest' or 'monitor')
 
     Returns:
         Dictionary with sections: pipeline, email, schedule, storage, synthesis, etc.
     """
     if path is None:
-        path = _CONFIG_DIR / "settings.yaml"
+        path = _profile_config_dir(profile) / "settings.yaml"
+    return load_config(path)
+
+
+def get_keywords(path: Path | None = None, profile: str = "monitor") -> dict:
+    """Load keyword definitions for entity monitoring.
+
+    Only used by the monitor profile. Contains NBG name variants,
+    competitor names, key people, etc.
+
+    Args:
+        path: Optional explicit path to keywords.yaml
+        profile: Profile name
+
+    Returns:
+        Dictionary with keyword definitions
+    """
+    if path is None:
+        path = _profile_config_dir(profile) / "keywords.yaml"
     return load_config(path)

@@ -1,4 +1,4 @@
-"""AI synthesis layer using Claude CLI."""
+"""AI synthesis layer using Claude CLI — AI-curated news selection."""
 
 import json
 import logging
@@ -8,16 +8,45 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """You are a senior news analyst preparing a daily briefing for a C-level banking executive.
+_SYSTEM_PROMPT = """You are a senior news analyst preparing a daily briefing for a C-level banking executive who leads Cards & Digital Business at National Bank of Greece (NBG).
 
-Your job is to synthesize news into actionable intelligence, NOT summarize headlines.
+You will receive a large list of article titles and snippets. Your job is to:
+1. SELECT the most important articles (typically 20-40 out of hundreds)
+2. GROUP them into meaningful sections
+3. SYNTHESIZE each section into actionable intelligence
+
+**WHAT TO PRIORITIZE (in order of importance):**
+1. NBG (National Bank of Greece / Εθνική Τράπεζα) specific news — ANY mention is top priority
+2. Greek banking sector: Piraeus Bank, Alpha Bank, Eurobank, Bank of Greece, Greek bank earnings, regulation
+3. Greece macro/political: government policy, economy, bonds, ATHEX index, elections, EU relations
+4. Market-moving business: US/EU tariffs, trade war escalation, Fed/ECB rate decisions, recession signals, major M&A, oil/energy shocks, S&P/Nasdaq significant moves
+5. Claude Code practical content: tutorials, tips, MCP servers, hooks, plugins, Claude CLI usage, agentic AI workflows — the reader is a daily Claude Code user and wants actionable how-to content
+6. Anthropic company news: funding, partnerships, product launches, policy positions
+7. AI industry: enterprise AI adoption, AI in banking/finance, regulation, significant model releases
+8. Learning & Tools: Claude Code release notes, trending GitHub repos (especially AI/Python), interesting Product Hunt launches, Show HN projects, developer tutorials, workflow tips — the reader wants to stay sharp and discover useful tools
+9. Investment themes: sector rotation, earnings surprises, new opportunities
+10. Payments & fintech: PSD2/3, instant payments, digital wallets, open banking — relevant to the reader's Cards & Digital Business role
+11. Major Apple/tech only if truly significant
+
+**WHAT TO SKIP:**
+- Generic Greek news with no business/banking/economic angle (sports, entertainment, weather, crime)
+- Routine corporate press releases
+- Clickbait, listicles, SEO-optimized filler articles
+- Duplicate stories — pick the best source only
+- Medium/Substack articles that are shallow or promotional
+- General tech reviews, gadget roundups
+- GitHub repos with no clear practical value (star-farming, joke repos)
+- Product Hunt launches that are trivial or irrelevant to finance/AI/productivity
+- Note: "Εθνική" alone does NOT mean NBG — "Εθνική Οικονομία" (National Economy) or "Εθνική Ομάδα" (National Team) are NOT NBG news
 
 **RULES:**
-1. Synthesize, don't summarize: Connect dots across stories, identify trends, flag strategic implications
-2. Note tensions: When sources conflict or present opposing views, explicitly flag this
-3. Flag fact vs opinion: Distinguish between verified facts and commentary/speculation
-4. Connect dots for high-value stories: For banking/finance/AI stories with potential business impact, provide deeper context
+1. Curate ruthlessly — quality over quantity. Skip entire categories if nothing meaningful happened.
+2. Synthesize, don't summarize: Connect dots across stories, identify trends, flag strategic implications
+3. Note tensions: When sources conflict or present opposing views, explicitly flag this
+4. Flag fact vs opinion: Distinguish between verified facts and commentary/speculation
 5. Be concise: Executive brief = 5 bullets max, section synthesis = 2-3 paragraphs max
+6. For AI section: Focus on what can be practically applied, not just announcements
+7. Create section names that reflect the actual content, not generic category labels
 
 **OUTPUT FORMAT:**
 Return a JSON object with this exact structure:
@@ -34,8 +63,8 @@ Return a JSON object with this exact structure:
   "sections": [
     {
       "category": "category_key",
-      "display_name": "Category Display Name",
-      "synthesis": "2-3 paragraph synthesis connecting the dots across stories in this category",
+      "display_name": "Descriptive Section Title",
+      "synthesis": "2-3 paragraph synthesis connecting the dots across stories in this section",
       "opposing_views": "Note any conflicting perspectives or tensions between sources, or 'None noted'",
       "fact_check": "Flag any speculation vs verified facts, or 'All statements fact-based'",
       "sources": ["Source1", "Source2"],
@@ -44,54 +73,57 @@ Return a JSON object with this exact structure:
   ]
 }
 
-**high_value flag:** Set to true for categories with strategic business implications (banking, finance, AI, regulatory, competitive intelligence). Set to false for general interest categories.
+**category keys** (use these): banking, greece, business, ai, trading, learning, tech, apple
+**high_value flag:** true for sections with strategic business implications, false for general interest.
+**display_name:** Use descriptive titles that reflect the actual content (e.g. "ECB Rate Decision & Banking Impact" not just "Banking & Fintech").
 
 Return ONLY valid JSON. No preamble, no markdown formatting, no prose. Just the JSON object."""
 
 
 def build_prompt(
-    articles_by_category: dict[str, list[Any]],
+    articles: list[Any],
     previous_highlights: list[str],
     time_window: str,
 ) -> str:
-    """Build the prompt for Claude.
+    """Build the prompt with all articles for Claude to curate and synthesize.
 
     Args:
-        articles_by_category: Dict mapping category keys to lists of Article objects
+        articles: Flat list of all Article objects from the digest pool
         previous_highlights: List of highlights from previous briefing
-        time_window: Description of time window (e.g. "last 24 hours")
+        time_window: Description of time window
 
     Returns:
-        Complete prompt string combining system prompt and context
+        Complete prompt string
     """
-    # Build article summaries by category
-    article_summaries = {}
-    for category, articles in articles_by_category.items():
-        summaries = []
-        for article in articles:
-            summary = {
-                "title": article.title,
-                "source": article.source,
-                "url": article.url,
-                "content_preview": article.content[:500] if article.content else "",
-                "relevance_score": article.relevance_score,
-            }
-            summaries.append(summary)
-        article_summaries[category] = summaries
+    # Build compact article list — title + source + short snippet
+    article_entries = []
+    for i, article in enumerate(articles):
+        entry = {
+            "id": i,
+            "title": article.title,
+            "source": article.source,
+            "snippet": article.content[:200] if article.content else "",
+        }
+        if article.published_at:
+            entry["age_hours"] = round(
+                (article.fetched_at - article.published_at).total_seconds() / 3600
+            ) if article.fetched_at else None
+        article_entries.append(entry)
 
     context = {
         "time_window": time_window,
         "previous_highlights": previous_highlights,
-        "articles_by_category": article_summaries,
+        "total_articles": len(article_entries),
+        "articles": article_entries,
     }
 
     prompt = f"""{_SYSTEM_PROMPT}
 
 **CONTEXT:**
-{json.dumps(context, indent=2)}
+{json.dumps(context, ensure_ascii=False)}
 
 **INSTRUCTIONS:**
-Analyze the above articles and generate the JSON synthesis output following the format specified in the system prompt."""
+Review all {len(article_entries)} articles above. Select the most important ones, group them into sections, and generate the JSON synthesis output. Skip categories with nothing meaningful."""
 
     return prompt
 
@@ -116,7 +148,13 @@ def invoke_claude(
     if claude_args is None:
         claude_args = []
 
-    cmd = [claude_command] + claude_args
+    # Always use --bare to prevent CLAUDE.md auto-discovery and hooks
+    # from injecting conflicting instructions into the synthesis prompt.
+    bare_args = list(claude_args)
+    if "--bare" not in bare_args:
+        bare_args.append("--bare")
+
+    cmd = [claude_command] + bare_args
 
     try:
         result = subprocess.run(
@@ -127,6 +165,20 @@ def invoke_claude(
             timeout=timeout,
             check=False,
         )
+
+        if result.returncode != 0:
+            logger.warning(
+                f"Claude CLI exited with code {result.returncode}: "
+                f"{result.stderr[:500] if result.stderr else '(no stderr)'}"
+            )
+
+        if not result.stdout or not result.stdout.strip():
+            logger.warning(
+                f"Claude CLI returned empty stdout. "
+                f"stderr: {result.stderr[:500] if result.stderr else '(none)'}"
+            )
+            return None
+
         return result.stdout
 
     except subprocess.TimeoutExpired:
@@ -169,8 +221,9 @@ def parse_synthesis_output(raw: str) -> dict[str, Any]:
         except json.JSONDecodeError:
             pass
 
-    # All parsing failed
-    logger.error("Failed to parse Claude output as JSON")
+    # All parsing failed — log raw output for diagnostics
+    preview = raw[:500] if raw else "(empty)"
+    logger.error(f"Failed to parse Claude output as JSON. Raw output preview: {preview}")
     return {
         "executive_brief": ["Failed to parse synthesis output"],
         "what_changed": "Error occurred during synthesis",
@@ -180,49 +233,50 @@ def parse_synthesis_output(raw: str) -> dict[str, Any]:
 
 
 def build_fallback_digest(
-    articles_by_category: dict[str, list[Any]],
-    category_display_names: dict[str, str],
+    articles: list[Any],
 ) -> str:
     """Build a plain-text fallback digest when synthesis fails.
 
     Args:
-        articles_by_category: Dict mapping category keys to lists of Article objects
-        category_display_names: Dict mapping category keys to display names
+        articles: Flat list of Article objects
 
     Returns:
-        Plain text digest with categorized headlines
+        Plain text digest with headlines grouped by source category
     """
-    lines = ["SYNTHESIS UNAVAILABLE", "", "Categorized headlines:", ""]
+    lines = ["SYNTHESIS UNAVAILABLE", "", "Recent headlines:", ""]
 
-    for category, articles in sorted(articles_by_category.items()):
-        display_name = category_display_names.get(category, category.title())
-        lines.append(f"## {display_name}")
+    # Group by source
+    by_source: dict[str, list] = {}
+    for article in articles:
+        source = article.source
+        if source not in by_source:
+            by_source[source] = []
+        by_source[source].append(article)
+
+    for source, source_articles in sorted(by_source.items()):
+        lines.append(f"## {source}")
         lines.append("")
-
-        for article in sorted(articles, key=lambda a: a.relevance_score or 0, reverse=True):
+        for article in source_articles[:5]:  # Max 5 per source in fallback
             lines.append(f"- {article.title}")
             lines.append(f"  {article.url}")
-            lines.append(f"  Source: {article.source}")
             lines.append("")
 
     return "\n".join(lines)
 
 
 def synthesize(
-    articles_by_category: dict[str, list[Any]],
-    category_display_names: dict[str, str],
+    articles: list[Any],
     previous_highlights: list[str] | None = None,
-    time_window: str = "last 24 hours",
+    time_window: str = "last 48 hours",
     max_retries: int = 2,
-    timeout: int = 120,
+    timeout: int = 300,
     claude_command: str = "claude",
     claude_args: list[str] | None = None,
 ) -> tuple[dict[str, Any] | str, bool]:
-    """Main synthesis function with retries and fallback.
+    """Main synthesis function — Claude curates and synthesizes in one pass.
 
     Args:
-        articles_by_category: Dict mapping category keys to lists of Article objects
-        category_display_names: Dict mapping category keys to display names
+        articles: Flat list of all Article objects from digest pool
         previous_highlights: List of highlights from previous briefing
         time_window: Description of time window
         max_retries: Maximum retry attempts
@@ -238,7 +292,8 @@ def synthesize(
     if previous_highlights is None:
         previous_highlights = []
 
-    prompt = build_prompt(articles_by_category, previous_highlights, time_window)
+    prompt = build_prompt(articles, previous_highlights, time_window)
+    logger.info(f"Prompt size: {len(prompt)} chars for {len(articles)} articles")
 
     for attempt in range(max_retries):
         logger.info(f"Synthesis attempt {attempt + 1}/{max_retries}")
@@ -254,6 +309,7 @@ def synthesize(
             logger.warning(f"Attempt {attempt + 1} failed: no output from Claude")
             continue
 
+        logger.info(f"Raw Claude output: {len(raw_output)} chars, starts with: {raw_output[:200]!r}")
         parsed = parse_synthesis_output(raw_output)
 
         # Check if parsing succeeded (no error key)
@@ -265,5 +321,5 @@ def synthesize(
 
     # All attempts failed, return fallback
     logger.error("All synthesis attempts failed, using fallback digest")
-    fallback = build_fallback_digest(articles_by_category, category_display_names)
+    fallback = build_fallback_digest(articles)
     return (fallback, False)

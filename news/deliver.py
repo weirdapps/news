@@ -86,6 +86,8 @@ def build_subject(
     is_adhoc: bool = False,
     partial_sources: bool = False,
     synthesis_failed: bool = False,
+    article_count: int = 0,
+    source_count: int = 0,
 ) -> str:
     """Build email subject line from datetime and flags.
 
@@ -94,9 +96,11 @@ def build_subject(
         is_adhoc: Whether this is an ad-hoc digest
         partial_sources: Whether some sources failed
         synthesis_failed: Whether synthesis failed
+        article_count: Number of articles in digest
+        source_count: Number of sources
 
     Returns:
-        Formatted subject line (all lowercase)
+        Formatted subject line
     """
     # Ensure Athens timezone
     if dt.tzinfo is None:
@@ -104,22 +108,24 @@ def build_subject(
     else:
         dt = dt.astimezone(_ATHENS_TZ)
 
-    # Format: "HH:MM day D mon"
+    # Format: "Day D MON HH:MM"
     time_str = dt.strftime("%H:%M")
-    day_name = dt.strftime("%a").lower()
+    day_name = dt.strftime("%a").capitalize()
     day_num = dt.strftime("%-d")  # No leading zero
-    month_name = dt.strftime("%b").lower()
+    month_name = dt.strftime("%b").upper()
 
-    base = f"news digest — {time_str} {day_name} {day_num} {month_name}"
+    label = "News Digest"
+    stats = f"{article_count} articles from {source_count} sources" if article_count else ""
+    base = f"{label} | {day_name} {day_num} {month_name} {time_str}"
 
-    if is_adhoc:
-        base = base.replace("news digest", "news digest — ad hoc")
+    if stats:
+        base += f" | {stats}"
 
     # Add suffixes
     if synthesis_failed:
-        base += " — synthesis unavailable"
+        base += " | headlines only"
     elif partial_sources:
-        base += " — partial sources"
+        base += " | partial sources"
 
     return base
 
@@ -178,6 +184,113 @@ def send_email(
     except Exception as e:
         logger.error(f"Failed to send email: {e}")
         return False
+
+
+def render_monitor_html(
+    synthesis: dict,
+    mention_count: int,
+    source_count: int,
+    time_display: str,
+    date_display: str,
+    next_scan: str | None = None,
+    subject: str = "",
+) -> str:
+    """Render the monitor HTML using Jinja2 template.
+
+    Args:
+        synthesis: Parsed monitor synthesis dict
+        mention_count: Total number of mentions
+        source_count: Total number of sources
+        time_display: Time string (e.g. "15:00")
+        date_display: Date string (e.g. "tue 8 apr")
+        next_scan: Optional next scan time string
+        subject: Email subject line
+
+    Returns:
+        Rendered HTML string
+    """
+    env = Environment(
+        loader=FileSystemLoader(_TEMPLATES_DIR),
+        autoescape=select_autoescape(default_for_string=True, default=True),
+    )
+    template = env.get_template("monitor.html")
+
+    alerts = synthesis.get("alerts", [])
+    executive_brief = synthesis.get("executive_brief", [])
+    sentiment = synthesis.get("sentiment_summary")
+    nbg_mentions = synthesis.get("nbg_mentions", [])
+    sector_context = synthesis.get("sector_context", "")
+    competitor_watch = synthesis.get("competitor_watch")
+    fallback_text = synthesis.get("fallback_text", "")
+
+    # Convert sector_context newlines to <br> for HTML
+    if sector_context:
+        text = sector_context.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        sector_context = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))
+    if fallback_text:
+        text = fallback_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        fallback_text = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))
+
+    return template.render(
+        subject=subject,
+        date_display=date_display,
+        time_display=time_display,
+        mention_count=mention_count,
+        source_count=source_count,
+        alerts=alerts,
+        executive_brief=executive_brief,
+        sentiment=sentiment,
+        nbg_mentions=nbg_mentions,
+        sector_context=sector_context,
+        competitor_watch=competitor_watch,
+        fallback_text=fallback_text,
+        next_scan=next_scan,
+    )
+
+
+def build_monitor_subject(
+    dt: datetime,
+    is_adhoc: bool = False,
+    mention_count: int = 0,
+    source_count: int = 0,
+    has_alerts: bool = False,
+    synthesis_failed: bool = False,
+) -> str:
+    """Build monitor email subject line.
+
+    Args:
+        dt: Datetime object (should have Athens timezone)
+        is_adhoc: Whether this is an ad-hoc run
+        mention_count: Number of mentions
+        source_count: Number of sources
+        has_alerts: Whether there are critical alerts
+        synthesis_failed: Whether synthesis failed
+
+    Returns:
+        Formatted subject line
+    """
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=_ATHENS_TZ)
+    else:
+        dt = dt.astimezone(_ATHENS_TZ)
+
+    time_str = dt.strftime("%H:%M")
+    day_name = dt.strftime("%a").capitalize()
+    day_num = dt.strftime("%-d")
+    month_name = dt.strftime("%b").upper()
+
+    label = "NBG Monitor"
+    base = f"{label} | {day_name} {day_num} {month_name} {time_str}"
+
+    if mention_count:
+        base += f" | {mention_count} mentions"
+
+    if has_alerts:
+        base += " | ALERT"
+    if synthesis_failed:
+        base += " | raw data"
+
+    return base
 
 
 def save_fallback(html: str, output_dir: str = "~/Downloads") -> str:

@@ -5,13 +5,22 @@ pipeline:
   relevance_threshold: 20
 
   # Maximum articles per category in final digest
-  max_articles_per_category: 5
+  max_articles_per_category: 8
 
   # Maximum article age in hours
   max_article_age_hours: 36
 
   # Minimum article length in words (low for RSS summaries)
   min_article_length_words: 10
+
+  # Hours of articles to include in each digest (from DB)
+  digest_window_hours: 48
+
+  # Max articles to send to synthesis (top N by relevance score)
+  max_digest_articles: 300
+
+  # Max articles per source to preserve diversity
+  max_articles_per_source: 20
 
   # Number of characters to hash for deduplication
   dedup_hash_chars: 200
@@ -58,10 +67,10 @@ synthesis:
     - "sonnet"
 
   # Timeout for synthesis in seconds
-  timeout: 180
+  timeout: 300
 
   # Maximum retries on failure
-  max_retries: 1
+  max_retries: 2
 
 newsapi:
   # NewsAPI base URL
@@ -73,10 +82,13 @@ newsapi:
 # Scoring weights and bonuses (flat keys matching processor.py)
 scoring:
   # NBG mention bonus
-  nbg_mention: 30
+  nbg_mention: 50
 
   # Greek banking keyword bonus
-  greek_banking: 20
+  greek_banking: 30
+
+  # Claude/AI tools mention bonus
+  claude_mention: 25
 
   # Category match bonus
   category_match: 10

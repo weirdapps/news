@@ -32,6 +32,28 @@ def _str_to_dt(s: str | None) -> datetime | None:
     return datetime.fromisoformat(s)
 
 
+def _migrate_db(conn: sqlite3.Connection) -> None:
+    """Add new columns to existing tables (safe to run repeatedly).
+
+    Each ALTER TABLE is wrapped in a try/except because SQLite raises
+    OperationalError if the column already exists. All values here are
+    hardcoded schema constants, not user input.
+    """
+    stmts = [
+        "ALTER TABLE articles ADD COLUMN pipeline TEXT DEFAULT 'digest'",
+        "ALTER TABLE articles ADD COLUMN sentiment TEXT",
+        "ALTER TABLE articles ADD COLUMN mention_type TEXT",
+        "ALTER TABLE articles ADD COLUMN urgency TEXT",
+        "ALTER TABLE digests ADD COLUMN pipeline TEXT DEFAULT 'digest'",
+    ]
+    for stmt in stmts:
+        try:
+            conn.execute(stmt)
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+    conn.commit()
+
+
 def init_db(conn: sqlite3.Connection) -> None:
     """Initialize database schema with all required tables and indexes."""
     conn.executescript("""
@@ -49,6 +71,10 @@ def init_db(conn: sqlite3.Connection) -> None:
             fetched_at TEXT NOT NULL,
             included_in_digest_id INTEGER,
             also_reported_by TEXT,
+            pipeline TEXT DEFAULT 'digest',
+            sentiment TEXT,
+            mention_type TEXT,
+            urgency TEXT,
             FOREIGN KEY (included_in_digest_id) REFERENCES digests(id)
         );
 
@@ -66,7 +92,8 @@ def init_db(conn: sqlite3.Connection) -> None:
             article_count INTEGER NOT NULL,
             synthesis_text TEXT,
             html_output TEXT,
-            sent_at TEXT
+            sent_at TEXT,
+            pipeline TEXT DEFAULT 'digest'
         );
 
         CREATE TABLE IF NOT EXISTS sources (
@@ -85,6 +112,11 @@ def init_db(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_fetched_at ON articles(fetched_at);
         CREATE INDEX IF NOT EXISTS idx_category ON article_categories(category);
     """)
+    conn.commit()
+
+    # Migrate existing databases that lack new columns, then add index
+    _migrate_db(conn)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_pipeline ON articles(pipeline)")
     conn.commit()
 
 
@@ -117,6 +149,10 @@ def _row_to_article(conn: sqlite3.Connection, row: sqlite3.Row) -> Article:
         fetched_at=_str_to_dt(row["fetched_at"]),
         included_in_digest_id=row["included_in_digest_id"],
         also_reported_by=also_reported_by,
+        pipeline=row["pipeline"] or "digest",
+        sentiment=row["sentiment"] or "",
+        mention_type=row["mention_type"] or "",
+        urgency=row["urgency"] or "",
     )
 
 
@@ -133,8 +169,9 @@ def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
             INSERT INTO articles (
                 url, title, source, author, published_at, content, summary,
                 content_hash, language, relevance_score, fetched_at,
-                included_in_digest_id, also_reported_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                included_in_digest_id, also_reported_by,
+                pipeline, sentiment, mention_type, urgency
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             article.url,
             article.title,
@@ -149,6 +186,10 @@ def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
             _dt_to_str(article.fetched_at),
             article.included_in_digest_id,
             json.dumps(article.also_reported_by) if article.also_reported_by else None,
+            article.pipeline,
+            article.sentiment or None,
+            article.mention_type or None,
+            article.urgency or None,
         ))
 
         # Insert categories
@@ -190,6 +231,7 @@ def get_articles_since(
     since: datetime,
     min_score: int = 0,
     category: Optional[str] = None,
+    pipeline: str = "digest",
 ) -> list[Article]:
     """
     Get articles fetched since a timestamp, with optional filtering.
@@ -198,15 +240,16 @@ def get_articles_since(
         since: Minimum fetched_at timestamp
         min_score: Minimum relevance_score (default 0)
         category: Optional category filter
+        pipeline: Pipeline filter ('digest' or 'monitor')
     """
-    query = "SELECT * FROM articles WHERE fetched_at >= ? AND relevance_score >= ?"
-    params = [_dt_to_str(since), min_score]
+    query = "SELECT * FROM articles WHERE fetched_at >= ? AND relevance_score >= ? AND pipeline = ?"
+    params: list = [_dt_to_str(since), min_score, pipeline]
 
     if category:
         query = """
             SELECT a.* FROM articles a
             JOIN article_categories ac ON a.url = ac.article_url
-            WHERE a.fetched_at >= ? AND a.relevance_score >= ? AND ac.category = ?
+            WHERE a.fetched_at >= ? AND a.relevance_score >= ? AND a.pipeline = ? AND ac.category = ?
         """
         params.append(category)
 
@@ -223,8 +266,9 @@ def insert_digest(conn: sqlite3.Connection, digest: Digest) -> int:
     """
     cursor = conn.execute("""
         INSERT INTO digests (
-            digest_type, created_at, article_count, synthesis_text, html_output, sent_at
-        ) VALUES (?, ?, ?, ?, ?, ?)
+            digest_type, created_at, article_count, synthesis_text, html_output, sent_at,
+            pipeline
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
     """, (
         digest.digest_type,
         _dt_to_str(digest.created_at),
@@ -232,18 +276,22 @@ def insert_digest(conn: sqlite3.Connection, digest: Digest) -> int:
         digest.synthesis_text,
         digest.html_output,
         _dt_to_str(digest.sent_at),
+        digest.pipeline,
     ))
     conn.commit()
     return cursor.lastrowid
 
 
-def get_last_digest(conn: sqlite3.Connection) -> Optional[Digest]:
-    """Get the most recent digest."""
+def get_last_digest(
+    conn: sqlite3.Connection, pipeline: str = "digest"
+) -> Optional[Digest]:
+    """Get the most recent digest for a given pipeline."""
     cursor = conn.execute("""
         SELECT * FROM digests
+        WHERE pipeline = ?
         ORDER BY created_at DESC
         LIMIT 1
-    """)
+    """, (pipeline,))
     row = cursor.fetchone()
     if row is None:
         return None
@@ -256,6 +304,7 @@ def get_last_digest(conn: sqlite3.Connection) -> Optional[Digest]:
         synthesis_text=row["synthesis_text"],
         html_output=row["html_output"],
         sent_at=_str_to_dt(row["sent_at"]),
+        pipeline=row["pipeline"] or "digest",
     )
 
 

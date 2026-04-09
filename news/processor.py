@@ -106,6 +106,11 @@ def compute_relevance_score(
     if any(pattern in text for pattern in greek_banking_patterns):
         score += scoring.get("greek_banking", 0)
 
+    # Check for Claude/AI tools mentions
+    claude_patterns = ["claude code", "claude ai", "anthropic", "model context protocol", "mcp server", "agentic ai"]
+    if any(pattern in text for pattern in claude_patterns):
+        score += scoring.get("claude_mention", 0)
+
     # Category match bonus
     if article.categories:
         score += scoring.get("category_match", 0)

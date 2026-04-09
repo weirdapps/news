@@ -6,7 +6,7 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -14,19 +14,23 @@ from zoneinfo import ZoneInfo
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from news.auth import check_gcloud_auth, send_auth_failure_notification
-from news.config import get_categories, get_settings, get_sources
+from news.config import VALID_PROFILES, get_categories, get_keywords, get_settings, get_sources
 from news.deliver import (
+    build_monitor_subject,
     build_subject,
     notify_macos,
     render_digest_html,
+    render_monitor_html,
     save_fallback,
     send_email,
 )
 from news.fetcher import fetch_rss_feeds
 from news.models import Digest
+from news.monitor_synth import synthesize_monitor
 from news.processor import process_articles
 from news.storage import (
     get_article_by_hash,
+    get_articles_since,
     get_connection,
     get_last_digest,
     init_db,
@@ -194,7 +198,20 @@ def log_run(
         f.write(line)
 
 
-async def run_pipeline(run_type: str = "scheduled") -> None:
+async def run_pipeline(run_type: str = "scheduled", profile: str = "digest") -> None:
+    """Execute the appropriate pipeline based on profile.
+
+    Args:
+        run_type: "scheduled" or "adhoc"
+        profile: "digest" or "monitor"
+    """
+    if profile == "monitor":
+        await run_monitor_pipeline(run_type=run_type)
+        return
+    await run_digest_pipeline(run_type=run_type)
+
+
+async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     """Execute the full news digest pipeline.
 
     Args:
@@ -303,43 +320,43 @@ async def run_pipeline(run_type: str = "scheduled") -> None:
     for article in processed_articles:
         insert_article(conn, article)
 
-    # Filter by relevance threshold
-    relevant_articles = [
-        a
-        for a in processed_articles
-        if a.relevance_score and a.relevance_score >= pipeline_config["relevance_threshold"]
-    ]
-    logger.info(f"Relevant articles (score >= {pipeline_config['relevance_threshold']}): {len(relevant_articles)}")
+    # DIGEST POOL: Pull last 48h of articles from DB for synthesis
+    digest_window = timedelta(hours=pipeline_config.get("digest_window_hours", 48))
+    digest_since = start_time - digest_window
+    all_recent = get_articles_since(conn, digest_since, min_score=0)
 
-    # Group by category and limit per category
-    articles_by_category = {}
-    max_per_category = pipeline_config["max_articles_per_category"]
-    display_order = categories_config.get("display_order", [])
+    # Select top articles by relevance score, with per-source diversity limit
+    max_digest = pipeline_config.get("max_digest_articles", 300)
+    max_per_source = pipeline_config.get("max_articles_per_source", 20)
+    all_recent.sort(key=lambda a: a.relevance_score, reverse=True)
+    source_counts: dict[str, int] = {}
+    capped_articles = []
+    for article in all_recent:
+        count = source_counts.get(article.source, 0)
+        if count < max_per_source:
+            capped_articles.append(article)
+            source_counts[article.source] = count + 1
+        if len(capped_articles) >= max_digest:
+            break
 
-    for category_key in display_order:
-        category_articles = [
-            a for a in relevant_articles if category_key in a.categories
-        ]
-        # Sort by relevance score descending
-        category_articles.sort(key=lambda a: a.relevance_score or 0, reverse=True)
-        # Limit per category
-        articles_by_category[category_key] = category_articles[:max_per_category]
+    logger.info(
+        f"Digest pool: {len(all_recent)} articles from last "
+        f"{pipeline_config.get('digest_window_hours', 48)}h, "
+        f"selected top {len(capped_articles)} by score (cap {max_digest}, max {max_per_source}/source)"
+    )
 
-    # SYNTHESIZE: Call Claude for synthesis
-    category_display_names = {
-        k: v["display_name"] for k, v in categories_config.get("categories", {}).items()
-    }
-
+    # SYNTHESIZE: Claude curates and synthesizes in one pass
     synthesis_result, synthesis_ok = synthesize(
-        articles_by_category=articles_by_category,
-        category_display_names=category_display_names,
+        articles=capped_articles,
         previous_highlights=previous_highlights,
         time_window=time_window,
         max_retries=synthesis_config.get("max_retries", 2),
-        timeout=synthesis_config.get("timeout", 120),
+        timeout=synthesis_config.get("timeout", 300),
         claude_command=synthesis_config.get("claude_command", "claude"),
         claude_args=synthesis_config.get("claude_args", []),
     )
+
+    relevant_articles = all_recent
 
     # Prepare synthesis data for rendering
     if synthesis_ok:
@@ -367,6 +384,8 @@ async def run_pipeline(run_type: str = "scheduled") -> None:
         is_adhoc=(run_type == "adhoc"),
         partial_sources=(len(fetch_errors) > 0),
         synthesis_failed=(not synthesis_ok),
+        article_count=len(relevant_articles),
+        source_count=source_count,
     )
 
     html_output = render_digest_html(
@@ -428,6 +447,259 @@ async def run_pipeline(run_type: str = "scheduled") -> None:
     logger.info(f"Pipeline complete in {duration:.1f}s")
 
 
+async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
+    """Execute the NBG brand monitoring pipeline.
+
+    Args:
+        run_type: "scheduled" or "adhoc"
+    """
+    start_time = datetime.now(timezone.utc)
+    logger = logging.getLogger(__name__)
+    logger.info(f"Starting monitor {run_type} pipeline run")
+
+    # Load monitor-specific configurations
+    settings = get_settings(profile="monitor")
+    sources = get_sources(profile="monitor")
+    keywords_config = get_keywords(profile="monitor")
+
+    # Extract settings
+    pipeline_config = settings["pipeline"]
+    email_config = settings["email"]
+    storage_config = settings["storage"]
+    schedule_config = settings["schedule"]
+    synthesis_config = settings.get("synthesis", {})
+    scoring_config = settings.get("scoring", {})
+
+    # Expand paths
+    db_path = Path(storage_config["db_path"]).expanduser()
+    run_log_path = Path(storage_config["run_log_path"]).expanduser()
+    gmail_script = Path(email_config["gmail_script"]).expanduser()
+
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Connect to database
+    conn = get_connection(db_path)
+    init_db(conn)
+
+    # Check authentication
+    if not check_gcloud_auth():
+        logger.error("gcloud auth check failed - sending notification and aborting")
+        send_auth_failure_notification(
+            recipient=email_config["recipient"],
+            gmail_script=str(gmail_script),
+        )
+        conn.close()
+        return
+
+    # Get last monitor digest for continuity
+    last_digest = get_last_digest(conn, pipeline="monitor")
+    last_digest_at = last_digest.created_at if last_digest else None
+
+    # Calculate time window
+    time_window = get_time_window(
+        start_time, last_digest_at, schedule_config["timezone"],
+    )
+    logger.info(f"Monitor time window: {time_window}")
+
+    # Get previous synthesis for trend comparison
+    previous_summary = None
+    if last_digest and last_digest.synthesis_text:
+        try:
+            previous_summary = json.loads(last_digest.synthesis_text)
+        except json.JSONDecodeError:
+            pass
+
+    # FETCH: Get articles from monitor RSS feeds
+    rss_feeds = sources.get("rss_feeds", [])
+    logger.info(f"Fetching {len(rss_feeds)} monitor RSS feeds")
+    raw_articles, fetch_errors = await fetch_rss_feeds(rss_feeds)
+    logger.info(f"Fetched {len(raw_articles)} articles")
+
+    if fetch_errors:
+        logger.warning(f"Fetch errors: {len(fetch_errors)}")
+        for error in fetch_errors[:5]:
+            logger.warning(f"  {error}")
+
+    # PROCESS: Dedup, classify, score
+    existing_hashes = set()
+    for article in raw_articles:
+        article.pipeline = "monitor"
+        article.compute_hash()
+        if get_article_by_hash(conn, article.content_hash):
+            existing_hashes.add(article.content_hash)
+
+    # Build source tiers mapping
+    source_tiers = {
+        source["name"]: source.get("tier", 2) for source in rss_feeds
+    }
+
+    # Use keywords config as categories for classification
+    processed_articles, process_stats = process_articles(
+        articles=raw_articles,
+        existing_hashes=existing_hashes,
+        categories_config=keywords_config,
+        scoring_config=scoring_config,
+        source_tiers=source_tiers,
+        min_words=pipeline_config["min_article_length_words"],
+        max_age_hours=pipeline_config["max_article_age_hours"],
+    )
+
+    # Set pipeline on all processed articles
+    for article in processed_articles:
+        article.pipeline = "monitor"
+
+    logger.info(
+        f"Processing complete: {process_stats['output_count']} new articles "
+        f"({process_stats['duplicates']} duplicates, {process_stats['quality_dropped']} quality drops)"
+    )
+
+    # Check skip_empty setting
+    skip_empty = pipeline_config.get("skip_empty", True)
+    if skip_empty and process_stats["output_count"] == 0 and run_type != "adhoc":
+        logger.info("No new mentions — skipping synthesis and delivery")
+        conn.close()
+        duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+        log_run(
+            log_path=str(run_log_path),
+            run_type=f"monitor-{run_type}",
+            article_count=0,
+            new_count=0,
+            synthesis_ok=True,
+            sent_ok=True,
+            duration_seconds=duration,
+        )
+        return
+
+    # STORE: Insert new articles
+    for article in processed_articles:
+        insert_article(conn, article)
+
+    # DIGEST POOL: Pull recent monitor articles
+    digest_window = timedelta(hours=pipeline_config.get("digest_window_hours", 24))
+    digest_since = start_time - digest_window
+    all_recent = get_articles_since(conn, digest_since, min_score=0, pipeline="monitor")
+
+    # Select top articles
+    max_digest = pipeline_config.get("max_digest_articles", 100)
+    max_per_source = pipeline_config.get("max_articles_per_source", 10)
+    all_recent.sort(key=lambda a: a.relevance_score, reverse=True)
+    source_counts: dict[str, int] = {}
+    capped_articles = []
+    for article in all_recent:
+        count = source_counts.get(article.source, 0)
+        if count < max_per_source:
+            capped_articles.append(article)
+            source_counts[article.source] = count + 1
+        if len(capped_articles) >= max_digest:
+            break
+
+    logger.info(
+        f"Monitor pool: {len(all_recent)} articles, "
+        f"selected top {len(capped_articles)}"
+    )
+
+    # SYNTHESIZE: Claude analyzes with monitor-specific prompt
+    synthesis_result, synthesis_ok = synthesize_monitor(
+        articles=capped_articles,
+        previous_summary=previous_summary,
+        time_window=time_window,
+        last_run_at=last_digest_at,
+        max_retries=synthesis_config.get("max_retries", 2),
+        timeout=synthesis_config.get("timeout", 300),
+        claude_command=synthesis_config.get("claude_command", "claude"),
+        claude_args=synthesis_config.get("claude_args", []),
+    )
+
+    # Prepare synthesis data
+    if synthesis_ok:
+        synthesis_data = synthesis_result
+        synthesis_text = json.dumps(synthesis_result)
+    else:
+        synthesis_data = {"fallback_text": synthesis_result}
+        synthesis_text = synthesis_result
+
+    # Calculate next scan time
+    now_athens = start_time.astimezone(_ATHENS_TZ)
+    current_time_str = now_athens.strftime("%H:%M")
+    next_scan = get_next_digest_time(
+        current_time_str, schedule_config["runs"]
+    )
+
+    # DELIVER: Render monitor HTML and send email
+    source_count = len(rss_feeds)
+    time_display = now_athens.strftime("%H:%M")
+    date_display = now_athens.strftime("%a %-d %b").lower()
+
+    mention_count = synthesis_data.get("mention_count", len(capped_articles)) if synthesis_ok else len(capped_articles)
+    has_alerts = bool(synthesis_data.get("alerts")) if synthesis_ok else False
+
+    subject = build_monitor_subject(
+        dt=now_athens,
+        is_adhoc=(run_type == "adhoc"),
+        mention_count=mention_count,
+        source_count=source_count,
+        has_alerts=has_alerts,
+        synthesis_failed=(not synthesis_ok),
+    )
+
+    html_output = render_monitor_html(
+        synthesis=synthesis_data,
+        mention_count=mention_count,
+        source_count=source_count,
+        time_display=time_display,
+        date_display=date_display,
+        next_scan=next_scan,
+        subject=subject,
+    )
+
+    # Send email
+    email_sent = send_email(
+        subject=subject,
+        html_body=html_output,
+        recipient=email_config["recipient"],
+        gmail_script=str(gmail_script),
+    )
+
+    if not email_sent:
+        logger.error("Monitor email send failed - saving fallback")
+        fallback_path = save_fallback(html_output)
+        notify_macos(
+            title="NBG Monitor Send Failed",
+            message=f"Saved to {fallback_path}",
+        )
+
+    # Record monitor digest in database
+    digest = Digest(
+        digest_type=run_type,
+        created_at=start_time,
+        article_count=len(capped_articles),
+        synthesis_text=synthesis_text,
+        html_output=html_output,
+        sent_at=None,
+        pipeline="monitor",
+    )
+    digest_id = insert_digest(conn, digest)
+
+    if email_sent:
+        update_digest_sent(conn, digest_id)
+
+    conn.close()
+
+    # Log run
+    duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+    log_run(
+        log_path=str(run_log_path),
+        run_type=f"monitor-{run_type}",
+        article_count=len(processed_articles),
+        new_count=process_stats["output_count"],
+        synthesis_ok=synthesis_ok,
+        sent_ok=email_sent,
+        duration_seconds=duration,
+    )
+
+    logger.info(f"Monitor pipeline complete in {duration:.1f}s")
+
+
 def main() -> None:
     """Main entry point with CLI parsing and lock management."""
     setup_logging()
@@ -449,24 +721,33 @@ def main() -> None:
         dest="run_type",
         help="Ad-hoc run",
     )
+    parser.add_argument(
+        "--profile",
+        choices=VALID_PROFILES,
+        default="digest",
+        help="Pipeline profile: 'digest' (default) or 'monitor' (NBG brand monitoring)",
+    )
     parser.set_defaults(run_type="scheduled")
 
     args = parser.parse_args()
 
+    # Use profile-specific lock to allow digest and monitor to run concurrently
+    lock_path = _PROJECT_ROOT / "data" / f"pipeline-{args.profile}.lock"
+
     # Acquire lock
-    if not acquire_lock(str(_DEFAULT_LOCK_PATH)):
-        logger.error("Failed to acquire lock - another instance running?")
+    if not acquire_lock(str(lock_path)):
+        logger.error(f"Failed to acquire lock for {args.profile} - another instance running?")
         sys.exit(1)
 
     try:
         # Run pipeline
-        asyncio.run(run_pipeline(run_type=args.run_type))
+        asyncio.run(run_pipeline(run_type=args.run_type, profile=args.profile))
     except Exception as e:
         logger.error(f"Pipeline failed with exception: {e}", exc_info=True)
         sys.exit(1)
     finally:
         # Always release lock
-        release_lock(str(_DEFAULT_LOCK_PATH))
+        release_lock(str(lock_path))
 
 
 if __name__ == "__main__":

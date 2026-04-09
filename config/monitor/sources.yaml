@@ -1,0 +1,156 @@
+# NBG Monitor — Source Configuration
+# Monitors all mentions of National Bank of Greece and competitors
+
+rss_feeds:
+  # === NBG DIRECT — Google News Alerts ===
+  - name: "NBG English"
+    url: "https://news.google.com/rss/search?q=when:24h+%22National+Bank+of+Greece%22+OR+%22NBG+Group%22&ceid=US:en&hl=en-US&gl=US"
+    category: "nbg_direct"
+    tier: 1
+    language: "en"
+  - name: "NBG Greek"
+    url: "https://news.google.com/rss/search?q=when:24h+%22%CE%95%CE%B8%CE%BD%CE%B9%CE%BA%CE%AE+%CE%A4%CF%81%CE%AC%CF%80%CE%B5%CE%B6%CE%B1%22&ceid=GR:el&hl=el&gl=GR"
+    category: "nbg_direct"
+    tier: 1
+    language: "gr"
+  - name: "ETE Stock News"
+    url: "https://news.google.com/rss/search?q=when:24h+%22ETE.AT%22+OR+%22%CE%95%CE%A4%CE%95+%CE%BC%CE%B5%CF%84%CE%BF%CF%87%CE%AE%22&ceid=GR:el&hl=el&gl=GR"
+    category: "nbg_stock"
+    tier: 1
+    language: "gr"
+  - name: "NBG Leadership"
+    url: "https://news.google.com/rss/search?q=when:24h+%22Mylonas+NBG%22+OR+%22%CE%9C%CF%85%CE%BB%CF%89%CE%BD%CE%AC%CF%82+%CE%95%CE%B8%CE%BD%CE%B9%CE%BA%CE%AE%22&ceid=GR:el&hl=el&gl=GR"
+    category: "nbg_direct"
+    tier: 1
+    language: "gr"
+
+  # === NBG IN GREEK MEDIA (site-specific) ===
+  - name: "Kathimerini NBG"
+    url: "https://news.google.com/rss/search?q=when:24h+%CE%95%CE%B8%CE%BD%CE%B9%CE%BA%CE%AE+%CE%A4%CF%81%CE%AC%CF%80%CE%B5%CE%B6%CE%B1+site:kathimerini.gr&ceid=GR:el&hl=el&gl=GR"
+    category: "nbg_direct"
+    tier: 1
+    language: "gr"
+  - name: "Naftemporiki NBG"
+    url: "https://news.google.com/rss/search?q=when:24h+%CE%95%CE%B8%CE%BD%CE%B9%CE%BA%CE%AE+%CE%A4%CF%81%CE%AC%CF%80%CE%B5%CE%B6%CE%B1+site:naftemporiki.gr&ceid=GR:el&hl=el&gl=GR"
+    category: "nbg_direct"
+    tier: 1
+    language: "gr"
+  - name: "Capital.gr NBG"
+    url: "https://news.google.com/rss/search?q=when:24h+%CE%95%CE%B8%CE%BD%CE%B9%CE%BA%CE%AE+%CE%A4%CF%81%CE%AC%CF%80%CE%B5%CE%B6%CE%B1+site:capital.gr&ceid=GR:el&hl=el&gl=GR"
+    category: "nbg_direct"
+    tier: 1
+    language: "gr"
+  - name: "Euro2day NBG"
+    url: "https://news.google.com/rss/search?q=when:24h+%CE%95%CE%B8%CE%BD%CE%B9%CE%BA%CE%AE+%CE%A4%CF%81%CE%AC%CF%80%CE%B5%CE%B6%CE%B1+site:euro2day.gr&ceid=GR:el&hl=el&gl=GR"
+    category: "nbg_direct"
+    tier: 2
+    language: "gr"
+  - name: "Insider NBG"
+    url: "https://news.google.com/rss/search?q=when:24h+%CE%95%CE%B8%CE%BD%CE%B9%CE%BA%CE%AE+%CE%A4%CF%81%CE%AC%CF%80%CE%B5%CE%B6%CE%B1+site:insider.gr&ceid=GR:el&hl=el&gl=GR"
+    category: "nbg_direct"
+    tier: 2
+    language: "gr"
+
+  # === NBG IN INTERNATIONAL MEDIA ===
+  - name: "Reuters NBG"
+    url: "https://news.google.com/rss/search?q=when:24h+%22National+Bank+of+Greece%22+site:reuters.com&ceid=US:en&hl=en-US&gl=US"
+    category: "nbg_direct"
+    tier: 1
+    language: "en"
+  - name: "Bloomberg NBG"
+    url: "https://news.google.com/rss/search?q=when:24h+%22National+Bank+of+Greece%22+site:bloomberg.com&ceid=US:en&hl=en-US&gl=US"
+    category: "nbg_direct"
+    tier: 1
+    language: "en"
+  - name: "FT NBG"
+    url: "https://news.google.com/rss/search?q=when:24h+%22National+Bank+of+Greece%22+site:ft.com&ceid=US:en&hl=en-US&gl=US"
+    category: "nbg_direct"
+    tier: 1
+    language: "en"
+  - name: "Ekathimerini NBG"
+    url: "https://news.google.com/rss/search?q=when:24h+%22National+Bank+of+Greece%22+site:ekathimerini.com&ceid=US:en&hl=en-US&gl=US"
+    category: "nbg_direct"
+    tier: 1
+    language: "en"
+
+  # === GREEK BANKING SECTOR ===
+  - name: "Greek Banks EN"
+    url: "https://news.google.com/rss/search?q=when:24h+%22Greek+banks%22+OR+%22Greek+banking%22&ceid=US:en&hl=en-US&gl=US"
+    category: "sector"
+    tier: 2
+    language: "en"
+  - name: "Greek Banks GR"
+    url: "https://news.google.com/rss/search?q=when:24h+%CE%B5%CE%BB%CE%BB%CE%B7%CE%BD%CE%B9%CE%BA%CE%AD%CF%82+%CF%84%CF%81%CE%AC%CF%80%CE%B5%CE%B6%CE%B5%CF%82&ceid=GR:el&hl=el&gl=GR"
+    category: "sector"
+    tier: 2
+    language: "gr"
+  - name: "ATHEX Banks"
+    url: "https://news.google.com/rss/search?q=when:24h+%CF%84%CF%81%CE%B1%CF%80%CE%B5%CE%B6%CE%B9%CE%BA%CE%AD%CF%82+%CE%BC%CE%B5%CF%84%CE%BF%CF%87%CE%AD%CF%82+%CE%A7%CE%91&ceid=GR:el&hl=el&gl=GR"
+    category: "sector"
+    tier: 2
+    language: "gr"
+
+  # === COMPETITORS ===
+  - name: "Piraeus Bank EN"
+    url: "https://news.google.com/rss/search?q=when:24h+%22Piraeus+Bank%22+OR+%22Piraeus+Financial%22&ceid=US:en&hl=en-US&gl=US"
+    category: "competitor"
+    tier: 2
+    language: "en"
+  - name: "Piraeus Bank GR"
+    url: "https://news.google.com/rss/search?q=when:24h+%22%CE%A4%CF%81%CE%AC%CF%80%CE%B5%CE%B6%CE%B1+%CE%A0%CE%B5%CE%B9%CF%81%CE%B1%CE%B9%CF%8E%CF%82%22&ceid=GR:el&hl=el&gl=GR"
+    category: "competitor"
+    tier: 2
+    language: "gr"
+  - name: "Alpha Bank EN"
+    url: "https://news.google.com/rss/search?q=when:24h+%22Alpha+Bank%22+OR+%22Alpha+Services%22+Greece&ceid=US:en&hl=en-US&gl=US"
+    category: "competitor"
+    tier: 2
+    language: "en"
+  - name: "Alpha Bank GR"
+    url: "https://news.google.com/rss/search?q=when:24h+%22Alpha+Bank%22+OR+%22%CE%91lpha+%CE%A4%CF%81%CE%AC%CF%80%CE%B5%CE%B6%CE%B1%22&ceid=GR:el&hl=el&gl=GR"
+    category: "competitor"
+    tier: 2
+    language: "gr"
+  - name: "Eurobank EN"
+    url: "https://news.google.com/rss/search?q=when:24h+%22Eurobank%22+OR+%22Eurobank+Ergasias%22&ceid=US:en&hl=en-US&gl=US"
+    category: "competitor"
+    tier: 2
+    language: "en"
+  - name: "Eurobank GR"
+    url: "https://news.google.com/rss/search?q=when:24h+%22Eurobank%22+%CE%A4%CF%81%CE%AC%CF%80%CE%B5%CE%B6%CE%B1&ceid=GR:el&hl=el&gl=GR"
+    category: "competitor"
+    tier: 2
+    language: "gr"
+
+  # === REGULATORY & INSTITUTIONAL ===
+  - name: "Bank of Greece"
+    url: "https://news.google.com/rss/search?q=when:24h+%22Bank+of+Greece%22+OR+%22%CE%A4%CF%81%CE%AC%CF%80%CE%B5%CE%B6%CE%B1+%CF%84%CE%B7%CF%82+%CE%95%CE%BB%CE%BB%CE%AC%CE%B4%CE%BF%CF%82%22&ceid=GR:el&hl=el&gl=GR"
+    category: "regulatory"
+    tier: 1
+    language: "gr"
+  - name: "ECB Greek Banks"
+    url: "https://news.google.com/rss/search?q=when:24h+ECB+%22Greek+banks%22+OR+ECB+Greece+banking&ceid=US:en&hl=en-US&gl=US"
+    category: "regulatory"
+    tier: 1
+    language: "en"
+  - name: "SSM Greek Banks"
+    url: "https://news.google.com/rss/search?q=when:24h+SSM+OR+%22Single+Supervisory+Mechanism%22+Greece&ceid=US:en&hl=en-US&gl=US"
+    category: "regulatory"
+    tier: 2
+    language: "en"
+
+# Scrape targets (Phase 3 — not used in Phase 1)
+scrape_targets:
+  - name: "NBG Press Releases"
+    url: "https://www.nbg.gr/en/group/press-office/press-releases"
+    type: "press_release"
+  - name: "NBG IR Announcements"
+    url: "https://www.nbg.gr/en/group/investor-relations/regulatory-announcements"
+    type: "regulatory"
+
+# Stock tracking (Phase 3 — not used in Phase 1)
+stock_tracking:
+  - symbol: "ETE.AT"
+    name: "NBG Athens"
+  - symbol: "NBG"
+    name: "NBG ADR"

@@ -1,0 +1,109 @@
+# NBG Monitor — Keyword Definitions
+# Used for entity detection, relevance filtering, and classification
+
+# Primary entity — all variants of NBG's name
+nbg:
+  names:
+    - "National Bank of Greece"
+    - "NBG"
+    - "NBG Group"
+    - "Ethniki Trapeza"
+    - "Εθνική Τράπεζα"
+    - "Εθνική Τράπεζα της Ελλάδος"
+    - "ΕΤΕ"
+  stock_symbols:
+    - "ETE.AT"
+    - "ETE"
+    - "NBG"
+  # Phrases that look like NBG but are NOT (false positive filters)
+  false_positives:
+    - "Εθνική Οικονομία"
+    - "Εθνική Ομάδα"
+    - "Εθνική Άμυνα"
+    - "Εθνική Αντίσταση"
+    - "Εθνική Ασφαλιστική"
+    - "National Guard"
+    - "National Economy"
+    - "National Team"
+  # Key people
+  leadership:
+    - name: "Παύλος Μυλωνάς"
+      name_en: "Pavlos Mylonas"
+      role: "CEO"
+    - name: "Δημήτριος Πλέσσας"
+      name_en: "Dimitrios Plessas"
+      role: "AGM Cards & Digital Business"
+  # Key products and business lines
+  products:
+    - "i-bank"
+    - "NBG Pay"
+    - "go4more"
+    - "Ethniki Insurance"
+    - "Εθνική Ασφαλιστική"
+    - "NBG Securities"
+
+# Competitors
+competitors:
+  piraeus:
+    names:
+      - "Piraeus Bank"
+      - "Piraeus Financial Holdings"
+      - "Τράπεζα Πειραιώς"
+      - "Πειραιώς"
+    symbols:
+      - "TPEIR.AT"
+      - "BPIRY"
+  alpha:
+    names:
+      - "Alpha Bank"
+      - "Alpha Services and Holdings"
+      - "Alpha Services"
+      - "Alpha Τράπεζα"
+    symbols:
+      - "ALPHA.AT"
+  eurobank:
+    names:
+      - "Eurobank"
+      - "Eurobank Ergasias"
+      - "Eurobank Holdings"
+    symbols:
+      - "EUROB.AT"
+
+# Regulatory bodies
+regulators:
+  - "Bank of Greece"
+  - "Τράπεζα της Ελλάδος"
+  - "ECB"
+  - "European Central Bank"
+  - "SSM"
+  - "Single Supervisory Mechanism"
+  - "Hellenic Capital Market Commission"
+  - "Επιτροπή Κεφαλαιαγοράς"
+  - "HFSF"
+  - "Hellenic Financial Stability Fund"
+  - "ΤΧΣ"
+
+# Monitor categories (different from digest categories)
+categories:
+  nbg_direct:
+    display_name: "NBG Direct Mentions"
+    priority: 1
+  nbg_stock:
+    display_name: "NBG Stock & Market"
+    priority: 2
+  regulatory:
+    display_name: "Regulatory & Compliance"
+    priority: 3
+  sector:
+    display_name: "Greek Banking Sector"
+    priority: 4
+  competitor:
+    display_name: "Competitor Watch"
+    priority: 5
+
+display_order:
+  - nbg_direct
+  - nbg_stock
+  - regulatory
+  - sector
+  - competitor

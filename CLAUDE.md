@@ -1,21 +1,26 @@
 # News Reader
 
-Personal news intelligence platform. Fetches news from RSS/API/WebSearch,
-deduplicates, classifies, synthesizes via Claude (Vertex AI), and delivers
-HTML email digests.
+Personal news intelligence platform with two profiles:
+- **digest**: Broad news across business, AI, tech, Greece, banking (4x daily)
+- **monitor**: NBG brand monitoring with competitor tracking (hourly)
+
+Both share the same pipeline: fetch → process → store → synthesize → deliver.
 
 ## Quick Reference
 
-- **Run manually:** `python3 main.py --adhoc`
+- **Run digest:** `python3 main.py --adhoc`
+- **Run monitor:** `python3 main.py --profile monitor --adhoc`
 - **Run tests:** `pytest`
-- **Config:** `config/sources.yaml`, `config/categories.yaml`, `config/settings.yaml`
-- **Database:** `data/news.db` (SQLite, gitignored)
+- **Digest config:** `config/sources.yaml`, `config/categories.yaml`, `config/settings.yaml`
+- **Monitor config:** `config/monitor/sources.yaml`, `config/monitor/settings.yaml`, `config/monitor/keywords.yaml`
+- **Database:** `data/news.db` (SQLite, gitignored, shared by both profiles)
 - **Spec:** `docs/superpowers/specs/2026-04-05-newsreader-design.md`
 
 ## Architecture
 
 Five-stage pipeline: fetch → process → store → synthesize → deliver.
-Each stage is a standalone module in `news/`.
+Each stage is a standalone module in `news/`. The `--profile` flag selects
+which config, synthesis prompt, and email template to use.
 
 ## Tech Stack
 
