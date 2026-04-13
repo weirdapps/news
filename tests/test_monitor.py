@@ -20,6 +20,7 @@ from news.storage import (
 
 # --- Config tests ---
 
+
 def test_profile_config_dir_digest():
     """Digest profile loads from config/ root."""
     path = _profile_config_dir("digest")
@@ -75,6 +76,7 @@ def test_monitor_keywords_loads():
 
 # --- Model tests ---
 
+
 def test_article_monitor_fields():
     """Article model has monitor-specific fields with defaults."""
     article = Article(
@@ -105,6 +107,7 @@ def test_digest_pipeline_field():
 
 
 # --- Storage tests ---
+
 
 def test_insert_and_retrieve_monitor_article():
     """Monitor articles store and retrieve with pipeline field."""
@@ -165,6 +168,7 @@ def test_get_last_digest_by_pipeline():
 
 # --- Monitor synthesis tests ---
 
+
 def test_build_monitor_prompt_includes_articles():
     """Monitor prompt includes article data."""
     articles = [
@@ -180,7 +184,9 @@ def test_build_monitor_prompt_includes_articles():
 
     prompt = build_monitor_prompt(articles, None, "last hour")
     assert "NBG Q1 Results" in prompt
-    assert "brand intelligence" in prompt.lower() or "brand monitoring" in prompt.lower()
+    assert (
+        "brand intelligence" in prompt.lower() or "brand monitoring" in prompt.lower()
+    )
     assert "false positive" in prompt.lower()
     assert "competitor" in prompt.lower()
 
@@ -198,7 +204,12 @@ def test_build_monitor_prompt_with_previous_summary():
         ),
     ]
     previous = {
-        "sentiment_summary": {"positive": 3, "negative": 1, "neutral": 5, "trend": "stable"},
+        "sentiment_summary": {
+            "positive": 3,
+            "negative": 1,
+            "neutral": 5,
+            "trend": "stable",
+        },
     }
 
     prompt = build_monitor_prompt(articles, previous, "last hour")
@@ -224,6 +235,7 @@ def test_build_monitor_fallback():
 
 # --- Delivery tests ---
 
+
 def test_build_monitor_subject():
     """Monitor subject line includes NBG Monitor label."""
     dt = datetime(2026, 4, 8, 15, 0, tzinfo=timezone.utc)
@@ -243,7 +255,12 @@ def test_render_monitor_html_produces_valid_html():
     """Monitor template renders with all sections."""
     synthesis = {
         "mention_count": 5,
-        "sentiment_summary": {"positive": 2, "negative": 1, "neutral": 2, "trend": "stable"},
+        "sentiment_summary": {
+            "positive": 2,
+            "negative": 1,
+            "neutral": 2,
+            "trend": "stable",
+        },
         "alerts": ["Negative press about NBG lending practices"],
         "executive_brief": ["Key insight about NBG"],
         "nbg_mentions": [

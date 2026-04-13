@@ -29,7 +29,8 @@ def sample_article():
         source="TechCrunch",
         author="Jane Doe",
         published_at=datetime(2026, 4, 5, 8, 0, tzinfo=timezone.utc),
-        content="This is a test article about AI agents and their impact on the industry. " * 10,
+        content="This is a test article about AI agents and their impact on the industry. "
+        * 10,
         summary="AI agents are changing the industry.",
         categories=["ai", "tech"],
         language="en",

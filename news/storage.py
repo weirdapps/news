@@ -124,8 +124,7 @@ def _row_to_article(conn: sqlite3.Connection, row: sqlite3.Row) -> Article:
     """Convert database row to Article, loading categories from junction table."""
     # Load categories for this article
     cursor = conn.execute(
-        "SELECT category FROM article_categories WHERE article_url = ?",
-        (row["url"],)
+        "SELECT category FROM article_categories WHERE article_url = ?", (row["url"],)
     )
     categories = [cat_row["category"] for cat_row in cursor.fetchall()]
 
@@ -165,39 +164,47 @@ def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
     """
     try:
         # Insert article
-        conn.execute("""
+        conn.execute(
+            """
             INSERT INTO articles (
                 url, title, source, author, published_at, content, summary,
                 content_hash, language, relevance_score, fetched_at,
                 included_in_digest_id, also_reported_by,
                 pipeline, sentiment, mention_type, urgency
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            article.url,
-            article.title,
-            article.source,
-            article.author,
-            _dt_to_str(article.published_at),
-            article.content,
-            article.summary,
-            article.content_hash,
-            article.language,
-            article.relevance_score,
-            _dt_to_str(article.fetched_at),
-            article.included_in_digest_id,
-            json.dumps(article.also_reported_by) if article.also_reported_by else None,
-            article.pipeline,
-            article.sentiment or None,
-            article.mention_type or None,
-            article.urgency or None,
-        ))
+        """,
+            (
+                article.url,
+                article.title,
+                article.source,
+                article.author,
+                _dt_to_str(article.published_at),
+                article.content,
+                article.summary,
+                article.content_hash,
+                article.language,
+                article.relevance_score,
+                _dt_to_str(article.fetched_at),
+                article.included_in_digest_id,
+                json.dumps(article.also_reported_by)
+                if article.also_reported_by
+                else None,
+                article.pipeline,
+                article.sentiment or None,
+                article.mention_type or None,
+                article.urgency or None,
+            ),
+        )
 
         # Insert categories
         for category in article.categories:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO article_categories (article_url, category)
                 VALUES (?, ?)
-            """, (article.url, category))
+            """,
+                (article.url, category),
+            )
 
         conn.commit()
         return True
@@ -217,9 +224,13 @@ def get_article_by_url(conn: sqlite3.Connection, url: str) -> Optional[Article]:
     return _row_to_article(conn, row)
 
 
-def get_article_by_hash(conn: sqlite3.Connection, content_hash: str) -> Optional[Article]:
+def get_article_by_hash(
+    conn: sqlite3.Connection, content_hash: str
+) -> Optional[Article]:
     """Retrieve article by content hash."""
-    cursor = conn.execute("SELECT * FROM articles WHERE content_hash = ?", (content_hash,))
+    cursor = conn.execute(
+        "SELECT * FROM articles WHERE content_hash = ?", (content_hash,)
+    )
     row = cursor.fetchone()
     if row is None:
         return None
@@ -264,20 +275,23 @@ def insert_digest(conn: sqlite3.Connection, digest: Digest) -> int:
     Returns:
         The digest ID (lastrowid)
     """
-    cursor = conn.execute("""
+    cursor = conn.execute(
+        """
         INSERT INTO digests (
             digest_type, created_at, article_count, synthesis_text, html_output, sent_at,
             pipeline
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (
-        digest.digest_type,
-        _dt_to_str(digest.created_at),
-        digest.article_count,
-        digest.synthesis_text,
-        digest.html_output,
-        _dt_to_str(digest.sent_at),
-        digest.pipeline,
-    ))
+    """,
+        (
+            digest.digest_type,
+            _dt_to_str(digest.created_at),
+            digest.article_count,
+            digest.synthesis_text,
+            digest.html_output,
+            _dt_to_str(digest.sent_at),
+            digest.pipeline,
+        ),
+    )
     conn.commit()
     return cursor.lastrowid
 
@@ -286,12 +300,15 @@ def get_last_digest(
     conn: sqlite3.Connection, pipeline: str = "digest"
 ) -> Optional[Digest]:
     """Get the most recent digest for a given pipeline."""
-    cursor = conn.execute("""
+    cursor = conn.execute(
+        """
         SELECT * FROM digests
         WHERE pipeline = ?
         ORDER BY created_at DESC
         LIMIT 1
-    """, (pipeline,))
+    """,
+        (pipeline,),
+    )
     row = cursor.fetchone()
     if row is None:
         return None
@@ -310,11 +327,14 @@ def get_last_digest(
 
 def update_digest_sent(conn: sqlite3.Connection, digest_id: int) -> None:
     """Mark digest as sent with current timestamp."""
-    conn.execute("""
+    conn.execute(
+        """
         UPDATE digests
         SET sent_at = ?
         WHERE id = ?
-    """, (_dt_to_str(datetime.now(timezone.utc)), digest_id))
+    """,
+        (_dt_to_str(datetime.now(timezone.utc)), digest_id),
+    )
     conn.commit()
 
 

@@ -2,6 +2,7 @@ import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
+
 @dataclass
 class Article:
     url: str
@@ -29,6 +30,7 @@ class Article:
         raw = f"{normalized_title}|{content_prefix}"
         self.content_hash = hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
+
 @dataclass
 class Digest:
     digest_type: str
@@ -39,6 +41,7 @@ class Digest:
     html_output: str = ""
     sent_at: datetime | None = None
     pipeline: str = "digest"
+
 
 @dataclass
 class Source:

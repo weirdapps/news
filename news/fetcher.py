@@ -14,7 +14,9 @@ _REQUEST_TIMEOUT = 30
 _MAX_CONCURRENT = 10
 
 
-def normalize_rss_entry(entry: dict[str, Any], source_config: dict[str, Any]) -> Article:
+def normalize_rss_entry(
+    entry: dict[str, Any], source_config: dict[str, Any]
+) -> Article:
     """Convert feedparser entry to Article model.
 
     Args:
@@ -127,7 +129,7 @@ async def _fetch_single_feed(
 
 
 async def fetch_rss_feeds(
-    sources: list[dict[str, Any]]
+    sources: list[dict[str, Any]],
 ) -> tuple[list[Article], list[str]]:
     """Fetch multiple RSS feeds in parallel.
 
@@ -145,10 +147,7 @@ async def fetch_rss_feeds(
     async with httpx.AsyncClient(
         headers={"User-Agent": "NewsReader/1.0 (RSS Feed Fetcher)"}
     ) as client:
-        tasks = [
-            _fetch_single_feed(source, client, semaphore)
-            for source in sources
-        ]
+        tasks = [_fetch_single_feed(source, client, semaphore) for source in sources]
         results = await asyncio.gather(*tasks)
 
         for articles, error in results:

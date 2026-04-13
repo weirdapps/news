@@ -67,7 +67,7 @@ def classify_article(article: Article, categories_config: dict) -> None:
             # Use word boundary matching for short keywords to avoid false positives
             # e.g. "ai" matching "maintain", "certain", etc.
             if len(kw) <= 3:
-                if re.search(r'\b' + re.escape(kw) + r'\b', text):
+                if re.search(r"\b" + re.escape(kw) + r"\b", text):
                     if category_key not in article.categories:
                         article.categories.append(category_key)
                     break
@@ -102,12 +102,25 @@ def compute_relevance_score(
         score += scoring.get("nbg_mention", 0)
 
     # Check for Greek banking patterns
-    greek_banking_patterns = ["greek bank", "hellenic bank", "piraeus bank", "alpha bank", "eurobank"]
+    greek_banking_patterns = [
+        "greek bank",
+        "hellenic bank",
+        "piraeus bank",
+        "alpha bank",
+        "eurobank",
+    ]
     if any(pattern in text for pattern in greek_banking_patterns):
         score += scoring.get("greek_banking", 0)
 
     # Check for Claude/AI tools mentions
-    claude_patterns = ["claude code", "claude ai", "anthropic", "model context protocol", "mcp server", "agentic ai"]
+    claude_patterns = [
+        "claude code",
+        "claude ai",
+        "anthropic",
+        "model context protocol",
+        "mcp server",
+        "agentic ai",
+    ]
     if any(pattern in text for pattern in claude_patterns):
         score += scoring.get("claude_mention", 0)
 
@@ -190,6 +203,7 @@ def extract_content(article: Article) -> None:
     try:
         # Try trafilatura first
         import trafilatura
+
         downloaded = trafilatura.fetch_url(article.url)
         if downloaded:
             extracted = trafilatura.extract(downloaded)
@@ -203,12 +217,14 @@ def extract_content(article: Article) -> None:
         # Fallback to readability
         from readability import Document
         import requests
+
         response = requests.get(article.url, timeout=10)
         doc = Document(response.content)
         content = doc.summary()
         # Strip HTML tags
         import re
-        content = re.sub(r'<[^>]+>', '', content)
+
+        content = re.sub(r"<[^>]+>", "", content)
         if len(content.split()) >= 100:
             article.content = content
     except Exception:

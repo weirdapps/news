@@ -22,15 +22,22 @@ SAMPLE_RSS_XML = """<?xml version="1.0" encoding="UTF-8"?>
 </channel>
 </rss>"""
 
+
 def test_parse_rss_feed_extracts_entries():
-    source_config = {"name": "TestFeed", "url": "https://example.com/feed",
-        "category": "tech", "tier": 1, "language": "en"}
+    source_config = {
+        "name": "TestFeed",
+        "url": "https://example.com/feed",
+        "category": "tech",
+        "tier": 1,
+        "language": "en",
+    }
     articles = parse_rss_feed(SAMPLE_RSS_XML, source_config)
     assert len(articles) == 2
     assert articles[0].title == "AI Agents Transform Banking"
     assert articles[0].source == "TestFeed"
     assert articles[0].categories == ["tech"]
     assert articles[0].url == "https://example.com/ai-banking"
+
 
 def test_normalize_rss_entry_handles_missing_fields():
     entry = {"title": "Minimal Article", "link": "https://example.com/minimal"}
@@ -41,10 +48,18 @@ def test_normalize_rss_entry_handles_missing_fields():
     assert article.summary == ""
     assert article.categories == ["ai"]
 
+
 @pytest.mark.asyncio
 async def test_fetch_rss_feeds_handles_errors():
-    sources = [{"name": "Bad Feed", "url": "https://bad.example.com/feed",
-        "category": "tech", "tier": 1, "language": "en"}]
+    sources = [
+        {
+            "name": "Bad Feed",
+            "url": "https://bad.example.com/feed",
+            "category": "tech",
+            "tier": 1,
+            "language": "en",
+        }
+    ]
     with patch("news.fetcher.httpx.AsyncClient") as mock_client_cls:
         mock_client = AsyncMock()
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)

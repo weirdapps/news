@@ -60,10 +60,21 @@ def render_digest_html(
     # Pre-convert newlines to <br> in synthesis text and mark as safe HTML
     for section in sections:
         if "synthesis" in section and section["synthesis"]:
-            text = section["synthesis"].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-            section["synthesis"] = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))
+            text = (
+                section["synthesis"]
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+            )
+            section["synthesis"] = Markup(
+                text.replace("\n\n", "<br><br>").replace("\n", "<br>")
+            )
     if fallback_text:
-        text = fallback_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        text = (
+            fallback_text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+        )
         fallback_text = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))
 
     return template.render(
@@ -114,7 +125,9 @@ def build_subject(
     month_name = dt.strftime("%b").upper()
 
     label = "News Digest"
-    stats = f"{article_count} articles from {source_count} sources" if article_count else ""
+    stats = (
+        f"{article_count} articles from {source_count} sources" if article_count else ""
+    )
     base = f"{label} | {day_name} {day_num} {month_name} {time_str}"
 
     if stats:
@@ -224,10 +237,18 @@ def render_monitor_html(
 
     # Convert sector_context newlines to <br> for HTML
     if sector_context:
-        text = sector_context.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        text = (
+            sector_context.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+        )
         sector_context = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))
     if fallback_text:
-        text = fallback_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        text = (
+            fallback_text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+        )
         fallback_text = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))
 
     return template.render(

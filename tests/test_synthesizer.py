@@ -70,24 +70,32 @@ def test_build_prompt_requests_json_output():
 
 def test_parse_synthesis_output_valid_json():
     """Parse a clean JSON string with all required fields."""
-    raw = json.dumps({
-        "executive_brief": ["Item 1", "Item 2", "Item 3", "Item 4", "Item 5"],
-        "what_changed": "Major changes occurred.",
-        "sections": [
-            {
-                "category": "banking",
-                "display_name": "Banking",
-                "synthesis": "Banking sector analysis.",
-                "opposing_views": "Some disagree.",
-                "fact_check": "All facts verified.",
-                "sources": ["Reuters"],
-            }
-        ],
-    })
+    raw = json.dumps(
+        {
+            "executive_brief": ["Item 1", "Item 2", "Item 3", "Item 4", "Item 5"],
+            "what_changed": "Major changes occurred.",
+            "sections": [
+                {
+                    "category": "banking",
+                    "display_name": "Banking",
+                    "synthesis": "Banking sector analysis.",
+                    "opposing_views": "Some disagree.",
+                    "fact_check": "All facts verified.",
+                    "sources": ["Reuters"],
+                }
+            ],
+        }
+    )
 
     result = parse_synthesis_output(raw)
 
-    assert result["executive_brief"] == ["Item 1", "Item 2", "Item 3", "Item 4", "Item 5"]
+    assert result["executive_brief"] == [
+        "Item 1",
+        "Item 2",
+        "Item 3",
+        "Item 4",
+        "Item 5",
+    ]
     assert result["what_changed"] == "Major changes occurred."
     assert len(result["sections"]) == 1
     assert result["sections"][0]["category"] == "banking"
@@ -105,7 +113,13 @@ def test_parse_synthesis_output_extracts_json_from_prose():
 
     result = parse_synthesis_output(raw)
 
-    assert result["executive_brief"] == ["Brief 1", "Brief 2", "Brief 3", "Brief 4", "Brief 5"]
+    assert result["executive_brief"] == [
+        "Brief 1",
+        "Brief 2",
+        "Brief 3",
+        "Brief 4",
+        "Brief 5",
+    ]
     assert result["what_changed"] == "Changes noted."
 
 

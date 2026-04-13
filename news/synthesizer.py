@@ -105,9 +105,13 @@ def build_prompt(
             "snippet": article.content[:200] if article.content else "",
         }
         if article.published_at:
-            entry["age_hours"] = round(
-                (article.fetched_at - article.published_at).total_seconds() / 3600
-            ) if article.fetched_at else None
+            entry["age_hours"] = (
+                round(
+                    (article.fetched_at - article.published_at).total_seconds() / 3600
+                )
+                if article.fetched_at
+                else None
+            )
         article_entries.append(entry)
 
     context = {
@@ -223,7 +227,9 @@ def parse_synthesis_output(raw: str) -> dict[str, Any]:
 
     # All parsing failed — log raw output for diagnostics
     preview = raw[:500] if raw else "(empty)"
-    logger.error(f"Failed to parse Claude output as JSON. Raw output preview: {preview}")
+    logger.error(
+        f"Failed to parse Claude output as JSON. Raw output preview: {preview}"
+    )
     return {
         "executive_brief": ["Failed to parse synthesis output"],
         "what_changed": "Error occurred during synthesis",
@@ -309,7 +315,9 @@ def synthesize(
             logger.warning(f"Attempt {attempt + 1} failed: no output from Claude")
             continue
 
-        logger.info(f"Raw Claude output: {len(raw_output)} chars, starts with: {raw_output[:200]!r}")
+        logger.info(
+            f"Raw Claude output: {len(raw_output)} chars, starts with: {raw_output[:200]!r}"
+        )
         parsed = parse_synthesis_output(raw_output)
 
         # Check if parsing succeeded (no error key)

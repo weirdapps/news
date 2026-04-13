@@ -14,7 +14,13 @@ from zoneinfo import ZoneInfo
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from news.auth import check_gcloud_auth
-from news.config import VALID_PROFILES, get_categories, get_keywords, get_settings, get_sources
+from news.config import (
+    VALID_PROFILES,
+    get_categories,
+    get_keywords,
+    get_settings,
+    get_sources,
+)
 from news.deliver import (
     build_monitor_subject,
     build_subject,
@@ -105,7 +111,9 @@ def release_lock(lock_path: str) -> None:
     logging.info(f"Lock released: {lock_path}")
 
 
-def get_time_window(now: datetime, last_digest_at: datetime | None, tz_name: str) -> str:
+def get_time_window(
+    now: datetime, last_digest_at: datetime | None, tz_name: str
+) -> str:
     """Build human-readable time window string.
 
     Args:
@@ -350,6 +358,7 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     else:
         logger.warning("gcloud auth expired — skipping synthesis, using fallback")
         from news.synthesizer import build_fallback_digest
+
         synthesis_result = build_fallback_digest(capped_articles)
         synthesis_ok = False
 
@@ -367,9 +376,7 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     # Calculate next digest time
     now_athens = start_time.astimezone(_ATHENS_TZ)
     current_time_str = now_athens.strftime("%H:%M")
-    next_digest = get_next_digest_time(
-        current_time_str, schedule_config["runs"]
-    )
+    next_digest = get_next_digest_time(current_time_str, schedule_config["runs"])
 
     # DELIVER: Render HTML and send email
     source_count = len(sources["rss_feeds"])
@@ -484,7 +491,9 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
 
     # Calculate time window
     time_window = get_time_window(
-        start_time, last_digest_at, schedule_config["timezone"],
+        start_time,
+        last_digest_at,
+        schedule_config["timezone"],
     )
     logger.info(f"Monitor time window: {time_window}")
 
@@ -516,9 +525,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
             existing_hashes.add(article.content_hash)
 
     # Build source tiers mapping
-    source_tiers = {
-        source["name"]: source.get("tier", 2) for source in rss_feeds
-    }
+    source_tiers = {source["name"]: source.get("tier", 2) for source in rss_feeds}
 
     # Use keywords config as categories for classification
     processed_articles, process_stats = process_articles(
@@ -581,8 +588,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
             break
 
     logger.info(
-        f"Monitor pool: {len(all_recent)} articles, "
-        f"selected top {len(capped_articles)}"
+        f"Monitor pool: {len(all_recent)} articles, selected top {len(capped_articles)}"
     )
 
     # SYNTHESIZE: Check auth first — skip synthesis if expired (avoid wasted retries)
@@ -599,8 +605,11 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
             claude_args=synthesis_config.get("claude_args", []),
         )
     else:
-        logger.warning("gcloud auth expired — skipping monitor synthesis, using fallback")
+        logger.warning(
+            "gcloud auth expired — skipping monitor synthesis, using fallback"
+        )
         from news.monitor_synth import build_monitor_fallback
+
         synthesis_result = build_monitor_fallback(capped_articles)
         synthesis_ok = False
 
@@ -615,16 +624,18 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     # Calculate next scan time
     now_athens = start_time.astimezone(_ATHENS_TZ)
     current_time_str = now_athens.strftime("%H:%M")
-    next_scan = get_next_digest_time(
-        current_time_str, schedule_config["runs"]
-    )
+    next_scan = get_next_digest_time(current_time_str, schedule_config["runs"])
 
     # DELIVER: Render monitor HTML and send email
     source_count = len(rss_feeds)
     time_display = now_athens.strftime("%H:%M")
     date_display = now_athens.strftime("%a %-d %b").lower()
 
-    mention_count = synthesis_data.get("mention_count", len(capped_articles)) if synthesis_ok else len(capped_articles)
+    mention_count = (
+        synthesis_data.get("mention_count", len(capped_articles))
+        if synthesis_ok
+        else len(capped_articles)
+    )
     has_alerts = bool(synthesis_data.get("alerts")) if synthesis_ok else False
 
     subject = build_monitor_subject(
@@ -730,7 +741,9 @@ def main() -> None:
 
     # Acquire lock
     if not acquire_lock(str(lock_path)):
-        logger.error(f"Failed to acquire lock for {args.profile} - another instance running?")
+        logger.error(
+            f"Failed to acquire lock for {args.profile} - another instance running?"
+        )
         sys.exit(1)
 
     try:

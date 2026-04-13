@@ -10,7 +10,10 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-_AUTO_LOGIN_SCRIPT = Path.home() / "SourceCode/claude/marketplaces/trading-marketplace/scripts/gcloud-auto-login.sh"
+_AUTO_LOGIN_SCRIPT = (
+    Path.home()
+    / "SourceCode/claude/marketplaces/trading-marketplace/scripts/gcloud-auto-login.sh"
+)
 
 
 def _token_valid() -> bool:

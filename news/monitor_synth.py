@@ -135,9 +135,13 @@ def build_monitor_prompt(
             "is_new": is_new,
         }
         if article.published_at:
-            entry["age_hours"] = round(
-                (article.fetched_at - article.published_at).total_seconds() / 3600
-            ) if article.fetched_at else None
+            entry["age_hours"] = (
+                round(
+                    (article.fetched_at - article.published_at).total_seconds() / 3600
+                )
+                if article.fetched_at
+                else None
+            )
         article_entries.append(entry)
 
     context = {
