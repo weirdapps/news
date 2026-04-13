@@ -1,8 +1,5 @@
-import sqlite3
 from datetime import datetime, timedelta, timezone
-import pytest
 from news.storage import (
-    init_db,
     insert_article,
     get_article_by_url,
     get_article_by_hash,

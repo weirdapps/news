@@ -1,7 +1,5 @@
 """Tests for configuration file loading."""
 
-import pytest
-from pathlib import Path
 from news.config import load_config, get_sources, get_categories, get_settings
 
 

@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 # Ensure imports work when called from cron
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from news.auth import check_gcloud_auth, send_auth_failure_notification
+from news.auth import check_gcloud_auth
 from news.config import VALID_PROFILES, get_categories, get_keywords, get_settings, get_sources
 from news.deliver import (
     build_monitor_subject,
@@ -246,16 +246,6 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     conn = get_connection(db_path)
     init_db(conn)
 
-    # Check authentication
-    if not check_gcloud_auth():
-        logger.error("gcloud auth check failed - sending notification and aborting")
-        send_auth_failure_notification(
-            recipient=email_config["recipient"],
-            gmail_script=str(gmail_script),
-        )
-        conn.close()
-        return
-
     # Get last digest for time window calculation
     last_digest = get_last_digest(conn)
     last_digest_at = last_digest.created_at if last_digest else None
@@ -345,16 +335,23 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
         f"selected top {len(capped_articles)} by score (cap {max_digest}, max {max_per_source}/source)"
     )
 
-    # SYNTHESIZE: Claude curates and synthesizes in one pass
-    synthesis_result, synthesis_ok = synthesize(
-        articles=capped_articles,
-        previous_highlights=previous_highlights,
-        time_window=time_window,
-        max_retries=synthesis_config.get("max_retries", 2),
-        timeout=synthesis_config.get("timeout", 300),
-        claude_command=synthesis_config.get("claude_command", "claude"),
-        claude_args=synthesis_config.get("claude_args", []),
-    )
+    # SYNTHESIZE: Check auth first — skip synthesis if expired (avoid wasted retries)
+    auth_ok = check_gcloud_auth()
+    if auth_ok:
+        synthesis_result, synthesis_ok = synthesize(
+            articles=capped_articles,
+            previous_highlights=previous_highlights,
+            time_window=time_window,
+            max_retries=synthesis_config.get("max_retries", 2),
+            timeout=synthesis_config.get("timeout", 300),
+            claude_command=synthesis_config.get("claude_command", "claude"),
+            claude_args=synthesis_config.get("claude_args", []),
+        )
+    else:
+        logger.warning("gcloud auth expired — skipping synthesis, using fallback")
+        from news.synthesizer import build_fallback_digest
+        synthesis_result = build_fallback_digest(capped_articles)
+        synthesis_ok = False
 
     relevant_articles = all_recent
 
@@ -481,16 +478,6 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     conn = get_connection(db_path)
     init_db(conn)
 
-    # Check authentication
-    if not check_gcloud_auth():
-        logger.error("gcloud auth check failed - sending notification and aborting")
-        send_auth_failure_notification(
-            recipient=email_config["recipient"],
-            gmail_script=str(gmail_script),
-        )
-        conn.close()
-        return
-
     # Get last monitor digest for continuity
     last_digest = get_last_digest(conn, pipeline="monitor")
     last_digest_at = last_digest.created_at if last_digest else None
@@ -598,17 +585,24 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
         f"selected top {len(capped_articles)}"
     )
 
-    # SYNTHESIZE: Claude analyzes with monitor-specific prompt
-    synthesis_result, synthesis_ok = synthesize_monitor(
-        articles=capped_articles,
-        previous_summary=previous_summary,
-        time_window=time_window,
-        last_run_at=last_digest_at,
-        max_retries=synthesis_config.get("max_retries", 2),
-        timeout=synthesis_config.get("timeout", 300),
-        claude_command=synthesis_config.get("claude_command", "claude"),
-        claude_args=synthesis_config.get("claude_args", []),
-    )
+    # SYNTHESIZE: Check auth first — skip synthesis if expired (avoid wasted retries)
+    auth_ok = check_gcloud_auth()
+    if auth_ok:
+        synthesis_result, synthesis_ok = synthesize_monitor(
+            articles=capped_articles,
+            previous_summary=previous_summary,
+            time_window=time_window,
+            last_run_at=last_digest_at,
+            max_retries=synthesis_config.get("max_retries", 2),
+            timeout=synthesis_config.get("timeout", 300),
+            claude_command=synthesis_config.get("claude_command", "claude"),
+            claude_args=synthesis_config.get("claude_args", []),
+        )
+    else:
+        logger.warning("gcloud auth expired — skipping monitor synthesis, using fallback")
+        from news.monitor_synth import build_monitor_fallback
+        synthesis_result = build_monitor_fallback(capped_articles)
+        synthesis_ok = False
 
     # Prepare synthesis data
     if synthesis_ok:

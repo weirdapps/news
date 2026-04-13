@@ -1,7 +1,6 @@
 """Email delivery with Jinja2 rendering and Gmail sending."""
 
 import logging
-import os
 import subprocess
 from datetime import datetime
 from pathlib import Path

@@ -1,18 +1,16 @@
 """Tests for NBG monitor pipeline components."""
 
-import json
 import sqlite3
 from datetime import datetime, timezone
 
 import pytest
 
-from news.config import get_keywords, get_settings, get_sources, _profile_config_dir, VALID_PROFILES
+from news.config import get_keywords, get_settings, get_sources, _profile_config_dir
 from news.deliver import build_monitor_subject, render_monitor_html
 from news.models import Article, Digest
 from news.monitor_synth import build_monitor_prompt, build_monitor_fallback
 from news.storage import (
     get_articles_since,
-    get_connection,
     get_last_digest,
     init_db,
     insert_article,

@@ -1,6 +1,5 @@
 """Tests for email delivery module."""
 
-import subprocess
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch

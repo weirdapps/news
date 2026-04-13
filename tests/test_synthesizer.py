@@ -5,7 +5,6 @@ import subprocess
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
-import pytest
 
 from news.models import Article
 from news.synthesizer import (
@@ -13,7 +12,6 @@ from news.synthesizer import (
     build_prompt,
     invoke_claude,
     parse_synthesis_output,
-    synthesize,
 )
 
 

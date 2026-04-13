@@ -1,8 +1,6 @@
-from datetime import datetime, timezone
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import patch, AsyncMock
 import pytest
 from news.fetcher import parse_rss_feed, fetch_rss_feeds, normalize_rss_entry
-from news.models import Article
 
 SAMPLE_RSS_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">

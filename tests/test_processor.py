@@ -1,4 +1,3 @@
-import pytest
 from datetime import datetime, timezone, timedelta
 from news.models import Article
 from news.processor import (
@@ -6,8 +5,6 @@ from news.processor import (
     classify_article,
     compute_relevance_score,
     filter_quality,
-    extract_content,
-    process_articles,
 )
 
 
