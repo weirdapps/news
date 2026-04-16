@@ -153,6 +153,13 @@ def init_db(conn: sqlite3.Connection) -> None:
             INSERT INTO articles_fts(articles_fts, rowid, title, content, source)
             VALUES ('delete', OLD.rowid, OLD.title, OLD.content, OLD.source);
         END;
+
+        CREATE TRIGGER IF NOT EXISTS articles_fts_update AFTER UPDATE ON articles BEGIN
+            INSERT INTO articles_fts(articles_fts, rowid, title, content, source)
+            VALUES ('delete', OLD.rowid, OLD.title, OLD.content, OLD.source);
+            INSERT INTO articles_fts(rowid, title, content, source)
+            VALUES (NEW.rowid, NEW.title, NEW.content, NEW.source);
+        END;
     """)
 
     _backfill_fts(conn)

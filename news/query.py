@@ -5,6 +5,16 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 
 
+def _sanitize_fts_query(query: str) -> str:
+    """Escape a user query for safe FTS5 MATCH usage.
+
+    Wraps each word in double quotes to treat as literals,
+    preventing FTS5 syntax errors from operators like OR, NOT, AND.
+    """
+    words = query.split()
+    return " ".join(f'"{w}"' for w in words if w)
+
+
 def search_articles(
     conn: sqlite3.Connection,
     query: str,
@@ -28,6 +38,7 @@ def search_articles(
     """
     since = datetime.now(timezone.utc) - timedelta(days=days)
     since_str = since.isoformat()
+    fts_query = _sanitize_fts_query(query)
 
     # Use FTS5 for search
     if category:
@@ -41,7 +52,7 @@ def search_articles(
               AND a.fetched_at >= ?
               AND ac.category = ?
         """
-        params: list = [query, since_str, category]
+        params: list = [fts_query, since_str, category]
     else:
         sql = """
             SELECT a.url, a.title, a.source, a.published_at,
@@ -51,7 +62,7 @@ def search_articles(
             WHERE articles_fts MATCH ?
               AND a.fetched_at >= ?
         """
-        params = [query, since_str]
+        params = [fts_query, since_str]
 
     if pipeline:
         sql += " AND a.pipeline = ?"
