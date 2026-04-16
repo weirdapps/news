@@ -13,11 +13,11 @@ def search_articles(
     days: int = 30,
     limit: int = 20,
 ) -> list[dict]:
-    """Search articles by keyword in title and content.
+    """Search articles by keyword using FTS5 full-text search.
 
     Args:
         conn: SQLite connection
-        query: Search keyword (matched against title and content)
+        query: Search keyword (FTS5 syntax supported)
         pipeline: Optional filter: 'digest' or 'monitor'
         category: Optional category filter
         days: Lookback period in days (default: 30)
@@ -28,28 +28,30 @@ def search_articles(
     """
     since = datetime.now(timezone.utc) - timedelta(days=days)
     since_str = since.isoformat()
-    pattern = f"%{query}%"
 
+    # Use FTS5 for search
     if category:
         sql = """
             SELECT DISTINCT a.url, a.title, a.source, a.published_at,
                    a.relevance_score, a.pipeline, a.fetched_at
             FROM articles a
+            JOIN articles_fts fts ON a.rowid = fts.rowid
             JOIN article_categories ac ON a.url = ac.article_url
-            WHERE (a.title LIKE ? COLLATE NOCASE OR a.content LIKE ? COLLATE NOCASE)
+            WHERE articles_fts MATCH ?
               AND a.fetched_at >= ?
               AND ac.category = ?
         """
-        params: list = [pattern, pattern, since_str, category]
+        params: list = [query, since_str, category]
     else:
         sql = """
             SELECT a.url, a.title, a.source, a.published_at,
                    a.relevance_score, a.pipeline, a.fetched_at
             FROM articles a
-            WHERE (a.title LIKE ? COLLATE NOCASE OR a.content LIKE ? COLLATE NOCASE)
+            JOIN articles_fts fts ON a.rowid = fts.rowid
+            WHERE articles_fts MATCH ?
               AND a.fetched_at >= ?
         """
-        params = [pattern, pattern, since_str]
+        params = [query, since_str]
 
     if pipeline:
         sql += " AND a.pipeline = ?"

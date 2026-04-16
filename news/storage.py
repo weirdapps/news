@@ -54,6 +54,23 @@ def _migrate_db(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def _backfill_fts(conn: sqlite3.Connection) -> None:
+    """Backfill FTS5 index from existing articles (idempotent)."""
+    row = conn.execute(
+        "SELECT COUNT(*) as cnt FROM articles_fts"
+    ).fetchone()
+    if row["cnt"] == 0:
+        article_count = conn.execute(
+            "SELECT COUNT(*) as cnt FROM articles"
+        ).fetchone()["cnt"]
+        if article_count > 0:
+            conn.execute("""
+                INSERT INTO articles_fts(rowid, title, content, source)
+                SELECT rowid, title, content, source FROM articles
+            """)
+            conn.commit()
+
+
 def init_db(conn: sqlite3.Connection) -> None:
     """Initialize database schema with all required tables and indexes."""
     conn.executescript("""
@@ -118,6 +135,27 @@ def init_db(conn: sqlite3.Connection) -> None:
     _migrate_db(conn)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_pipeline ON articles(pipeline)")
     conn.commit()
+
+    # FTS5 index for full-text search on articles
+    conn.executescript("""
+        CREATE VIRTUAL TABLE IF NOT EXISTS articles_fts USING fts5(
+            title, content, source,
+            content='articles',
+            content_rowid='rowid'
+        );
+
+        CREATE TRIGGER IF NOT EXISTS articles_fts_insert AFTER INSERT ON articles BEGIN
+            INSERT INTO articles_fts(rowid, title, content, source)
+            VALUES (NEW.rowid, NEW.title, NEW.content, NEW.source);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS articles_fts_delete AFTER DELETE ON articles BEGIN
+            INSERT INTO articles_fts(articles_fts, rowid, title, content, source)
+            VALUES ('delete', OLD.rowid, OLD.title, OLD.content, OLD.source);
+        END;
+    """)
+
+    _backfill_fts(conn)
 
 
 def _row_to_article(conn: sqlite3.Connection, row: sqlite3.Row) -> Article:

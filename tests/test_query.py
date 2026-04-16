@@ -146,6 +146,12 @@ class TestSearchArticles:
         results = search_articles(db, query="NBG", limit=1)
         assert len(results) <= 1
 
+    def test_search_finds_content_match(self, db):
+        """FTS should find matches in content, not just title."""
+        results = search_articles(db, query="quarterly results")
+        assert len(results) >= 1
+        assert any("NBG" in r["title"] for r in results)
+
 
 class TestGetDigestHistory:
     def test_get_digest_history_default(self, db):
