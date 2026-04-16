@@ -3,6 +3,15 @@ name = "newsreader"
 version = "0.1.0"
 description = "Personal news intelligence platform with AI synthesis"
 requires-python = ">=3.12"
+dependencies = [
+    "feedparser",
+    "httpx",
+    "trafilatura",
+    "Jinja2",
+    "PyYAML",
+    "markupsafe",
+    "mcp[cli]",
+]
 
 [project.scripts]
 newsreader = "main:main"
