@@ -3328,7 +3328,7 @@ The `/newsfeed` skill should be added to an existing plugin or created as a stan
 
 Check the plugin structure:
 ```bash
-ls ~/SourceCode/claude/marketplaces/trading-marketplace/plugins/trading-hub/skills/
+ls ~/SourceCode/trading-marketplace/plugins/trading-hub/skills/
 ```
 
 - [ ] **Step 2: Create the newsfeed skill**
