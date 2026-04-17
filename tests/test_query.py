@@ -1,7 +1,6 @@
 """Tests for news query functions."""
 
 import json
-import sqlite3
 from datetime import datetime, timedelta, timezone
 
 import pytest
