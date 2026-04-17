@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 _AUTO_LOGIN_SCRIPT = (
     Path.home()
-    / "SourceCode/claude/marketplaces/trading-marketplace/scripts/gcloud-auto-login.sh"
+    / "SourceCode/trading-marketplace/scripts/gcloud-auto-login.sh"
 )
 
 

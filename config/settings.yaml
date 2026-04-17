@@ -30,7 +30,7 @@ email:
   recipient: plessas@nbg.gr
 
   # Path to Gmail operations script
-  gmail_script: ~/SourceCode/claude/marketplaces/marketplace-utility/plugins/manage-gmail/skills/manage-gmail/scripts/dist/gmail-operations.js
+  gmail_script: ~/SourceCode/marketplace-utility/plugins/manage-gmail/skills/manage-gmail/scripts/dist/gmail-operations.js
 
 schedule:
   # Timezone for scheduling
