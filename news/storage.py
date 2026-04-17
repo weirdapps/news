@@ -56,13 +56,11 @@ def _migrate_db(conn: sqlite3.Connection) -> None:
 
 def _backfill_fts(conn: sqlite3.Connection) -> None:
     """Backfill FTS5 index from existing articles (idempotent)."""
-    row = conn.execute(
-        "SELECT COUNT(*) as cnt FROM articles_fts"
-    ).fetchone()
+    row = conn.execute("SELECT COUNT(*) as cnt FROM articles_fts").fetchone()
     if row["cnt"] == 0:
-        article_count = conn.execute(
-            "SELECT COUNT(*) as cnt FROM articles"
-        ).fetchone()["cnt"]
+        article_count = conn.execute("SELECT COUNT(*) as cnt FROM articles").fetchone()[
+            "cnt"
+        ]
         if article_count > 0:
             conn.execute("""
                 INSERT INTO articles_fts(rowid, title, content, source)

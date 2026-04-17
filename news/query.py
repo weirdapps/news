@@ -82,15 +82,17 @@ def search_articles(
         )
         categories = [c["category"] for c in cat_cursor.fetchall()]
 
-        results.append({
-            "title": row["title"],
-            "source": row["source"],
-            "url": row["url"],
-            "published_at": row["published_at"],
-            "relevance_score": row["relevance_score"],
-            "pipeline": row["pipeline"],
-            "categories": categories,
-        })
+        results.append(
+            {
+                "title": row["title"],
+                "source": row["source"],
+                "url": row["url"],
+                "published_at": row["published_at"],
+                "relevance_score": row["relevance_score"],
+                "pipeline": row["pipeline"],
+                "categories": categories,
+            }
+        )
 
     return results
 
