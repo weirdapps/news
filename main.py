@@ -667,7 +667,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
 
     if not email_sent:
         logger.error("Monitor email send failed - saving fallback")
-        fallback_path = save_fallback(html_output)
+        fallback_path = save_fallback(html_output, label="monitor")
         notify_macos(
             title="NBG Monitor Send Failed",
             message=f"Saved to {fallback_path}",

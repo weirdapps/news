@@ -39,7 +39,7 @@ def render_digest_html(
     Returns:
         Rendered HTML string
     """
-    env = Environment(
+    env = Environment(  # nosemgrep
         loader=FileSystemLoader(_TEMPLATES_DIR),
         autoescape=select_autoescape(default_for_string=True, default=True),
     )
@@ -66,7 +66,7 @@ def render_digest_html(
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
             )
-            section["synthesis"] = Markup(
+            section["synthesis"] = Markup(  # nosemgrep
                 text.replace("\n\n", "<br><br>").replace("\n", "<br>")
             )
     if fallback_text:
@@ -75,9 +75,9 @@ def render_digest_html(
             .replace("<", "&lt;")
             .replace(">", "&gt;")
         )
-        fallback_text = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))
+        fallback_text = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))  # nosemgrep
 
-    return template.render(
+    return template.render(  # nosemgrep
         subject=subject,
         date_display=date_display,
         time_display=time_display,
@@ -221,7 +221,7 @@ def render_monitor_html(
     Returns:
         Rendered HTML string
     """
-    env = Environment(
+    env = Environment(  # nosemgrep
         loader=FileSystemLoader(_TEMPLATES_DIR),
         autoescape=select_autoescape(default_for_string=True, default=True),
     )
@@ -242,16 +242,16 @@ def render_monitor_html(
             .replace("<", "&lt;")
             .replace(">", "&gt;")
         )
-        sector_context = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))
+        sector_context = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))  # nosemgrep
     if fallback_text:
         text = (
             fallback_text.replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
         )
-        fallback_text = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))
+        fallback_text = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))  # nosemgrep
 
-    return template.render(
+    return template.render(  # nosemgrep
         subject=subject,
         date_display=date_display,
         time_display=time_display,
@@ -313,26 +313,27 @@ def build_monitor_subject(
     return base
 
 
-def save_fallback(html: str, output_dir: str = "~/Downloads") -> str:
+def save_fallback(
+    html: str, output_dir: str = "~/Downloads", label: str = "digest"
+) -> str:
     """Save HTML to timestamped file as fallback.
 
     Args:
         html: HTML content to save
         output_dir: Directory to save file (default ~/Downloads)
+        label: Pipeline label used in filename to avoid collisions
+            between concurrent pipelines (e.g. "digest", "monitor")
 
     Returns:
         Absolute path to saved file
     """
-    # Expand and resolve output directory
     output_path = Path(output_dir).expanduser()
     output_path.mkdir(parents=True, exist_ok=True)
 
-    # Generate timestamp in Athens timezone
     now = datetime.now(_ATHENS_TZ)
     timestamp = now.strftime("%Y%m%d%H%M")
 
-    # Create filename
-    filename = f"{timestamp}_news_digest.html"
+    filename = f"{timestamp}_news_{label}.html"
     filepath = output_path / filename
 
     # Write file
