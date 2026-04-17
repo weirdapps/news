@@ -36,7 +36,8 @@ install() {
 
     echo ""
     echo "Installation complete!"
-    echo "Digest runs scheduled for: 09:00, 13:00, 17:00, 21:00 Athens time"
+    echo "Digest runs scheduled for: 00:00, 09:00, 13:00, 17:00, 21:00 Athens time"
+    echo "Monitor runs scheduled for: 00:00, 08:00–22:00 bi-hourly Athens time"
     echo ""
     echo "To check status: $0 status"
     echo "To uninstall: $0 uninstall"

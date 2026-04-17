@@ -20,8 +20,9 @@ mcp = FastMCP(
     instructions=(
         "News intelligence platform — search articles from digest and NBG monitor "
         "pipelines, retrieve AI-curated synthesis history, and query article database. "
-        "Digest runs 4x daily (09:00, 13:00, 17:00, 21:00 Athens). "
-        "Monitor runs bi-hourly for NBG brand mentions."
+        "Digest runs 5x daily (00:00, 09:00, 13:00, 17:00, 21:00 Athens). "
+        "Monitor runs bi-hourly during business hours (08:00–22:00 Athens) "
+        "plus a 00:00 catch-up for NBG brand mentions."
     ),
 )
 

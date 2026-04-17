@@ -36,8 +36,9 @@ schedule:
   # Timezone for scheduling
   timezone: Europe/Athens
 
-  # Run times (24-hour format)
+  # Run times (24-hour format) — must match launchd plist (com.news.digest)
   runs:
+    - "00:00"
     - "09:00"
     - "13:00"
     - "17:00"

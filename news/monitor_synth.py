@@ -81,7 +81,7 @@ Each article has an "is_new" flag:
 - is_new: true — first time this article appears (fetched since last scan)
 - is_new: false — already included in a previous scan (still within 24h window)
 
-This monitor runs hourly. Each report must STAND ALONE as a complete picture because the reader may not see every run. Therefore:
+This monitor runs every 2 hours during business hours. Each report must STAND ALONE as a complete picture because the reader may not see every run. Therefore:
 - ALWAYS include key ongoing stories even if they are repeats (is_new: false)
 - Use the "new_since_last" count to show how many are genuinely new
 - In the executive_brief, lead with new developments but repeat critical ongoing items
