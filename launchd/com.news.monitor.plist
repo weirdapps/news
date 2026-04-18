@@ -85,6 +85,10 @@
         <string>1</string>
         <key>ANTHROPIC_VERTEX_PROJECT_ID</key>
         <string>nbg-ae739221-53d9-4fe0-bac0</string>
+        <key>CLOUD_ML_REGION</key>
+        <string>global</string>
+        <key>ANTHROPIC_MODEL</key>
+        <string>claude-opus-4-7[1m]</string>
     </dict>
 </dict>
 </plist>
