@@ -6,7 +6,7 @@
     <string>com.news.monitor</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/plessas/SourceCode/news/.venv/bin/python3</string>
+        <string>/Users/plessas/.venvs/news/bin/python3</string>
         <string>/Users/plessas/SourceCode/news/main.py</string>
         <string>--profile</string>
         <string>monitor</string>
@@ -72,9 +72,9 @@
     <key>WorkingDirectory</key>
     <string>/Users/plessas/SourceCode/news</string>
     <key>StandardOutPath</key>
-    <string>/Users/plessas/SourceCode/news/data/monitor.log</string>
+    <string>/Users/plessas/Library/Logs/news/monitor.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/plessas/SourceCode/news/data/monitor.err</string>
+    <string>/Users/plessas/Library/Logs/news/monitor.err</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>

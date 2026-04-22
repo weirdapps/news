@@ -6,7 +6,7 @@
     <string>com.news.digest</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/plessas/SourceCode/news/.venv/bin/python3</string>
+        <string>/Users/plessas/.venvs/news/bin/python3</string>
         <string>/Users/plessas/SourceCode/news/main.py</string>
         <string>--scheduled</string>
     </array>
@@ -46,9 +46,9 @@
     <key>WorkingDirectory</key>
     <string>/Users/plessas/SourceCode/news</string>
     <key>StandardOutPath</key>
-    <string>/Users/plessas/SourceCode/news/data/launchd.log</string>
+    <string>/Users/plessas/Library/Logs/news/digest.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/plessas/SourceCode/news/data/launchd.err</string>
+    <string>/Users/plessas/Library/Logs/news/digest.err</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
