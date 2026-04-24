@@ -191,6 +191,27 @@ def test_build_monitor_prompt_includes_articles():
     assert "competitor" in prompt.lower()
 
 
+def test_build_monitor_prompt_anchors_executive_names():
+    """Prompt must include canonical roster and anti-hallucination rules.
+
+    Past monitor emails hallucinated NBG executive names (e.g. invented
+    "Dimitra Theofilidis" for Christina Theofilidi, transliterated Μολυβιάτης
+    as "Moliviadis" instead of "Molyviatis"). The prompt must anchor the LLM
+    against a canonical roster.
+    """
+    prompt = build_monitor_prompt([], None, "last hour")
+
+    # Canonical NBG roster present
+    assert "Christina Theofilidi" in prompt
+    assert "Stratos Molyviatis" in prompt
+    assert "Pavlos Mylonas" in prompt
+
+    # Anti-hallucination rules present
+    assert "NEVER invent first names" in prompt
+    assert "NAME HANDLING RULES" in prompt
+    assert "[unverified name]" in prompt
+
+
 def test_build_monitor_prompt_with_previous_summary():
     """Monitor prompt includes previous sentiment when provided."""
     articles = [

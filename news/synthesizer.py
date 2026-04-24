@@ -6,6 +6,8 @@ import re
 import subprocess
 from typing import Any
 
+from news.roster import NAME_HANDLING_PROMPT_BLOCK
+
 logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = """You are a senior news analyst preparing a daily briefing for a C-level banking executive who leads Cards & Digital Business at National Bank of Greece (NBG).
@@ -38,6 +40,8 @@ You will receive a large list of article titles and snippets. Your job is to:
 - GitHub repos with no clear practical value (star-farming, joke repos)
 - Product Hunt launches that are trivial or irrelevant to finance/AI/productivity
 - Note: "Εθνική" alone does NOT mean NBG — "Εθνική Οικονομία" (National Economy) or "Εθνική Ομάδα" (National Team) are NOT NBG news
+
+""" + NAME_HANDLING_PROMPT_BLOCK + """
 
 **RULES:**
 1. Curate ruthlessly — quality over quantity. Skip entire categories if nothing meaningful happened.

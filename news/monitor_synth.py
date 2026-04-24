@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from news.roster import NAME_HANDLING_PROMPT_BLOCK
 from news.synthesizer import invoke_claude, parse_synthesis_output
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,8 @@ You will receive a list of articles/mentions. Your job is to:
 - "Εθνική" alone does NOT mean NBG — "Εθνική Οικονομία" (National Economy), "Εθνική Ομάδα" (National Team), "Εθνική Ασφαλιστική" (different company) are NOT NBG
 - "NBG" in non-Greek contexts may refer to other entities
 - Only include articles that genuinely reference National Bank of Greece / Εθνική Τράπεζα (the bank)
+
+""" + NAME_HANDLING_PROMPT_BLOCK + """
 
 **SENTIMENT SCORING:**
 - positive: good earnings, upgrades, product launches, awards, positive analyst coverage
