@@ -10,7 +10,8 @@ from news.roster import NAME_HANDLING_PROMPT_BLOCK
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """You are a senior news analyst preparing a daily briefing for a C-level banking executive who leads Cards & Digital Business at National Bank of Greece (NBG).
+_SYSTEM_PROMPT = (
+    """You are a senior news analyst preparing a daily briefing for a C-level banking executive who leads Cards & Digital Business at National Bank of Greece (NBG).
 
 You will receive a large list of article titles and snippets. Your job is to:
 1. SELECT the most important articles (typically 20-40 out of hundreds)
@@ -41,7 +42,9 @@ You will receive a large list of article titles and snippets. Your job is to:
 - Product Hunt launches that are trivial or irrelevant to finance/AI/productivity
 - Note: "Εθνική" alone does NOT mean NBG — "Εθνική Οικονομία" (National Economy) or "Εθνική Ομάδα" (National Team) are NOT NBG news
 
-""" + NAME_HANDLING_PROMPT_BLOCK + """
+"""
+    + NAME_HANDLING_PROMPT_BLOCK
+    + """
 
 **RULES:**
 1. Curate ruthlessly — quality over quantity. Skip entire categories if nothing meaningful happened.
@@ -82,6 +85,7 @@ Return a JSON object with this exact structure:
 **display_name:** Use descriptive titles that reflect the actual content (e.g. "ECB Rate Decision & Banking Impact" not just "Banking & Fintech").
 
 Return ONLY valid JSON. No preamble, no markdown formatting, no prose. Just the JSON object."""
+)
 
 
 def build_prompt(

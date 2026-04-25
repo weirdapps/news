@@ -75,7 +75,9 @@ def render_digest_html(
             .replace("<", "&lt;")
             .replace(">", "&gt;")
         )
-        fallback_text = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))  # nosemgrep
+        fallback_text = Markup(
+            text.replace("\n\n", "<br><br>").replace("\n", "<br>")
+        )  # nosemgrep
 
     return template.render(  # nosemgrep
         subject=subject,
@@ -242,14 +244,18 @@ def render_monitor_html(
             .replace("<", "&lt;")
             .replace(">", "&gt;")
         )
-        sector_context = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))  # nosemgrep
+        sector_context = Markup(
+            text.replace("\n\n", "<br><br>").replace("\n", "<br>")
+        )  # nosemgrep
     if fallback_text:
         text = (
             fallback_text.replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
         )
-        fallback_text = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))  # nosemgrep
+        fallback_text = Markup(
+            text.replace("\n\n", "<br><br>").replace("\n", "<br>")
+        )  # nosemgrep
 
     return template.render(  # nosemgrep
         subject=subject,

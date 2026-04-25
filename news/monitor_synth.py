@@ -12,7 +12,8 @@ from news.synthesizer import invoke_claude, parse_synthesis_output
 
 logger = logging.getLogger(__name__)
 
-_MONITOR_SYSTEM_PROMPT = """You are a brand intelligence analyst monitoring National Bank of Greece (NBG / Εθνική Τράπεζα) for a senior executive (AGM, Cards & Digital Business).
+_MONITOR_SYSTEM_PROMPT = (
+    """You are a brand intelligence analyst monitoring National Bank of Greece (NBG / Εθνική Τράπεζα) for a senior executive (AGM, Cards & Digital Business).
 
 You will receive a list of articles/mentions. Your job is to:
 1. VERIFY which articles genuinely mention NBG (filter false positives)
@@ -24,7 +25,9 @@ You will receive a list of articles/mentions. Your job is to:
 - "NBG" in non-Greek contexts may refer to other entities
 - Only include articles that genuinely reference National Bank of Greece / Εθνική Τράπεζα (the bank)
 
-""" + NAME_HANDLING_PROMPT_BLOCK + """
+"""
+    + NAME_HANDLING_PROMPT_BLOCK
+    + """
 
 **SENTIMENT SCORING:**
 - positive: good earnings, upgrades, product launches, awards, positive analyst coverage
@@ -98,6 +101,7 @@ This monitor runs every 2 hours during business hours. Each report must STAND AL
 5. Executive brief: max 5 bullets, lead with new items, repeat critical ongoing items
 
 Return ONLY valid JSON. No preamble, no markdown formatting."""
+)
 
 
 def build_monitor_prompt(

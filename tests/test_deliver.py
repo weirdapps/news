@@ -192,7 +192,9 @@ def test_save_fallback_label_avoids_collision(tmp_path):
     """Distinct labels produce distinct filenames so concurrent
     digest+monitor failures don't overwrite each other."""
     digest_path = save_fallback("<digest/>", output_dir=str(tmp_path), label="digest")
-    monitor_path = save_fallback("<monitor/>", output_dir=str(tmp_path), label="monitor")
+    monitor_path = save_fallback(
+        "<monitor/>", output_dir=str(tmp_path), label="monitor"
+    )
 
     assert digest_path != monitor_path
     assert Path(digest_path).name.endswith("_news_digest.html")

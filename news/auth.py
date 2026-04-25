@@ -11,8 +11,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 _AUTO_LOGIN_SCRIPT = (
-    Path.home()
-    / "SourceCode/trading-marketplace/scripts/gcloud-auto-login.sh"
+    Path.home() / "SourceCode/trading-marketplace/scripts/gcloud-auto-login.sh"
 )
 
 
