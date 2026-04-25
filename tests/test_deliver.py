@@ -145,8 +145,8 @@ def test_build_subject_partial_sources():
     assert subject.endswith("partial sources")
 
 
-def test_send_email_calls_gmail_script():
-    """Verify send_email calls node script with correct args."""
+def test_send_email_calls_outlook_cli():
+    """Verify send_email shells out to outlook-cli with correct args."""
     with patch("news.deliver.subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(returncode=0, stderr="")
 
@@ -154,7 +154,6 @@ def test_send_email_calls_gmail_script():
             subject="test subject",
             html_body="<html>test</html>",
             recipient="test@example.com",
-            gmail_script="/path/to/script.js",
         )
 
         assert result is True
@@ -162,14 +161,16 @@ def test_send_email_calls_gmail_script():
 
         # Verify command structure
         call_args = mock_run.call_args[0][0]
-        assert call_args[0] == "node"
-        assert "/path/to/script.js" in call_args
+        assert call_args[0] == "outlook-cli"
+        assert call_args[1] == "send-mail"
         assert "--to" in call_args
         assert "test@example.com" in call_args
         assert "--subject" in call_args
         assert "test subject" in call_args
         assert "--html" in call_args
-        assert "<html>test</html>" in call_args
+        assert "--send-now" in call_args
+        assert "--no-cc-self" in call_args
+        assert "--no-signature" in call_args
 
 
 def test_save_fallback_writes_file(tmp_path):

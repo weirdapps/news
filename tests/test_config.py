@@ -129,7 +129,6 @@ pipeline:
 
 email:
   recipient: plessas@nbg.gr
-  gmail_script: "/path/to/script.scpt"
 
 schedule:
   timezone: "Europe/Athens"

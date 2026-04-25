@@ -245,7 +245,6 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     # Expand paths
     db_path = Path(storage_config["db_path"]).expanduser()
     run_log_path = Path(storage_config["run_log_path"]).expanduser()
-    gmail_script = Path(email_config["gmail_script"]).expanduser()
 
     # Ensure data directory exists
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -407,7 +406,6 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
         subject=subject,
         html_body=html_output,
         recipient=email_config["recipient"],
-        gmail_script=str(gmail_script),
     )
 
     # Handle send failure
@@ -477,7 +475,6 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     # Expand paths
     db_path = Path(storage_config["db_path"]).expanduser()
     run_log_path = Path(storage_config["run_log_path"]).expanduser()
-    gmail_script = Path(email_config["gmail_script"]).expanduser()
 
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -662,7 +659,6 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
         subject=subject,
         html_body=html_output,
         recipient=email_config["recipient"],
-        gmail_script=str(gmail_script),
     )
 
     if not email_sent:

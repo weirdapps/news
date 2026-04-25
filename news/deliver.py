@@ -1,7 +1,9 @@
-"""Email delivery with Jinja2 rendering and Gmail sending."""
+"""Email delivery with Jinja2 rendering and outlook-cli sending."""
 
 import logging
+import os
 import subprocess
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -148,34 +150,43 @@ def send_email(
     subject: str,
     html_body: str,
     recipient: str,
-    gmail_script: str,
 ) -> bool:
-    """Send email via Gmail script.
+    """Send email via outlook-cli (Microsoft Graph API).
+
+    Uses the user's existing outlook-cli auth (no separate Gmail OAuth).
+    Writes the HTML body to a temp file because outlook-cli's --html flag
+    expects a file path, not an inline string.
 
     Args:
         subject: Email subject line
         html_body: HTML email body
         recipient: Recipient email address
-        gmail_script: Path to Gmail sending script
 
     Returns:
         True if email sent successfully, False otherwise
     """
-    cmd = [
-        "node",
-        gmail_script,
-        "send",
-        "--to",
-        recipient,
-        "--subject",
-        subject,
-        "--body",
-        "plain fallback",
-        "--html",
-        html_body,
-    ]
-
+    html_path: str | None = None
     try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".html", delete=False, encoding="utf-8"
+        ) as f:
+            f.write(html_body)
+            html_path = f.name
+
+        cmd = [
+            "outlook-cli",
+            "send-mail",
+            "--to",
+            recipient,
+            "--subject",
+            subject,
+            "--html",
+            html_path,
+            "--send-now",
+            "--no-cc-self",
+            "--no-signature",
+        ]
+
         result = subprocess.run(
             cmd,
             capture_output=True,
@@ -198,6 +209,13 @@ def send_email(
     except Exception as e:
         logger.error(f"Failed to send email: {e}")
         return False
+
+    finally:
+        if html_path:
+            try:
+                os.unlink(html_path)
+            except OSError:
+                pass
 
 
 def render_monitor_html(

@@ -29,9 +29,6 @@ email:
   # Primary recipient
   recipient: plessas@nbg.gr
 
-  # Path to Gmail operations script
-  gmail_script: ~/SourceCode/integrations-marketplace/plugins/manage-gmail/skills/manage-gmail/scripts/dist/gmail-operations.js
-
 schedule:
   # Timezone for scheduling
   timezone: Europe/Athens
