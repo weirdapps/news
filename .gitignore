@@ -5,7 +5,7 @@ data/news.db-shm
 data/run.log
 data/runs.log
 data/archive/
-data/pipeline.lock
+data/*.lock
 data/*.err
 data/*.log
 
@@ -14,8 +14,8 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.venv/
-venv/
+.venv
+venv
 *.egg-info/
 dist/
 build/
