@@ -7,10 +7,17 @@ dependencies = [
     "feedparser",
     "httpx",
     "trafilatura",
+    "readability-lxml",
     "Jinja2",
     "PyYAML",
     "markupsafe",
     "mcp[cli]",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
 ]
 
 [project.scripts]
