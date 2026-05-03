@@ -1,0 +1,9462 @@
+tickers:
+  0001.hk: 0001.HK
+  0002.hk: 0002.HK
+  0003.hk: 0003.HK
+  0006.hk: 0006.HK
+  0012.hk: 0012.HK
+  0016.hk: 0016.HK
+  0017.hk: 0017.HK
+  0019.hk: 0019.HK
+  0027.hk: 0027.HK
+  0066.hk: 0066.HK
+  0083.hk: 0083.HK
+  0135.hk: 0135.HK
+  0151.hk: 0151.HK
+  0175.hk: 0175.HK
+  0241.hk: 0241.HK
+  0257.hk: 0257.HK
+  0268.hk: 0268.HK
+  0285.hk: 0285.HK
+  0288.hk: 0288.HK
+  0322.hk: 0322.HK
+  0341.hk: 0341.HK
+  0384.hk: 0384.HK
+  0386.hk: 0386.HK
+  0388.hk: 0388.HK
+  0390.hk: 0390.HK
+  0489.hk: 0489.HK
+  0656.hk: 0656.HK
+  0669.hk: 0669.HK
+  0688.hk: 0688.HK
+  0700.hk: 0700.HK
+  0728.hk: 0728.HK
+  0753.hk: 0753.HK
+  0762.hk: 0762.HK
+  0763.hk: 0763.HK
+  0778.hk: 0778.HK
+  0788.hk: 0788.HK
+  0823.hk: 0823.HK
+  0857.hk: 0857.HK
+  0880.hk: 0880.HK
+  0883.hk: 0883.HK
+  0902.hk: 0902.HK
+  0914.hk: 0914.HK
+  0916.hk: 0916.HK
+  0939.hk: 0939.HK
+  0941.hk: 0941.HK
+  0966.hk: 0966.HK
+  0968.hk: 0968.HK
+  0981.hk: 0981.HK
+  0992.hk: 0992.HK
+  0998.hk: 0998.HK
+  0b2.de: 0B2.DE
+  1&1: 1U1.DE
+  1&1 ag: 1U1.DE
+  1-800-flo.: FLWS
+  1038.hk: 1038.HK
+  1044.hk: 1044.HK
+  1055.hk: 1055.HK
+  1088.hk: 1088.HK
+  1093.hk: 1093.HK
+  10x genom.: TXG
+  1109.hk: 1109.HK
+  1113.hk: 1113.HK
+  1114.hk: 1114.HK
+  1122.hk: 1122.HK
+  1128.hk: 1128.HK
+  1171.hk: 1171.HK
+  1177.hk: 1177.HK
+  1186.hk: 1186.HK
+  1211.hk: 1211.HK
+  1288.hk: 1288.HK
+  1299.hk: 1299.HK
+  1336.hk: 1336.HK
+  1339.hk: 1339.HK
+  1359.hk: 1359.HK
+  1398.hk: 1398.HK
+  1530.hk: 1530.HK
+  1585.hk: 1585.HK
+  1618.hk: 1618.HK
+  1797.hk: 1797.HK
+  1800.hk: 1800.HK
+  1801.hk: 1801.HK
+  1810.hk: 1810.HK
+  1816.hk: 1816.HK
+  1833.hk: 1833.HK
+  1873.hk: 1873.HK
+  1898.hk: 1898.HK
+  1928.hk: 1928.HK
+  1958.hk: 1958.HK
+  1966.hk: 1966.HK
+  1988.hk: 1988.HK
+  1997.hk: 1997.HK
+  1cov.de: 1COV.DE
+  1st sourc.: SRCE
+  1sxp.de: 1SXP.DE
+  1u1.de: 1U1.DE
+  2007.hk: 2007.HK
+  2013.hk: 2013.HK
+  2018.hk: 2018.HK
+  2020 bulk.: 2020.OL
+  2020.hk: 2020.HK
+  2020.ol: 2020.OL
+  2196.hk: 2196.HK
+  2238.hk: 2238.HK
+  2269.hk: 2269.HK
+  22ua.de: 22UA.DE
+  2313.hk: 2313.HK
+  2318.hk: 2318.HK
+  2319.hk: 2319.HK
+  2328.hk: 2328.HK
+  2331.hk: 2331.HK
+  2333.hk: 2333.HK
+  2338.hk: 2338.HK
+  2382.hk: 2382.HK
+  2386.hk: 2386.HK
+  2388.hk: 2388.HK
+  2601.hk: 2601.HK
+  2628.hk: 2628.HK
+  2688.hk: 2688.HK
+  2883.hk: 2883.HK
+  2899.hk: 2899.HK
+  2crsi s.a.: AL2SI.PA
+  2hra.de: 2HRA.DE
+  2m6.de: 2M6.DE
+  3323.hk: 3323.HK
+  3328.hk: 3328.HK
+  3690.hk: 3690.HK
+  3800.hk: 3800.HK
+  3888.hk: 3888.HK
+  3908.hk: 3908.HK
+  3968.hk: 3968.HK
+  3988.hk: 3988.HK
+  3993.hk: 3993.HK
+  3d system.: DDD
+  3i infras.: 3IN.L
+  3in.l: 3IN.L
+  3m company: MMM
+  3sbio: 1530.HK
+  3sbio inc.: 1530.HK
+  4basebio .: 4BB.L
+  4bb.l: 4BB.L
+  4d molecu.: FDMT
+  4ds.de: 4DS.DE
+  6030.hk: 6030.HK
+  6055.hk: 6055.HK
+  6060.hk: 6060.HK
+  6185.hk: 6185.HK
+  6862.hk: 6862.HK
+  6881.hk: 6881.HK
+  6886.hk: 6886.HK
+  690d.de: 690D.DE
+  74software: 74SW.PA
+  74sw.pa: 74SW.PA
+  7c solarp.: HRPK.DE
+  8tra.de: 8TRA.DE
+  8x8,: EGHT
+  8x8, inc.: EGHT
+  908 devic.: MASS
+  93m1.de: 93M1.DE
+  9618.hk: 9618.HK
+  9658.hk: 9658.HK
+  9866.hk: 9866.HK
+  9926.hk: 9926.HK
+  9988.hk: 9988.HK
+  a: A
+  a. o. smi.: AOS
+  a.g. barr.: BAG.L
+  a.p. møll.: DP4A.DE
+  a.s. créa.: ACWN.DE
+  a10 netwo.: ATEN
+  a1os.de: A1OS.DE
+  a2a s.p.a.: A2A.MI
+  a2a.mi: A2A.MI
+  a6t.de: A6T.DE
+  a7a.de: A7A.DE
+  aa: AA
+  aac techn.: 2018.HK
+  aad.de: AAD.DE
+  aaf.l: AAF.L
+  aag.de: AAG.DE
+  aak ab (p.: AAK.ST
+  aak.st: AAK.ST
+  aal: AAL
+  aal.l: AAL.L
+  aami: AAMI
+  aaoi: AAOI
+  aaon: AAON
+  aaon,: AAON
+  aaon, inc.: AAON
+  aap: AAP
+  aapl: AAPL
+  aasb.ol: AASB.OL
+  aasen spa.: AASB.OL
+  aat: AAT
+  aau.l: AAU.L
+  ab dynami.: ABDP.L
+  ab indust.: INDU-A.ST
+  ab scienc.: AB.PA
+  ab skf (p.: SKF-A.ST
+  ab volvo .: VOLV-A.ST
+  ab.pa: AB.PA
+  abb: ABBNY
+  abb ltd: ABBNY
+  abbny: ABBNY
+  abbott la.: ABT
+  abbv: ABBV
+  abbvie in.: ABBV
+  abc: 1288.HK
+  abc arbit.: ABCA.PA
+  abca.pa: ABCA.PA
+  abcb: ABCB
+  abcellera.: ABCL
+  abcl: ABCL
+  abdn.l: ABDN.L
+  abdp.l: ABDP.L
+  abeo: ABEO
+  abeo.pa: ABEO.PA
+  abeona th.: ABEO
+  abercromb.: ANF
+  aberdeen .: ABDN.L
+  abev: ABEV
+  abf.l: ABF.L
+  abg: ABG
+  abg sunda.: ABG.OL
+  abg.ol: ABG.OL
+  abi.br: ABI.BR
+  abionyx p.: ABNX.PA
+  abivax so.: ABVX.PA
+  abl group.: ABL.OL
+  abl.ol: ABL.OL
+  abm: ABM
+  abm indus.: ABM
+  abnb: ABNB
+  abnx.pa: ABNX.PA
+  abo-group.: ABO.BR
+  abo.br: ABO.BR
+  abos: ABOS
+  abr: ABR
+  absci cor.: ABSI
+  absi: ABSI
+  abt: ABT
+  abvx.pa: ABVX.PA
+  abx.de: ABX.DE
+  abéo: ABEO.PA
+  abéo sa: ABEO.PA
+  ac.pa: AC.PA
+  aca.pa: ACA.PA
+  acacia re.: ACTG
+  acad: ACAD
+  academy s.: ASO
+  acadia he.: ACHC
+  acadia ph.: ACAD
+  acadia re.: AKR
+  acadian a.: AAMI
+  accel ent.: ACEL
+  accenture.: ACN
+  accesso t.: ACSO.L
+  acciona, .: ANA.MC
+  acco: ACCO
+  acco bran.: ACCO
+  accor: AC.PA
+  accor sa: AC.PA
+  accsys te.: AXS.L
+  acdc: ACDC
+  ace.mi: ACE.MI
+  acea s.p..: ACE.MI
+  acel: ACEL
+  acerinox,.: ACX.MC
+  acet: ACET
+  acgl: ACGL
+  achc: ACHC
+  achr: ACHR
+  aci: ACI
+  aci world.: ACIW
+  acic: ACIC
+  aciw: ACIW
+  ackb.br: ACKB.BR
+  ackermans.: ACKB.BR
+  aclaris t.: ACRS
+  acls: ACLS
+  aclx: ACLX
+  acm: ACM
+  acm resea.: ACMR
+  acmr: ACMR
+  acn: ACN
+  acr.ol: ACR.OL
+  acre: ACRE
+  acrs: ACRS
+  acs, acti.: ACS.MC
+  acs.mc: ACS.MC
+  acso.l: ACSO.L
+  act: ACT
+  act.de: ACT.DE
+  actg: ACTG
+  actia gro.: ALATI.PA
+  actinium .: ATNM
+  acuity in.: AYI
+  acumen ph.: ABOS
+  acushnet .: GOLF
+  acv aucti.: ACVA
+  acva: ACVA
+  acwn.de: ACWN.DE
+  acx.de: ACX.DE
+  acx.mc: ACX.MC
+  ad pepper.: APM.DE
+  adaptheal.: AHCO
+  adaptive .: ADPT
+  adbe: ADBE
+  adc: ADC
+  addus hom.: ADUS
+  adea: ADEA
+  adecoagro.: AGRO
+  adeia: ADEA
+  adeia inc.: ADEA
+  adesso se: ADN1.DE
+  adi: ADI
+  adicet bi.: ACET
+  adidas: ADS.DE
+  adidas ag: ADS.DE
+  adient: ADNT
+  adient plc: ADNT
+  adm: ADM
+  adm.l: ADM.L
+  admiral g.: ADM.L
+  adn1.de: ADN1.DE
+  adnt: ADNT
+  adobe: ADBE
+  adobe inc.: ADBE
+  adoc.pa: ADOC.PA
+  adocia: ADOC.PA
+  adocia sa: ADOC.PA
+  adp: ADP
+  adp.pa: ADP.PA
+  adpt: ADPT
+  ads.de: ADS.DE
+  adsk: ADSK
+  adt: ADT
+  adt inc.: ADT
+  adtn: ADTN
+  adtran ho.: ADTN
+  adtran ne.: ADV.DE
+  adus: ADUS
+  adv: ADV
+  adv.de: ADV.DE
+  advance a.: AAP
+  advanced .: ABX.DE
+  advansix .: ASIX
+  advantage.: ADV
+  advini s..: ALAVI.PA
+  aecom: ACM
+  aed.br: AED.BR
+  aedifica .: AED.BR
+  aee: AEE
+  aeg: AEG
+  aegon: AEG
+  aegon ltd.: AEG
+  aehr: AEHR
+  aehr test.: AEHR
+  aein.de: AEIN.DE
+  aeis: AEIS
+  aem: AEM
+  aemetis, .: AMTX
+  aena s.m..: AENA.MC
+  aena.mc: AENA.MC
+  aeo: AEO
+  aep: AEP
+  aer: AER
+  aercap ho.: AER
+  aeroports.: ADP.PA
+  aeroviron.: AVAV
+  aersale c.: ASLE
+  aes: AES
+  aesi: AESI
+  aet.l: AET.L
+  aew uk re.: AEWU.L
+  aewu.l: AEWU.L
+  af gruppe.: AFG.OL
+  af.pa: AF.PA
+  afc energ.: AFC.L
+  afc.l: AFC.L
+  afcg: AFCG
+  afentra p.: AET.L
+  affiliate.: AMG
+  affirm ho.: AFRM
+  afg: AFG
+  afg.ol: AFG.OL
+  afish.ol: AFISH.OL
+  afk.ol: AFK.OL
+  afl: AFL
+  aflac: AFL
+  aflac inc.: AFL
+  afrm: AFRM
+  afx.de: AFX.DE
+  afya: AFYA
+  afya limi.: AFYA
+  afyren sas: ALAFY.PA
+  ag: AG
+  ag1.de: AG1.DE
+  agco: AGCO
+  agco corp.: AGCO
+  ageas sa/.: AGS.BR
+  agen: AGEN
+  agenus in.: AGEN
+  agfa-geva.: AGFB.BR
+  agfb.br: AGFB.BR
+  agi: AGI
+  agilent t.: A
+  agilon he.: AGL
+  agilysys,.: AGYS
+  agio: AGIO
+  agios pha.: AGIO
+  agl: AGL
+  agm: AGM
+  agnc: AGNC
+  agnc inve.: AGNC
+  agnico ea.: AEM
+  ago: AGO
+  agora, in.: API
+  agree rea.: ADC
+  agro: AGRO
+  agronomic.: ANIC.L
+  ags.br: AGS.BR
+  agx: AGX
+  agys: AGYS
+  ahco: AHCO
+  ahr: AHR
+  ai: AI
+  ai.pa: AI.PA
+  aia group.: 1299.HK
+  aig: AIG
+  ain: AIN
+  aiot: AIOT
+  aip: AIP
+  air arabi.: AIRARABIA.AE
+  air china.: 0753.HK
+  air franc.: AF.PA
+  air lease.: AL
+  air produ.: APD
+  air.pa: AIR.PA
+  airarabia.ae: AIRARABIA.AE
+  airbnb, i.: ABNB
+  airbus se: AIR.PA
+  airs: AIRS
+  airsculpt.: AIRS
+  airtel af.: AAF.L
+  ait: AIT
+  aixa.de: AIXA.DE
+  aixtron se: AIXA.DE
+  aiz: AIZ
+  aj bell p.: AJB.L
+  ajb.l: AJB.L
+  ajg: AJG
+  ajman ban.: AJMANBANK.AE
+  ajmanbank.ae: AJMANBANK.AE
+  akam: AKAM
+  akamai te.: AKAM
+  akast.ol: AKAST.OL
+  akastor a.: AKAST.OL
+  akba: AKBA
+  akbm.ol: AKBM.OL
+  ake.pa: AKE.PA
+  akebia th.: AKBA
+  aker asa: AKER.OL
+  aker biom.: AKBM.OL
+  aker bp a.: AKRBP.OL
+  aker hori.: AKH.OL
+  aker solu.: AKSO.OL
+  aker.ol: AKER.OL
+  akeso, in.: 9926.HK
+  akh.ol: AKH.OL
+  akr: AKR
+  akrbp.ol: AKRBP.OL
+  akso.ol: AKSO.OL
+  akva grou.: AKVA.OL
+  akva.ol: AKVA.OL
+  akw.pa: AKW.PA
+  akwel: AKW.PA
+  akwel sa: AKW.PA
+  al: AL
+  al ansari.: ALANSARI.AE
+  al2si.pa: AL2SI.PA
+  alafy.pa: ALAFY.PA
+  alago.pa: ALAGO.PA
+  alamo gro.: ALG
+  alamos go.: AGI
+  alansari.ae: ALANSARI.AE
+  alarm.com.: ALRM
+  alaska ai.: ALK
+  alati.pa: ALATI.PA
+  alavi.pa: ALAVI.PA
+  alb: ALB
+  albany in.: AIN
+  albemarle.: ALB
+  albertson.: ACI
+  albfr.pa: ALBFR.PA
+  albis lea.: ALG.DE
+  albiz.pa: ALBIZ.PA
+  albld.pa: ALBLD.PA
+  albon.pa: ALBON.PA
+  alcis.pa: ALCIS.PA
+  alcj.pa: ALCJ.PA
+  alco: ALCO
+  alcoa cor.: AA
+  alcox.pa: ALCOX.PA
+  alcrb.pa: ALCRB.PA
+  alcur.pa: ALCUR.PA
+  aldar.pa: ALDAR.PA
+  aldbt.pa: ALDBT.PA
+  aldel.pa: ALDEL.PA
+  aldeyra t.: ALDX
+  aldlt.pa: ALDLT.PA
+  aldne.pa: ALDNE.PA
+  aldx: ALDX
+  alec: ALEC
+  aleco.pa: ALECO.PA
+  alecp.pa: ALECP.PA
+  alector, .: ALEC
+  alemg.pa: ALEMG.PA
+  aleno.pa: ALENO.PA
+  alers.pa: ALERS.PA
+  alerus fi.: ALRS
+  alese.pa: ALESE.PA
+  alex: ALEX
+  alexander.: ALEX
+  alexandri.: ARE
+  alfa fina.: ALFA.L
+  alfa lava.: ALFA.ST
+  alfa.l: ALFA.L
+  alfa.st: ALFA.ST
+  alfle.pa: ALFLE.PA
+  alfpc.pa: ALFPC.PA
+  alfre.pa: ALFRE.PA
+  alfum.pa: ALFUM.PA
+  alg: ALG
+  alg.de: ALG.DE
+  algae.pa: ALGAE.PA
+  algid.pa: ALGID.PA
+  algil.pa: ALGIL.PA
+  algm: ALGM
+  algn: ALGN
+  algonquin.: AQN
+  algt: ALGT
+  alhaf.pa: ALHAF.PA
+  alhc: ALHC
+  alhex.pa: ALHEX.PA
+  alhf.pa: ALHF.PA
+  alhg.pa: ALHG.PA
+  alhgr.pa: ALHGR.PA
+  alhop.pa: ALHOP.PA
+  alhrg.pa: ALHRG.PA
+  alhrs.pa: ALHRS.PA
+  alhun.pa: ALHUN.PA
+  alhyp.pa: ALHYP.PA
+  alibaba g.: 9988.HK
+  alibaba h.: 0241.HK
+  alica.pa: ALICA.PA
+  alico, in.: ALCO
+  alight, i.: ALIT
+  align tec.: ALGN
+  alignment.: ALHC
+  aliko.pa: ALIKO.PA
+  alinn.pa: ALINN.PA
+  alinv.pa: ALINV.PA
+  alit: ALIT
+  alitl.pa: ALITL.PA
+  aljxr.pa: ALJXR.PA
+  alk: ALK
+  alkal.pa: ALKAL.PA
+  alkami te.: ALKT
+  alkermes .: ALKS
+  alks: ALKS
+  alkt: ALKT
+  all: ALL
+  all for o.: A1OS.DE
+  all.l: ALL.L
+  allan.pa: ALLAN.PA
+  allbirds,.: BIRD
+  alldl.pa: ALLDL.PA
+  alle: ALLE
+  allegiant.: ALGT
+  allegion .: ALLE
+  allegro m.: ALGM
+  allgeier .: AEIN.DE
+  allgo.pa: ALLGO.PA
+  alliance .: ALW.L
+  alliant e.: LNT
+  allianz se: ALV.DE
+  allient i.: ALNT
+  allison t.: ALSN
+  allix.pa: ALLIX.PA
+  allo: ALLO
+  allog.pa: ALLOG.PA
+  allogene .: ALLO
+  allurion .: ALUR
+  ally: ALLY
+  ally fina.: ALLY
+  alm.mc: ALM.MC
+  almce.pa: ALMCE.PA
+  almdg.pa: ALMDG.PA
+  almdt.pa: ALMDT.PA
+  almib.pa: ALMIB.PA
+  almin.pa: ALMIN.PA
+  almirall,.: ALM.MC
+  almlb.pa: ALMLB.PA
+  almou.pa: ALMOU.PA
+  almrb.pa: ALMRB.PA
+  alnfl.pa: ALNFL.PA
+  alng.ol: ALNG.OL
+  alnn6.pa: ALNN6.PA
+  alnse.pa: ALNSE.PA
+  alnt: ALNT
+  alntg.pa: ALNTG.PA
+  alnxt.pa: ALNXT.PA
+  alny: ALNY
+  alnylam p.: ALNY
+  alo.pa: ALO.PA
+  alodc.pa: ALODC.PA
+  alokw.pa: ALOKW.PA
+  alopm.pa: ALOPM.PA
+  alpau.pa: ALPAU.PA
+  alpha and.: AOSL
+  alpha met.: AMR
+  alphabet .: GOOG
+  alphatec .: ATEC
+  alpine in.: PINE
+  alpjt.pa: ALPJT.PA
+  alpm.pa: ALPM.PA
+  alpou.pa: ALPOU.PA
+  alpul.pa: ALPUL.PA
+  alrew.pa: ALREW.PA
+  alrib.pa: ALRIB.PA
+  alrm: ALRM
+  alrpd.pa: ALRPD.PA
+  alrs: ALRS
+  alsen.pa: ALSEN.PA
+  alsma.pa: ALSMA.PA
+  alsn: ALSN
+  alsog.pa: ALSOG.PA
+  alspt.pa: ALSPT.PA
+  alspw.pa: ALSPW.PA
+  alsti.pa: ALSTI.PA
+  alstom: ALO.PA
+  alstom sa: ALO.PA
+  alstw.pa: ALSTW.PA
+  alta equi.: ALTG
+  alta.pa: ALTA.PA
+  altamir o.: LTA.PA
+  altarea s.: ALTA.PA
+  alten s.a.: ATE.PA
+  altg: ALTG
+  althx.pa: ALTHX.PA
+  altme.pa: ALTME.PA
+  alto: ALTO
+  alto ingr.: ALTO
+  altpc.pa: ALTPC.PA
+  altr.ls: ALTR.LS
+  altri, sg.: ALTR.LS
+  altria gr.: MO
+  alu10.pa: ALU10.PA
+  alupg.pa: ALUPG.PA
+  alur: ALUR
+  alv: ALV
+  alv.de: ALV.DE
+  alval.pa: ALVAL.PA
+  alvap.pa: ALVAP.PA
+  alvdm.pa: ALVDM.PA
+  alvgo.pa: ALVGO.PA
+  alvo: ALVO
+  alvotech: ALVO
+  alvu.pa: ALVU.PA
+  alw.l: ALW.L
+  alwf.pa: ALWF.PA
+  alwtr.pa: ALWTR.PA
+  alx oncol.: ALXO
+  alxo: ALXO
+  alzchem g.: ACT.DE
+  am: AM
+  am.pa: AM.PA
+  amadeus f.: AAD.DE
+  amadeus i.: AMS.MC
+  amal: AMAL
+  amalgamat.: AMAL
+  amanat ho.: AMANAT.AE
+  amanat.ae: AMANAT.AE
+  amat: AMAT
+  amazon.co.: AMZN
+  amba: AMBA
+  ambarella.: AMBA
+  ambev s.a.: ABEV
+  ambp: AMBP
+  amc: AMC
+  amc enter.: AMC
+  amc globa.: AMCX
+  amcor: AMCR
+  amcor plc: AMCR
+  amcr: AMCR
+  amcx: AMCX
+  amd: AMD
+  amdocs li.: DOX
+  ame: AME
+  amentum h.: AMTM
+  amer spor.: AS
+  amerant b.: AMTB
+  ameren: AEE
+  ameren co.: AEE
+  ameresco,.: AMRC
+  america's.: CRMT
+  american .: AVD
+  americold.: COLD
+  ameris ba.: ABCB
+  amerisafe.: AMSF
+  ametek, i.: AME
+  amg: AMG
+  amgen: AMGN
+  amgen inc.: AMGN
+  amgn: AMGN
+  amh: AMH
+  ami.de: AMI.DE
+  amicus th.: FOLD
+  amkor tec.: AMKR
+  amkr: AMKR
+  aml.l: AML.L
+  amlak fin.: AMLAK.AE
+  amlak.ae: AMLAK.AE
+  amlx: AMLX
+  amn: AMN
+  amn healt.: AMN
+  amoéba s..: ALMIB.PA
+  amp.mi: AMP.MI
+  amph: AMPH
+  amphastar.: AMPH
+  amphenol .: APH
+  ampl: AMPL
+  amplifon .: AMP.MI
+  amplify e.: AMPY
+  amplitude.: AMPL
+  amprius t.: AMPX
+  ampx: AMPX
+  ampy: AMPY
+  amr: AMR
+  amrc: AMRC
+  ams.mc: AMS.MC
+  amsc: AMSC
+  amsf: AMSF
+  amt: AMT
+  amtb: AMTB
+  amtm: AMTM
+  amtx: AMTX
+  amun.pa: AMUN.PA
+  amundi s..: AMUN.PA
+  amwd: AMWD
+  amwl: AMWL
+  amx: AMX
+  amylyx ph.: AMLX
+  amzn: AMZN
+  américa m.: AMX
+  an: AN
+  an2 thera.: ANTX
+  ana.mc: ANA.MC
+  anab: ANAB
+  analog de.: ADI
+  anaptysbi.: ANAB
+  anavex li.: AVXL
+  ande: ANDE
+  andf.ol: ANDF.OL
+  andfjord .: ANDF.OL
+  andritz: AZ2.DE
+  andritz ag: AZ2.DE
+  ane.mc: ANE.MC
+  anet: ANET
+  anf: ANF
+  angi: ANGI
+  angi inc.: ANGI
+  angiodyna.: ANGO
+  anglo ame.: AAL.L
+  anglogold.: AU
+  ango: ANGO
+  anheuser-.: ABI.BR
+  anhui con.: 0914.HK
+  ani pharm.: ANIP
+  anic.l: ANIC.L
+  anik: ANIK
+  anika the.: ANIK
+  anim.mi: ANIM.MI
+  anima hol.: ANIM.MI
+  anip: ANIP
+  annaly ca.: NLY
+  annexon, .: ANNX
+  annovis b.: ANVS
+  annx: ANNX
+  anta spor.: 2020.HK
+  anterix i.: ATEX
+  antero mi.: AM
+  antin inf.: ANTIN.PA
+  antin.pa: ANTIN.PA
+  anto.l: ANTO.L
+  antofagas.: ANTO.L
+  antx: ANTX
+  anvs: ANVS
+  ao world .: AO.L
+  ao.l: AO.L
+  aof.de: AOF.DE
+  aon: AON
+  aon plc: AON
+  aort: AORT
+  aos: AOS
+  aosl: AOSL
+  apa: APA
+  apa corpo.: APA
+  apam: APAM
+  apd: APD
+  apellis p.: APLS
+  apg: APG
+  apge: APGE
+  aph: APH
+  api: API
+  api group.: APG
+  apld: APLD
+  aple: APLE
+  apls: APLS
+  apm.de: APM.DE
+  apo: APO
+  apog: APOG
+  apogee en.: APOG
+  apogee th.: APGE
+  apollo: ARI
+  apollo co.: ARI
+  apollo gl.: APO
+  app: APP
+  appf: APPF
+  appfolio,.: APPF
+  appian: APPN
+  appian co.: APPN
+  apple: AAPL
+  apple hos.: APLE
+  apple inc.: AAPL
+  applied d.: APLD
+  applied i.: AIT
+  applied m.: AMAT
+  applied o.: AAOI
+  applovin .: APP
+  appn: APPN
+  apps: APPS
+  aptargrou.: ATR
+  aptd.l: APTD.L
+  aptitude .: APTD.L
+  aptiv: APTV
+  aptiv plc: APTV
+  aptv: APTV
+  aqn: AQN
+  aqst: AQST
+  aquestive.: AQST
+  aramark: ARMK
+  aramex pj.: ARMX.AE
+  arami.pa: ARAMI.PA
+  aramis gr.: ARAMI.PA
+  arbb.l: ARBB.L
+  arbe: ARBE
+  arbe robo.: ARBE
+  arbor rea.: ABR
+  arbuthnot.: ARBB.L
+  arc miner.: ARCM.L
+  arcb: ARCB
+  arcbest c.: ARCB
+  arcc: ARCC
+  arcellx, .: ACLX
+  arcelormi.: MTS.MC
+  arch capi.: ACGL
+  arch.ol: ARCH.OL
+  archer av.: ACHR
+  archer li.: ARCH.OL
+  archer-da.: ADM
+  archos s..: ALJXR.PA
+  arcm.l: ARCM.L
+  arct: ARCT
+  arctic fi.: AFISH.OL
+  arcticzym.: AZT.OL
+  arcturus .: ARCT
+  arcure s..: ALCUR.PA
+  arcus bio.: RCUS
+  arcutis b.: ARQT
+  ardagh me.: AMBP
+  ardelyx, .: ARDX
+  ardmore s.: ASC
+  ardx: ARDX
+  are: ARE
+  arendals .: AFK.OL
+  ares: ARES
+  ares capi.: ARCC
+  ares comm.: ACRE
+  ares mana.: ARES
+  arg.pa: ARG.PA
+  argan: ARG.PA
+  argan sa: ARG.PA
+  argan, in.: AGX
+  argenx se: ARGX.BR
+  argx: ARGX
+  argx.br: ARGX.BR
+  arhaus, i.: ARHS
+  arhs: ARHS
+  ari: ARI
+  ariana re.: AAU.L
+  aris: ARIS
+  aris mini.: ARIS
+  aris.mi: ARIS.MI
+  arista ne.: ANET
+  ariston h.: ARIS.MI
+  arkema s..: AKE.PA
+  arko: ARKO
+  arko corp.: ARKO
+  arlo: ARLO
+  arlo tech.: ARLO
+  arm: ARM
+  arm holdi.: ARM
+  armk: ARMK
+  armour re.: ARR
+  armstrong.: AWI
+  armx.ae: ARMX.AE
+  aroundtow.: AT1.DE
+  arow: AROW
+  arqt: ARQT
+  arr: ARR
+  arr.ol: ARR.OL
+  array tec.: ARRY
+  arribatec.: ARR.OL
+  arrow ele.: ARW
+  arrow exp.: AXL.L
+  arrow fin.: AROW
+  arrowhead.: ARWR
+  arry: ARRY
+  ars pharm.: SPRY
+  artec tec.: A6T.DE
+  arteris, .: AIP
+  artesian .: ARTNA
+  arthur j..: AJG
+  artisan p.: APAM
+  artivion,.: AORT
+  artna: ARTNA
+  arvinas, .: ARVN
+  arvn: ARVN
+  arw: ARW
+  arwr: ARWR
+  as: AS
+  asa inter.: ASAI.L
+  asai.l: ASAI.L
+  asaiy: ASAIY
+  asan: ASAN
+  asana, in.: ASAN
+  asb: ASB
+  asbury au.: ABG
+  asc: ASC
+  asc.l: ASC.L
+  asce.br: ASCE.BR
+  ascencio .: ASCE.BR
+  ascendis .: ASND
+  ase techn.: ASX
+  asgn: ASGN
+  asgn inc: ASGN
+  ash: ASH
+  ashland i.: ASH
+  ashm.l: ASHM.L
+  ashmore g.: ASHM.L
+  asix: ASIX
+  asle: ASLE
+  asml: ASML
+  asml hold.: ASML
+  asnd: ASND
+  aso: ASO
+  asos: ASC.L
+  asos plc: ASC.L
+  aspen aer.: ASPN
+  aspn: ASPN
+  asr: ASR
+  asrt: ASRT
+  assa ablo.: ASSA-B.ST
+  assa-b.st: ASSA-B.ST
+  assertio .: ASRT
+  assicuraz.: G.MI
+  associate.: ASB
+  assurant,.: AIZ
+  assured g.: AGO
+  assystem .: ASY.PA
+  ast space.: ASTS
+  aste: ASTE
+  astec ind.: ASTE
+  asth: ASTH
+  aston mar.: AML.L
+  astrana h.: ASTH
+  astrazene.: AZN.L
+  astronics.: ATRO
+  asts: ASTS
+  asur: ASUR
+  asure sof.: ASUR
+  asx: ASX
+  asy.pa: ASY.PA
+  at&t: T
+  at&t inc.: T
+  at1.de: AT1.DE
+  atai: ATAI
+  ataibeckl.: ATAI
+  atalaya m.: ATYM.L
+  atara bio.: ATRA
+  atat: ATAT
+  atco-a.st: ATCO-A.ST
+  atco-b.st: ATCO-B.ST
+  ate.pa: ATE.PA
+  atea asa: ATEA.OL
+  atea phar.: AVIR
+  atea.ol: ATEA.OL
+  ateb.br: ATEB.BR
+  atec: ATEC
+  ateme: ATEME.PA
+  ateme sa: ATEME.PA
+  ateme.pa: ATEME.PA
+  aten: ATEN
+  atenor: ATEB.BR
+  atenor sa: ATEB.BR
+  atex: ATEX
+  atg.l: ATG.L
+  ati: ATI
+  ati inc.: ATI
+  atkore in.: ATKR
+  atkr: ATKR
+  atlanta b.: BATRK
+  atlantic .: ALL.L
+  atlanticu.: ATLC
+  atlas cop.: ATCO-B.ST
+  atlas ene.: AESI
+  atlas lit.: ATLX
+  atlassian.: TEAM
+  atlc: ATLC
+  atlx: ATLX
+  atmos ene.: ATO
+  atmu: ATMU
+  atmus fil.: ATMU
+  atn inter.: ATNI
+  atni: ATNI
+  atnm: ATNM
+  ato: ATO
+  ato.pa: ATO.PA
+  atos se: ATO.PA
+  atoss sof.: AOF.DE
+  atour lif.: ATAT
+  atr: ATR
+  atra: ATRA
+  atrc: ATRC
+  atricure,.: ATRC
+  atrium th.: RNA
+  atro: ATRO
+  atym.l: ATYM.L
+  au: AU
+  aub: AUB
+  aub.pa: AUB.PA
+  aubay soc.: AUB.PA
+  auction t.: ATG.L
+  aumann: AAG.DE
+  aumann ag: AAG.DE
+  auph: AUPH
+  aur: AUR
+  aura: AURA
+  aura bios.: AURA
+  aure.pa: AURE.PA
+  aurea: AURE.PA
+  aurea sa: AURE.PA
+  aurg.ol: AURG.OL
+  aurinia p.: AUPH
+  aurora in.: AUR
+  aurskog s.: AURG.OL
+  aurubis: NDA.DE
+  aurubis ag: NDA.DE
+  auss.ol: AUSS.OL
+  austevoll.: AUSS.OL
+  autl: AUTL
+  auto.l: AUTO.L
+  auto.ol: AUTO.OL
+  auto1 gro.: AG1.DE
+  autodesk,.: ADSK
+  autoliv, .: ALV
+  autolus t.: AUTL
+  automatic.: ADP
+  autonatio.: AN
+  autostore.: AUTO.OL
+  autotrade.: AUTO.L
+  autozone,.: AZO
+  av.l: AV.L
+  ava: AVA
+  avalonbay.: AVB
+  avanos me.: AVNS
+  avantor, .: AVTR
+  avap.l: AVAP.L
+  avation p.: AVAP.L
+  avav: AVAV
+  avb: AVB
+  avd: AVD
+  avepoint,.: AVPT
+  avery den.: AVY
+  avgo: AVGO
+  aviat net.: AVNW
+  avient: AVNT
+  avient co.: AVNT
+  avir: AVIR
+  avis budg.: CAR
+  avista: AVA
+  avista co.: AVA
+  avita med.: RCEL
+  aviva: AV.L
+  aviva plc: AV.L
+  avnet, in.: AVT
+  avns: AVNS
+  avnt: AVNT
+  avnw: AVNW
+  avo: AVO
+  avon tech.: AVON.L
+  avon.l: AVON.L
+  avpt: AVPT
+  avt: AVT
+  avtr: AVTR
+  avxl: AVXL
+  avy: AVY
+  awi: AWI
+  awilco ln.: ALNG.OL
+  awk: AWK
+  awr: AWR
+  ax: AX
+  axa: CS.PA
+  axa sa: CS.PA
+  axactor a.: ACR.OL
+  axalta: AXTA
+  axalta co.: AXTA
+  axb.l: AXB.L
+  axcelis t.: ACLS
+  axgn: AXGN
+  axis bank.: AXB.L
+  axl.l: AXL.L
+  axogen, i.: AXGN
+  axon: AXON
+  axon ente.: AXON
+  axos fina.: AX
+  axp: AXP
+  axs.l: AXS.L
+  axsm: AXSM
+  axsome th.: AXSM
+  axta: AXTA
+  ayi: AYI
+  aytu: AYTU
+  aytu biop.: AYTU
+  ayv.pa: AYV.PA
+  ayvens: AYV.PA
+  az2.de: AZ2.DE
+  aze.br: AZE.BR
+  azelis gr.: AZE.BR
+  azenta, i.: AZTA
+  azimut ho.: AZM.MI
+  azm.mi: AZM.MI
+  azn: AZN
+  azn.l: AZN.L
+  azo: AZO
+  azt.ol: AZT.OL
+  azta: AZTA
+  azz: AZZ
+  azz inc.: AZZ
+  b&g foods.: BGS
+  b&m europ.: BME.L
+  b+s banks.: DTD2.DE
+  b2 impact.: B2I.OL
+  b2i.ol: B2I.OL
+  b7e.de: B7E.DE
+  ba: BA
+  ba.l: BA.L
+  bab.l: BAB.L
+  babcock &.: BW
+  babcock i.: BAB.L
+  bac: BAC
+  backblaze.: BLZE
+  badger me.: BMI
+  bae syste.: BA.L
+  bag.l: BAG.L
+  bah: BAH
+  baic moto.: 1958.HK
+  baidu, in.: BIDU
+  bain capi.: BCSF
+  bain.pa: BAIN.PA
+  bak: BAK
+  baker hug.: BKR
+  bakka.ol: BAKKA.OL
+  balchem c.: BCPC
+  balfour b.: BBY.L
+  ball: BALL
+  ball corp.: BALL
+  ballard p.: BLDP
+  bally's c.: BALY
+  baly: BALY
+  bam: BAM
+  bami.mi: BAMI.MI
+  banc: BANC
+  banc of c.: BANC
+  banca gen.: BGN.MI
+  banca med.: BMED.MI
+  banca mon.: BMPS.MI
+  banca pop.: BPSO.MI
+  bancfirst.: BANF
+  banco bil.: BBVA.MC
+  banco bpm.: BAMI.MI
+  banco bra.: BBD
+  banco de .: SAB.MC
+  banco lat.: BLX
+  banco mac.: BMA
+  banco san.: BSAC
+  banf: BANF
+  bani.br: BANI.BR
+  banimmo: BANI.BR
+  banimmo sa: BANI.BR
+  bank firs.: BFC
+  bank of a.: BAC
+  bank of c.: 3328.HK
+  bank of h.: BOH
+  bank of i.: BIRG.L
+  bank of m.: BMRC
+  bank ozk: OZK
+  bankinter.: BKT.MC
+  bankunite.: BKU
+  banner: BANR
+  banner co.: BANR
+  banr: BANR
+  baozun in.: BZUN
+  bap: BAP
+  bar harbo.: BHB
+  bar.br: BAR.BR
+  barc.l: BARC.L
+  barclays .: BARC.L
+  barco: BAR.BR
+  barco nv: BAR.BR
+  barings b.: BBDC
+  bark: BARK
+  bark,: BARK
+  bark, inc.: BARK
+  barratt r.: BTRW.L
+  barrett b.: BBSI
+  bas.de: BAS.DE
+  basf se: BAS.DE
+  basler ak.: BSL.DE
+  bass.pa: BASS.PA
+  bassac so.: BASS.PA
+  bastei lü.: BST.DE
+  bastide l.: BLC.PA
+  bath & bo.: BBWI
+  batrk: BATRK
+  bats.l: BATS.L
+  bausch + .: BLCO
+  bausch he.: BHC
+  bava.co: BAVA.CO
+  bavarian .: BAVA.CO
+  bawag gro.: 0B2.DE
+  bax: BAX
+  baxter in.: BAX
+  baycom: BCML
+  baycom co.: BCML
+  bayer akt.: BAYN.DE
+  bayerisch.: BMW3.DE
+  bayn.de: BAYN.DE
+  baywa akt.: BYW.DE
+  bb: BB
+  bb.pa: BB.PA
+  bbai: BBAI
+  bbcp: BBCP
+  bbd: BBD
+  bbdc: BBDC
+  bbio: BBIO
+  bbox.l: BBOX.L
+  bbsi: BBSI
+  bbva.mc: BBVA.MC
+  bbw: BBW
+  bbwi: BBWI
+  bby: BBY
+  bby.l: BBY.L
+  bc: BC
+  bc.mi: BC.MI
+  bc8.de: BC8.DE
+  bcab: BCAB
+  bcc: BCC
+  bce: BCE
+  bce inc.: BCE
+  bcml: BCML
+  bco: BCO
+  bcpc: BCPC
+  bcrx: BCRX
+  bcs: BCS
+  bcs.ol: BCS.OL
+  bcsf: BCSF
+  bcyc: BCYC
+  bdc: BDC
+  bdn: BDN
+  bdt.de: BDT.DE
+  bdtx: BDTX
+  bdx: BDX
+  be: BE
+  beam: BEAM
+  beam glob.: BEEM
+  beam ther.: BEAM
+  beat: BEAT
+  beazer ho.: BZH
+  beazley p.: BEZ.L
+  bechtle: BC8.DE
+  bechtle ag: BC8.DE
+  becton, d.: BDX
+  beeks fin.: BKS.L
+  beem: BEEM
+  befesa s..: BFSA.DE
+  bei.de: BEI.DE
+  beiersdor.: BEI.DE
+  bekb.br: BEKB.BR
+  beke: BEKE
+  bel fuse .: BELFB
+  belden in.: BDC
+  belfb: BELFB
+  belite bi.: BLTE
+  bellring .: BRBR
+  bellway p.: BWY.L
+  ben: BEN
+  ben.pa: BEN.PA
+  benchmark.: BHE
+  bentley s.: BSY
+  beone med.: ONC
+  berentzen.: BEZ.DE
+  bergen ca.: BCS.OL
+  bertrandt.: BDT.DE
+  best buy .: BBY
+  bet-at-ho.: ACX.DE
+  betterwar.: BWMX
+  bewi asa: BEWI.OL
+  bewi.ol: BEWI.OL
+  beyond me.: BYND
+  bez.de: BEZ.DE
+  bez.l: BEZ.L
+  bf-b: BF-B
+  bfam: BFAM
+  bfc: BFC
+  bff bank .: BFF.MI
+  bff.mi: BFF.MI
+  bfh: BFH
+  bfly: BFLY
+  bfs: BFS
+  bfsa.de: BFSA.DE
+  bfst: BFST
+  bg: BG
+  bgc: BGC
+  bgc group.: BGC
+  bgeo.l: BGEO.L
+  bgn.mi: BGN.MI
+  bgs: BGS
+  bhb: BHB
+  bhc: BHC
+  bhe: BHE
+  bhf: BHF
+  bhp: BHP
+  bhp group.: BHP.L
+  bhp.l: BHP.L
+  bhrb: BHRB
+  bicycle t.: BCYC
+  bidu: BIDU
+  bien spar.: BIEN.OL
+  bien.ol: BIEN.OL
+  big yello.: BYG.L
+  big.pa: BIG.PA
+  bigbear.a.: BBAI
+  bigben in.: BIG.PA
+  biib: BIIB
+  bij.de: BIJ.DE
+  bijou bri.: BIJ.DE
+  bike.de: BIKE.DE
+  bike24 ho.: BIKE.DE
+  bilendi: ALBLD.PA
+  bilendi sa: ALBLD.PA
+  bilfinger.: GBF.DE
+  bili: BILI
+  bilibili .: BILI
+  bill: BILL
+  bill hold.: BILL
+  bim.pa: BIM.PA
+  binect: MA10.DE
+  binect ag: MA10.DE
+  bio: BIO
+  bio-rad l.: BIO
+  bio-techn.: TECH
+  bio3.de: BIO3.DE
+  bioatla, .: BCAB
+  bioceres .: BIOX
+  biocryst .: BCRX
+  biogen in.: BIIB
+  biolife s.: BLFS
+  biomarin .: BMRN
+  biomea fu.: BMEA
+  biomérieu.: BIM.PA
+  bionano g.: BNGO
+  biontech .: 22UA.DE
+  biotalys .: BTLS.BR
+  biote cor.: BTMD
+  biotest a.: BIO3.DE
+  bioventix.: BVXP.L
+  bioventus.: BVS
+  biovie in.: BIVI
+  biox: BIOX
+  bioxcel t.: BTAI
+  bip: BIP
+  bird: BIRD
+  birg.l: BIRG.L
+  birk: BIRK
+  birkensto.: BIRK
+  bit digit.: BTBT
+  bitdeer t.: BTDR
+  bitf: BITF
+  bitfarms .: BITF
+  bivi: BIVI
+  bj: BJ
+  bj's rest.: BJRI
+  bj's whol.: BJ
+  bjri: BJRI
+  bk: BK
+  bkd: BKD
+  bke: BKE
+  bkg.l: BKG.L
+  bkh: BKH
+  bkht.de: BKHT.DE
+  bkng: BKNG
+  bkr: BKR
+  bks.l: BKS.L
+  bksy: BKSY
+  bkt.mc: BKT.MC
+  bku: BKU
+  bl: BL
+  black dia.: BDTX
+  black hil.: BKH
+  blackbaud.: BLKB
+  blackberr.: BB
+  blackline.: BL
+  blackrock.: TCPC
+  blacksky .: BKSY
+  blackston.: BXMT
+  blbd: BLBD
+  blc.pa: BLC.PA
+  blco: BLCO
+  bld: BLD
+  bldp: BLDP
+  bldr: BLDR
+  blfs: BLFS
+  blfy: BLFY
+  blink cha.: BLNK
+  blk: BLK
+  blkb: BLKB
+  blmn: BLMN
+  blnd.l: BLND.L
+  blnk: BLNK
+  block, in.: XYZ
+  bloom ene.: BE
+  bloomin' .: BLMN
+  bloomsbur.: BMY.L
+  blte: BLTE
+  blue bird.: BLBD
+  blue cap .: B7E.DE
+  blue foun.: BLFY
+  blue owl .: OBDC
+  bluelinx .: BXC
+  bluenord .: BNOR.OL
+  blx: BLX
+  blze: BLZE
+  bma: BMA
+  bmbl: BMBL
+  bme.l: BME.L
+  bmea: BMEA
+  bmed.mi: BMED.MI
+  bmi: BMI
+  bmo: BMO
+  bmps.mi: BMPS.MI
+  bmrc: BMRC
+  bmrn: BMRN
+  bms.l: BMS.L
+  bmw.de: BMW.DE
+  bmw3.de: BMW3.DE
+  bmy: BMY
+  bmy.l: BMY.L
+  bn.pa: BN.PA
+  bngo: BNGO
+  bnl: BNL
+  bnn.de: BNN.DE
+  bnor.ol: BNOR.OL
+  bnp parib.: BNP.PA
+  bnp.pa: BNP.PA
+  bnr.de: BNR.DE
+  bns: BNS
+  bntx: BNTX
+  bnzl.l: BNZL.L
+  boc: BOC
+  boc hong .: 2388.HK
+  bodycote .: BOY.L
+  boh: BOH
+  boi.pa: BOI.PA
+  boiron: BOI.PA
+  boiron sa: BOI.PA
+  boise cas.: BCC
+  bok finan.: BOKF
+  bokf: BOKF
+  boku,: BOKU.L
+  boku, inc.: BOKU.L
+  boku.l: BOKU.L
+  bol.pa: BOL.PA
+  bol.st: BOL.ST
+  boliden a.: BOL.ST
+  bolloré se: BOL.PA
+  bon.pa: BON.PA
+  bonduelle.: BON.PA
+  bonheur a.: BONHR.OL
+  bonhr.ol: BONHR.OL
+  booking h.: BKNG
+  boom: BOOM
+  boot: BOOT
+  boot barn.: BOOT
+  boot.l: BOOT.L
+  booz alle.: BAH
+  bor.l: BOR.L
+  bor.ol: BOR.OL
+  borders &.: BOR.L
+  borgestad.: BOR.OL
+  borgwarne.: BWA
+  borregaar.: BRG.OL
+  borussia .: BVB.DE
+  boss.de: BOSS.DE
+  boston om.: BOC
+  bourse di.: BSD.PA
+  bouv.ol: BOUV.OL
+  bouvet asa: BOUV.OL
+  bouygues .: EN.PA
+  bowl.l: BOWL.L
+  bowman: BWMN
+  bowman co.: BWMN
+  box: BOX
+  box,: BOX
+  box, inc.: BOX
+  boxl: BOXL
+  boxlight .: BOXL
+  boy.l: BOY.L
+  boyd gami.: BYD
+  bp p.l.c.: BP.L
+  bp.l: BP.L
+  bpe.mi: BPE.MI
+  bper banc.: BPE.MI
+  bpop: BPOP
+  bpost nv/.: BPOST.BR
+  bpost.br: BPOST.BR
+  bpso.mi: BPSO.MI
+  bpt.l: BPT.L
+  br: BR
+  brady cor.: BRC
+  braemar p.: BMS.L
+  brain bio.: BNN.DE
+  brandywin.: BDN
+  braskem s.: BAK
+  braze, in.: BRZE
+  brbr: BRBR
+  brby.l: BRBY.L
+  brc: BRCC
+  brc inc.: BRCC
+  brcc: BRCC
+  brck grou.: BRCK.L
+  brck.l: BRCK.L
+  bre.mi: BRE.MI
+  bread fin.: BFH
+  breb.br: BREB.BR
+  brederode.: BREB.BR
+  brembo n..: BRE.MI
+  brenntag .: BNR.DE
+  brg.ol: BRG.OL
+  bridgebio.: BBIO
+  bridgepoi.: BPT.L
+  bridgewat.: BWB
+  bright ho.: BFAM
+  brighthou.: BHF
+  brightspi.: BRSP
+  brillianc.: 1114.HK
+  brinker i.: EAT
+  bristol-m.: BMY
+  bristow g.: VTOL
+  british a.: BATS.L
+  british l.: BLND.L
+  brixmor p.: BRX
+  brk.l: BRK.L
+  brkr: BRKR
+  bro: BRO
+  broadcom .: AVGO
+  broadridg.: BR
+  broadston.: BNL
+  brockhaus.: BKHT.DE
+  brookdale.: BKD
+  brookfiel.: BIP
+  brooks ma.: BRK.L
+  bros: BROS
+  brown & b.: BRO
+  brown-for.: BF-B
+  brsp: BRSP
+  brt: BRT
+  brt apart.: BRT
+  bruker: BRKR
+  bruker co.: BRKR
+  brunello .: BC.MI
+  brunswick.: BC
+  brx: BRX
+  brze: BRZE
+  bsac: BSAC
+  bsbr: BSBR
+  bsd.pa: BSD.PA
+  bsl.de: BSL.DE
+  bst.de: BST.DE
+  bsy: BSY
+  btai: BTAI
+  btbt: BTBT
+  btdr: BTDR
+  bti: BTI
+  btls.br: BTLS.BR
+  btmd: BTMD
+  btrw.l: BTRW.L
+  btu: BTU
+  bud: BUD
+  build-a-b.: BBW
+  builders .: BLDR
+  bumble in.: BMBL
+  bunge glo.: BG
+  bunzl: BNZL.L
+  bunzl plc: BNZL.L
+  burberry .: BRBY.L
+  bureau ve.: BVI.PA
+  burke & h.: BHRB
+  burl: BURL
+  burlingto.: BURL
+  buse: BUSE
+  business .: BFST
+  butterfly.: BFLY
+  buzzi s.p.: BZU.MI
+  bvb.de: BVB.DE
+  bvi.pa: BVI.PA
+  bvn: BVN
+  bvs: BVS
+  bvxp.l: BVXP.L
+  bw: BW
+  bw energy.: BWE.OL
+  bw lpg li.: BWLPG.OL
+  bw offsho.: BWO.OL
+  bwa: BWA
+  bwb: BWB
+  bwe.ol: BWE.OL
+  bwin: BWIN
+  bwlpg.ol: BWLPG.OL
+  bwmn: BWMN
+  bwmx: BWMX
+  bwo.ol: BWO.OL
+  bwx techn.: BWXT
+  bwxt: BWXT
+  bwy.l: BWY.L
+  bx: BX
+  bxc: BXC
+  bxmt: BXMT
+  bxp: BXP
+  bxp,: BXP
+  bxp, inc.: BXP
+  bxsl: BXSL
+  by: BY
+  byd: BYD
+  byd compa.: 1211.HK
+  byd elect.: 0285.HK
+  byg.l: BYG.L
+  byit.l: BYIT.L
+  byline ba.: BY
+  bynd: BYND
+  bytes tec.: BYIT.L
+  byw.de: BYW.DE
+  bz: BZ
+  bzh: BZH
+  bzu.mi: BZU.MI
+  bzun: BZUN
+  bénéteau .: BEN.PA
+  c: C
+  c.h. robi.: CHRW
+  c3.ai, in.: AI
+  c3ry.de: C3RY.DE
+  c4 therap.: CCCC
+  ca.pa: CA.PA
+  ca1.de: CA1.DE
+  caap: CAAP
+  cab payme.: CABP.L
+  caba: CABA
+  cabaletta.: CABA
+  cabk.mc: CABK.MC
+  cable one.: CABO
+  cabo: CABO
+  cabot cor.: CBT
+  cabp.l: CABP.L
+  cac: CAC
+  cacc: CACC
+  caci: CACI
+  caci inte.: CACI
+  cactus, i.: WHD
+  cadeler a.: CADLR.OL
+  cadence d.: CDNS
+  cadiz: CDZI
+  cadiz inc.: CDZI
+  cadlr.ol: CADLR.OL
+  cadre hol.: CDRE
+  caesars e.: CZR
+  caf.mc: CAF.MC
+  caf.pa: CAF.PA
+  café de c.: 0341.HK
+  cag: CAG
+  cah: CAH
+  caisse ré.: CAF.PA
+  caixabank.: CABK.MC
+  cajpy: CAJPY
+  cake: CAKE
+  cal: CAL
+  cal-maine.: CALM
+  calavo gr.: CVGW
+  caledonia.: CMCL
+  caleres, .: CAL
+  californi.: CWT
+  calm: CALM
+  calumet, .: CLMT
+  cam.l: CAM.L
+  cambi asa: CAMBI.OL
+  cambi.ol: CAMBI.OL
+  cambium n.: CMBM
+  camden na.: CAC
+  camden pr.: CPT
+  cameco: CCJ
+  cameco co.: CCJ
+  camellia .: CAM.L
+  caml.l: CAML.L
+  camping w.: CWH
+  camt: CAMT
+  camtek lt.: CAMT
+  can: CAN
+  can.l: CAN.L
+  canaan in.: CAN
+  canada go.: GOOS
+  canadian .: CSIQ
+  canal+: CAN.L
+  canal+ sa: CAN.L
+  cannae ho.: CNNE
+  canon: CAJPY
+  canon inc.: CAJPY
+  canopy gr.: CGC
+  cansino b.: 6185.HK
+  cantaloup.: CTLP
+  cantourag.: HIGH.DE
+  cap.pa: CAP.PA
+  capd.l: CAPD.L
+  capgemini.: CAP.PA
+  capita: CPI.L
+  capita plc: CPI.L
+  capital c.: CCBG
+  capital l.: CAPD.L
+  capital o.: COF
+  capital s.: CSWC
+  capitol f.: CFFN
+  capr: CAPR
+  capri hol.: CPRI
+  capricor .: CAPR
+  capricorn.: CNE.L
+  capsl.ol: CAPSL.OL
+  capsol te.: CAPSL.OL
+  car: CAR
+  car.l: CAR.L
+  carbios s.: ALCRB.PA
+  carclo: CAR.L
+  carclo plc: CAR.L
+  card fact.: CARD.L
+  card.l: CARD.L
+  cardiff o.: CRDF
+  cardinal .: CAH
+  cardlytic.: CDLX
+  care: CARE
+  care prop.: CPINV.BR
+  caredx, i.: CDNA
+  carel ind.: CRL.MI
+  caretrust.: CTRE
+  carg: CARG
+  cargurus,.: CARG
+  caribou b.: CRBU
+  carisma t.: CARM
+  carl zeis.: AFX.DE
+  carlisle .: CSL
+  carlyle s.: CGBD
+  carm: CARM
+  carm.pa: CARM.PA
+  carmax, i.: KMX
+  carmila s.: CARM.PA
+  carnival .: CCL.L
+  carparts..: PRTS
+  carpenter.: CRS
+  carr: CARR
+  carrefour.: CA.PA
+  carriage .: CSV
+  carrier g.: CARR
+  cart: CART
+  carter ba.: CARE
+  carter's,.: CRI
+  carvana c.: CVNA
+  casella w.: CWST
+  casey's g.: CASY
+  cash: CASH
+  casino, g.: CO.PA
+  cass: CASS
+  cass info.: CASS
+  cast.st: CAST.ST
+  castellum.: CAST.ST
+  castings .: CGS.L
+  castle bi.: CSTL
+  casy: CASY
+  cat: CAT
+  catalyst .: CPRX
+  catering .: ALCIS.PA
+  caterpill.: CAT
+  cathay ge.: CATY
+  caty: CATY
+  cava: CAVA
+  cava grou.: CAVA
+  cavco ind.: CVCO
+  caven.ol: CAVEN.OL
+  cavendish.: CAVEN.OL
+  cb: CB
+  cban: CBAN
+  cbd.ae: CBD.AE
+  cbg.l: CBG.L
+  cbiz,: CBZ
+  cbiz, inc.: CBZ
+  cbk.de: CBK.DE
+  cbkd.l: CBKD.L
+  cbo terri.: CBOT.PA
+  cboe: CBOE
+  cboe glob.: CBOE
+  cbot.pa: CBOT.PA
+  cbrain a/s: CBRAIN.CO
+  cbrain.co: CBRAIN.CO
+  cbre: CBRE
+  cbre grou.: CBRE
+  cbrl: CBRL
+  cbsh: CBSH
+  cbt: CBT
+  cbu: CBU
+  cbus: CBUS
+  cbz: CBZ
+  cc: CC
+  ccap: CCAP
+  ccb: CCB
+  ccbg: CCBG
+  ccc.l: CCC.L
+  cccc: CCCC
+  ccep: CCEP
+  ccg: CCG
+  cch.l: CCH.L
+  cci: CCI
+  ccj: CCJ
+  cck: CCK
+  ccl: CCL
+  ccl.l: CCL.L
+  ccne: CCNE
+  ccoi: CCOI
+  ccrn: CCRN
+  ccs: CCS
+  ccsi: CCSI
+  ccu: CCU
+  cda.pa: CDA.PA
+  cde: CDE
+  cdi.pa: CDI.PA
+  cdlx: CDLX
+  cdna: CDNA
+  cdns: CDNS
+  cdp: CDP
+  cdre: CDRE
+  cdw: CDW
+  cdw corpo.: CDW
+  cdxs: CDXS
+  cdzi: CDZI
+  ce: CE
+  ce.mi: CE.MI
+  cec.de: CEC.DE
+  ceco: CECO
+  ceco envi.: CECO
+  ceconomy .: CEC.DE
+  cek.de: CEK.DE
+  cel-sci c.: CVM
+  celanese .: CE
+  celc: CELC
+  celcuity .: CELC
+  celh: CELH
+  celldex t.: CLDX
+  cellebrit.: CLBT
+  cellectis.: CLLS
+  cellnex t.: CLNX.MC
+  celsius h.: CELH
+  cem.mi: CEM.MI
+  cementir .: CEM.MI
+  cemex, s..: CX
+  cen.pa: CEN.PA
+  cencora, .: COR
+  cener.br: CENER.BR
+  cenergy h.: CENER.BR
+  cenit akt.: CSH.DE
+  cenovus e.: CVE
+  centa: CENTA
+  centene c.: CNC
+  centerpoi.: CNP
+  centerspa.: CSR
+  centessa .: CNTA
+  central a.: CAML.L
+  central g.: CENTA
+  central p.: CPF
+  centrica .: CNA.L
+  centrus e.: LEU
+  century a.: CENX
+  century c.: CNTY
+  cenx: CENX
+  ceotronic.: CEK.DE
+  cepu: CEPU
+  cer.l: CER.L
+  ceragon n.: CRNT
+  cerence i.: CRNC
+  cerillion.: CER.L
+  cers: CERS
+  cert: CERT
+  certara, .: CERT
+  cerus cor.: CERS
+  ceva: CEVA
+  ceva,: CEVA
+  ceva, inc.: CEVA
+  cewe stif.: CWC.DE
+  cf: CF
+  cf indust.: CF
+  cfeb.br: CFEB.BR
+  cffn: CFFN
+  cfg: CFG
+  cflt: CFLT
+  cfr: CFR
+  cg: CG
+  cgbd: CGBD
+  cgc: CGC
+  cgem: CGEM
+  cgi: GIB
+  cgi inc.: GIB
+  cgn power.: 1816.HK
+  cgnt: CGNT
+  cgnx: CGNX
+  cgs.l: CGS.L
+  champion .: SKY
+  chapters .: CHG.DE
+  char.l: CHAR.L
+  chargepoi.: CHPT
+  chariot l.: CHAR.L
+  charles r.: CRL
+  chart ind.: GTLS
+  charter c.: CHTR
+  chco: CHCO
+  chct: CHCT
+  chd: CHD
+  chdn: CHDN
+  che: CHE
+  cheche gr.: CCG
+  check poi.: CHKP
+  chef: CHEF
+  chegg, in.: CHGG
+  chemed: CHE
+  chemed co.: CHE
+  chemm.co: CHEMM.CO
+  chemomete.: CHEMM.CO
+  cheniere .: LNG
+  cherry se: C3RY.DE
+  chesapeak.: CPK
+  chesnara .: CSN.L
+  chevron c.: CVX
+  chewy, in.: CHWY
+  chg.de: CHG.DE
+  chgg: CHGG
+  chh: CHH
+  chicago a.: REFI
+  chimera i.: CIM
+  china cin.: 1359.HK
+  china cit.: 0998.HK
+  china coa.: 1898.HK
+  china com.: 1800.HK
+  china con.: 0939.HK
+  china eve.: 0257.HK
+  china gal.: 6881.HK
+  china gas.: 0384.HK
+  china int.: 3908.HK
+  china lif.: 2628.HK
+  china lon.: 0916.HK
+  china men.: 2319.HK
+  china mer.: 3968.HK
+  china min.: 1988.HK
+  china mob.: 0941.HK
+  china nat.: 3323.HK
+  china oil.: 2883.HK
+  china ove.: 0688.HK
+  china pac.: 2601.HK
+  china pet.: 0386.HK
+  china rai.: 1186.HK
+  china res.: 1109.HK
+  china sce.: 1966.HK
+  china she.: 1088.HK
+  china sou.: 1055.HK
+  china tai.: 0966.HK
+  china tel.: 0728.HK
+  china tob.: 6055.HK
+  china tow.: 0788.HK
+  china uni.: 0762.HK
+  chipotle .: CMG
+  chkp: CHKP
+  choice ho.: CHH
+  chord ene.: CHRD
+  chpt: CHPT
+  chrd: CHRD
+  christian.: CDI.PA
+  chrs: CHRS
+  chrt.l: CHRT.L
+  chrw: CHRW
+  chry.l: CHRY.L
+  chrysalis.: CHRY.L
+  cht: CHT
+  chtr: CHTR
+  chubb lim.: CB
+  chunghwa .: CHT
+  church & .: CHD
+  churchill.: CHDN
+  chwy: CHWY
+  ci: CI
+  ci&t: CINT
+  ci&t inc.: CINT
+  cib: CIB
+  cibus, in.: CBUS
+  cie autom.: CIE.MC
+  cie.mc: CIE.MC
+  cien: CIEN
+  ciena cor.: CIEN
+  cifr: CIFR
+  cig: CIG
+  cim: CIM
+  cimpress .: CMPR
+  cincinnat.: CINF
+  cinemark .: CNK
+  cinf: CINF
+  cint: CINT
+  cintas: CTAS
+  cintas co.: CTAS
+  cion: CION
+  cion inve.: CION
+  cipher di.: CIFR
+  cirata: CRTA.L
+  cirata plc: CRTA.L
+  circus se: CA1.DE
+  cirrus lo.: CRUS
+  cisco sys.: CSCO
+  citi tren.: CTRN
+  citic sec.: 6030.HK
+  citigroup.: C
+  citizens .: CZFS
+  city hold.: CHCO
+  city of l.: CTY.L
+  civeo cor.: CVEO
+  ck asset .: 1113.HK
+  ck hutchi.: 0001.HK
+  ck infras.: 1038.HK
+  ckn.l: CKN.L
+  cl: CL
+  clar: CLAR
+  clarivate.: CLVT
+  clarkson .: CKN.L
+  claros mo.: CMTG
+  clarus: CLAR
+  clarus co.: CLAR
+  clb: CLB
+  clbk: CLBK
+  clbt: CLBT
+  cldx: CLDX
+  clean ene.: CLNE
+  clean har.: CLH
+  cleanspar.: CLSK
+  clear sec.: YOU
+  clearfiel.: CLFD
+  clearpoin.: CLPT
+  clearwate.: CLW
+  clearway .: CWEN
+  clfd: CLFD
+  clh: CLH
+  climb glo.: CLMB
+  cliq digi.: CLIQ.DE
+  cliq.de: CLIQ.DE
+  clls: CLLS
+  clmb: CLMB
+  clmt: CLMT
+  clne: CLNE
+  clnx.mc: CLNX.MC
+  close bro.: CBG.L
+  cloud.ol: CLOUD.OL
+  cloudberr.: CLOUD.OL
+  cloudflar.: NET
+  clov: CLOV
+  clover he.: CLOV
+  clp holdi.: 0002.HK
+  clpt: CLPT
+  clsk: CLSK
+  clvt: CLVT
+  clw: CLW
+  clx: CLX
+  cm: CM
+  cmbm: CMBM
+  cmc: CMC
+  cmcl: CMCL
+  cmco: CMCO
+  cmcsa: CMCSA
+  cme: CME
+  cme group.: CME
+  cmg: CMG
+  cmi: CMI
+  cmoc grou.: 3993.HK
+  cmp: CMP
+  cmpr: CMPR
+  cmps: CMPS
+  cmpx: CMPX
+  cms: CMS
+  cms energ.: CMS
+  cmt: CMT
+  cmtg: CMTG
+  cna: CNA
+  cna finan.: CNA
+  cna.l: CNA.L
+  cnb finan.: CCNE
+  cnc: CNC
+  cnc.l: CNC.L
+  cne.l: CNE.L
+  cni: CNI
+  cnk: CNK
+  cnm: CNM
+  cnmd: CNMD
+  cnne: CNNE
+  cno: CNO
+  cno finan.: CNO
+  cnob: CNOB
+  cnooc lim.: 0883.HK
+  cnp: CNP
+  cnq: CNQ
+  cnr: CNR
+  cns: CNS
+  cnta: CNTA
+  cntm: CNTM
+  cnty: CNTY
+  cnx: CNX
+  cnx resou.: CNX
+  cnxc: CNXC
+  cnxn: CNXN
+  co-diagno.: CODX
+  co.pa: CO.PA
+  coa.l: COA.L
+  coastal f.: CCB
+  coats gro.: COA.L
+  coca-cola.: COKE
+  coco: COCO
+  cocp: COCP
+  cocrystal.: COCP
+  codexis, .: CDXS
+  codi: CODI
+  codx: CODX
+  coeur min.: CDE
+  cof: COF
+  cofa.pa: COFA.PA
+  coface: COFA.PA
+  coface sa: COFA.PA
+  cofb.br: COFB.BR
+  cofinimmo.: COFB.BR
+  cogent: CCOI
+  cogent bi.: COGT
+  cogent co.: CCOI
+  cognex: CGNX
+  cognex co.: CGNX
+  cognizant.: CTSH
+  cognyte s.: CGNT
+  cogt: COGT
+  cohen & s.: CNS
+  coherent .: COHR
+  coherus o.: CHRS
+  cohort: CHRT.L
+  cohort plc: CHRT.L
+  cohr: COHR
+  cohu: COHU
+  cohu,: COHU
+  cohu, inc.: COHU
+  coin: COIN
+  coinbase .: COIN
+  coinshare.: CS.ST
+  coke: COKE
+  col.mc: COL.MC
+  colb: COLB
+  cold: COLD
+  colgate-p.: CL
+  coll: COLL
+  collegium.: COLL
+  colm: COLM
+  colo-b.co: COLO-B.CO
+  colonial .: COL.MC
+  colony ba.: CBAN
+  coloplast.: COLO-B.CO
+  colr.br: COLR.BR
+  colruyt g.: COLR.BR
+  columbia .: CLBK
+  columbus .: CMCO
+  comb.br: COMB.BR
+  comcast c.: CMCSA
+  comfort s.: FIX
+  commerce .: CBSH
+  commercia.: CVGI
+  commerzba.: CBK.DE
+  community.: CYH
+  commvault.: CVLT
+  compagnie.: ML.PA
+  companhia.: SID
+  compass d.: CODI
+  compass g.: CPG.L
+  compass m.: CMP
+  compass p.: CMPS
+  compass t.: CMPX
+  compañía .: CCU
+  computace.: CCC.L
+  comstock .: CRK
+  con.de: CON.DE
+  conagra b.: CAG
+  concentri.: CNXC
+  concrete .: BBCP
+  concurren.: CNC.L
+  confluent.: CFLT
+  conmed: CNMD
+  conmed co.: CNMD
+  connectm .: CNTM
+  connecton.: CNOB
+  conocophi.: COP
+  consensus.: CCSI
+  consolida.: ED
+  constella.: STZ
+  constelli.: CSTM
+  construcc.: CAF.MC
+  construct.: ROAD
+  contango .: CTGO
+  contextlo.: LOGC
+  contextvi.: CONTX.OL
+  continent.: CON.DE
+  contx.ol: CONTX.OL
+  convatec .: CTEC.L
+  coo: COO
+  cook: COOK
+  cooper-st.: CPS
+  cop: COP
+  copa hold.: CPA
+  copart, i.: CPRT
+  copt defe.: CDP
+  cor: COR
+  cor.ls: COR.LS
+  corbus ph.: CRBP
+  corcept t.: CORT
+  core & ma.: CNM
+  core labo.: CLB
+  core mold.: CMT
+  core natu.: CNR
+  corebridg.: CRBG
+  corecivic.: CXW
+  cormedix .: CRMD
+  corning i.: GLW
+  corpay, i.: CPAY
+  corporaci.: VTMX
+  corsair g.: CRSR
+  cort: CORT
+  corteva, .: CTVA
+  corticeir.: COR.LS
+  corvel: CRVL
+  corvel co.: CRVL
+  cosan s.a.: CSAN
+  cost: COST
+  cost.l: COST.L
+  costain g.: COST.L
+  costar gr.: CSGP
+  costco wh.: COST
+  coterra e.: CTRA
+  coty: COTY.PA
+  coty inc.: COTY.PA
+  coty.pa: COTY.PA
+  country g.: 2007.HK
+  coupang, .: CPNG
+  cour: COUR
+  coursera,.: COUR
+  cousins p.: CUZ
+  cov.pa: COV.PA
+  covenant .: CVLG
+  covestro .: 1COV.DE
+  covh.pa: COVH.PA
+  covivio: COV.PA
+  covivio h.: COVH.PA
+  cp: CP
+  cpa: CPA
+  cpay: CPAY
+  cpb: CPB
+  cpf: CPF
+  cpg.l: CPG.L
+  cpi card .: PMTS
+  cpi prope.: O5G.DE
+  cpi.l: CPI.L
+  cpinv.br: CPINV.BR
+  cpk: CPK
+  cpng: CPNG
+  cpp.l: CPP.L
+  cppgroup .: CPP.L
+  cpr.mi: CPR.MI
+  cpri: CPRI
+  cprt: CPRT
+  cprx: CPRX
+  cps: CPS
+  cpt: CPT
+  cr: CR
+  cr energy.: CRZK.DE
+  cra inter.: CRAI
+  cracker b.: CBRL
+  crai: CRAI
+  crane com.: CR
+  crane nxt.: CXT
+  cranswick.: CWK.L
+  crbg: CRBG
+  crbp: CRBP
+  crbu: CRBU
+  crc: CRC
+  crct: CRCT
+  crda.l: CRDA.L
+  crdf: CRDF
+  crdo: CRDO
+  credicorp.: BAP
+  credit ac.: CACC
+  credito e.: CE.MI
+  credo tec.: CRDO
+  crescent .: CCAP
+  crest nic.: CRST.L
+  cresud so.: CRESY
+  cresy: CRESY
+  crgy: CRGY
+  crh: CRH.L
+  crh plc: CRH.L
+  crh.l: CRH.L
+  cri: CRI
+  cri.pa: CRI.PA
+  cricut, i.: CRCT
+  crinetics.: CRNX
+  cris: CRIS
+  crispr th.: CRSP
+  criteo s..: CRTO
+  crk: CRK
+  crl: CRL
+  crl.mi: CRL.MI
+  crm: CRM
+  crmd: CRMD
+  crmt: CRMT
+  crnc: CRNC
+  crnt: CRNT
+  crnx: CRNX
+  crocs, in.: CROX
+  croda int.: CRDA.L
+  cron: CRON
+  cronos gr.: CRON
+  cross cou.: CCRN
+  crossject.: ALCJ.PA
+  crowdstri.: CRWD
+  crown cas.: CCI
+  crown hol.: CCK
+  crox: CROX
+  crs: CRS
+  crsp: CRSP
+  crsr: CRSR
+  crst.l: CRST.L
+  crta.l: CRTA.L
+  crto: CRTO
+  crus: CRUS
+  crvl: CRVL
+  crwd: CRWD
+  cryoport,.: CYRX
+  crzk.de: CRZK.DE
+  crédit ag.: ACA.PA
+  cs disco,.: LAW
+  cs.pa: CS.PA
+  cs.st: CS.ST
+  csan: CSAN
+  csco: CSCO
+  csg syste.: CSGS
+  csgp: CSGP
+  csgs: CSGS
+  csh.de: CSH.DE
+  csiq: CSIQ
+  csl: CSL
+  csn.l: CSN.L
+  cspc phar.: 1093.HK
+  csr: CSR
+  cstl: CSTL
+  cstm: CSTM
+  csv: CSV
+  cswc: CSWC
+  csx: CSX
+  csx corpo.: CSX
+  ctas: CTAS
+  ctbi: CTBI
+  ctec.l: CTEC.L
+  ctgo: CTGO
+  ctkb: CTKB
+  ctlp: CTLP
+  cto: CTO
+  cto realt.: CTO
+  ctos: CTOS
+  ctra: CTRA
+  ctre: CTRE
+  ctrn: CTRN
+  cts: CTS
+  cts corpo.: CTS
+  cts event.: EVD.DE
+  ctsh: CTSH
+  ctt - cor.: CTT.LS
+  ctt.ls: CTT.LS
+  ctva: CTVA
+  cty.l: CTY.L
+  cube: CUBE
+  cubesmart: CUBE
+  cubi: CUBI
+  cue: CUE
+  cue bioph.: CUE
+  cullen/fr.: CFR
+  cullinan .: CGEM
+  cummins i.: CMI
+  curb: CURB
+  curbline .: CURB
+  curis, in.: CRIS
+  currys: CURY.L
+  currys plc: CURY.L
+  curtiss-w.: CW
+  curv: CURV
+  cury.l: CURY.L
+  custom tr.: CTOS
+  customers.: CUBI
+  cutera, i.: CUTR
+  cutr: CUTR
+  cuz: CUZ
+  cvb finan.: CVBF
+  cvbf: CVBF
+  cvco: CVCO
+  cve: CVE
+  cveo: CVEO
+  cvgi: CVGI
+  cvgw: CVGW
+  cvlg: CVLG
+  cvlt: CVLT
+  cvm: CVM
+  cvna: CVNA
+  cvrx: CVRX
+  cvrx,: CVRX
+  cvrx, inc.: CVRX
+  cvs: CVS
+  cvs healt.: CVS
+  cvx: CVX
+  cw: CW
+  cwan: CWAN
+  cwc.de: CWC.DE
+  cwen: CWEN
+  cwh: CWH
+  cwk.l: CWK.L
+  cwst: CWST
+  cwt: CWT
+  cx: CX
+  cxai: CXAI
+  cxapp: CXAI
+  cxapp inc.: CXAI
+  cxt: CXT
+  cxw: CXW
+  cy1k.de: CY1K.DE
+  cyan: CYR.DE
+  cyan ag: CYR.DE
+  cyh: CYH
+  cyr.de: CYR.DE
+  cyrx: CYRX
+  cytek bio.: CTKB
+  cytk: CYTK
+  cytokinet.: CYTK
+  cyviz as: CYVIZ.OL
+  cyviz.ol: CYVIZ.OL
+  czfs: CZFS
+  czr: CZR
+  d: D
+  d'ieteren.: DIE.BR
+  d-market .: HEPS
+  d-wave qu.: QBTS
+  d.r. hort.: DHI
+  d6h.de: D6H.DE
+  dac: DAC
+  daimler t.: DTG.DE
+  dakt: DAKT
+  daktronic.: DAKT
+  dal: DAL
+  daldrup &.: 4DS.DE
+  dam.de: DAM.DE
+  damartex: ALDAR.PA
+  dampskibs.: DNORD.CO
+  dan: DAN
+  dan.mi: DAN.MI
+  dana inco.: DAN
+  danaher c.: DHR
+  danaos: DAC
+  danaos co.: DAC
+  danieli &.: DAN.MI
+  danone s..: BN.PA
+  danske ba.: DANSKE.CO
+  danske.co: DANSKE.CO
+  daqo new .: DQ
+  dar: DAR
+  dar.de: DAR.DE
+  darden re.: DRI
+  darling i.: DAR
+  dassault .: AM.PA
+  data modu.: DAM.DE
+  datadog, .: DDOG
+  datagroup.: D6H.DE
+  datron: DAR.DE
+  datron ag: DAR.DE
+  dava: DAVA
+  dave: DAVE
+  dave & bu.: PLAY
+  dave inc.: DAVE
+  davide ca.: CPR.MI
+  davita in.: DVA
+  dawn: DAWN
+  day one b.: DAWN
+  db: DB
+  db1.de: DB1.DE
+  dban.de: DBAN.DE
+  dbd: DBD
+  dbg.pa: DBG.PA
+  dbi: DBI
+  dbk.de: DBK.DE
+  dbrg: DBRG
+  dbt: ALDBT.PA
+  dbt sa: ALDBT.PA
+  dbv techn.: DBV.PA
+  dbv.pa: DBV.PA
+  dbx: DBX
+  dcc: DCC.L
+  dcc plc: DCC.L
+  dcc.l: DCC.L
+  dcgo: DCGO
+  dci: DCI
+  dco: DCO
+  dcom: DCOM
+  dcth: DCTH
+  dd: DD
+  ddd: DDD
+  ddog: DDOG
+  ddril.ol: DDRIL.OL
+  dds: DDS
+  de: DE
+  de'longhi.: DLG.MI
+  dea: DEA
+  dec.l: DEC.L
+  dec.pa: DEC.PA
+  decb.br: DECB.BR
+  deceuninc.: DECB.BR
+  deck: DECK
+  deckers o.: DECK
+  deep valu.: DVD.OL
+  deere & c.: DE
+  deezer s..: DEEZR.PA
+  deezr.pa: DEEZR.PA
+  def.de: DEF.DE
+  defama de.: DEF.DE
+  definitiv.: DH
+  dei: DEI
+  delcath s.: DCTH
+  delek us .: DK
+  delfingen.: ALDEL.PA
+  delignit .: DLX.DE
+  delivery .: DHER.DE
+  dell: DELL
+  dell tech.: DELL
+  delta air.: DAL
+  delta plu.: ALDLT.PA
+  delticom .: DEX.DE
+  deluxe: DLX
+  deluxe co.: DLX
+  demant a/s: DEMANT.CO
+  demant.co: DEMANT.CO
+  deme grou.: DEME.BR
+  deme.br: DEME.BR
+  demire de.: DMRE.DE
+  denali th.: DNLI
+  dentsply .: XRAY
+  deo: DEO
+  deq.de: DEQ.DE
+  derichebo.: DBG.PA
+  derm: DERM
+  dermaphar.: DMP.DE
+  derwent l.: DLN.L
+  desert: DSRT.OL
+  desert co.: DSRT.OL
+  design th.: DSGN
+  designer .: DBI
+  deutsche .: DKG.DE
+  deutz akt.: DEZ.DE
+  devon ene.: DVN
+  dewa.ae: DEWA.AE
+  dex.de: DEX.DE
+  dexcom, i.: DXCM
+  deyaar de.: DEYAAR.AE
+  deyaar.ae: DEYAAR.AE
+  dez.de: DEZ.DE
+  dfh: DFH
+  dfin: DFIN
+  dfm.ae: DFM.AE
+  dfs furni.: DFS.L
+  dfs.l: DFS.L
+  dg.pa: DG.PA
+  dge.l: DGE.L
+  dgii: DGII
+  dgx: DGX
+  dh: DH
+  dhc: DHC
+  dher.de: DHER.DE
+  dhi: DHI
+  dhl.de: DHL.DE
+  dhr: DHR
+  dht: DHT
+  dht holdi.: DHT
+  dia.l: DIA.L
+  dia.mc: DIA.MC
+  dia.mi: DIA.MI
+  diaceutic.: DXRX.L
+  diageo: DGE.L
+  diageo plc: DGE.L
+  dialight .: DIA.L
+  diamondba.: FANG
+  diamondro.: DRH
+  diana shi.: DSX
+  diasorin .: DIA.MI
+  dib.ae: DIB.AE
+  dic.ae: DIC.AE
+  dick's sp.: DKS
+  didi glob.: DIDIY
+  didiy: DIDIY
+  die.br: DIE.BR
+  diebold n.: DBD
+  digi inte.: DGII
+  digimarc .: DMRC
+  digital r.: DLR
+  digital t.: APPS
+  digitalbr.: DBRG
+  digitaloc.: DOCN
+  dillard's.: DDS
+  dim.pa: DIM.PA
+  dime comm.: DCOM
+  din: DIN
+  dine bran.: DIN
+  dino: DINO
+  diod: DIOD
+  diodes in.: DIOD
+  diploma p.: DPLM.L
+  direct di.: DRCT
+  dis: DIS
+  disc medi.: IRON
+  distribui.: DIA.MC
+  distribut.: DSGR
+  diversifi.: DEC.L
+  djt: DJT
+  dk: DK
+  dkg.de: DKG.DE
+  dkng: DKNG
+  dks: DKS
+  dlb: DLB
+  dlg.mi: DLG.MI
+  dln.l: DLN.L
+  dlo: DLO
+  dlocal li.: DLO
+  dlr: DLR
+  dltr: DLTR
+  dlx: DLX
+  dlx.de: DLX.DE
+  dmc globa.: BOOM
+  dmp.de: DMP.DE
+  dmrc: DMRC
+  dmre.de: DMRE.DE
+  dna: DNA
+  dnb bank .: DNB.OL
+  dnb.ol: DNB.OL
+  dnli: DNLI
+  dnlm.l: DNLM.L
+  dno asa: DNO.OL
+  dno.ol: DNO.OL
+  dnord.co: DNORD.CO
+  dnow: DNOW
+  dnow inc.: DNOW
+  dnr.mi: DNR.MI
+  dnut: DNUT
+  doc: DOC
+  docgo: DCGO
+  docgo inc.: DCGO
+  docn: DOCN
+  docs: DOCS
+  docs.l: DOCS.L
+  docu: DOCU
+  docusign,.: DOCU
+  dof group.: DOFG.OL
+  dofg.ol: DOFG.OL
+  dolby lab.: DLB
+  dole: DOLE
+  dole plc: DOLE
+  dollar tr.: DLTR
+  dolphin d.: DDRIL.OL
+  dom.l: DOM.L
+  dom.st: DOM.ST
+  dometic g.: DOM.ST
+  dominion .: D
+  domino's .: DOM.L
+  domo: DOMO
+  domo,: DOMO
+  domo, inc.: DOMO
+  don't nod.: ALDNE.PA
+  donaldson.: DCI
+  dongfeng .: 0489.HK
+  donnelley.: DFIN
+  dorian lp.: LPG
+  dorm: DORM
+  dorman pr.: DORM
+  dotd.l: DOTD.L
+  dotdigita.: DOTD.L
+  dou.de: DOU.DE
+  doublever.: DV
+  douglas: DOU.DE
+  douglas ag: DOU.DE
+  douglas d.: PLOW
+  douglas e.: DEI
+  douyu int.: DOYU
+  dov: DOV
+  dover cor.: DOV
+  dow: DOW
+  dow inc.: DOW
+  dox: DOX
+  doximity,.: DOCS
+  doyu: DOYU
+  dp4a.de: DP4A.DE
+  dplm.l: DPLM.L
+  dpz: DPZ
+  dq: DQ
+  dr. ing. .: P911.DE
+  dr. marte.: DOCS.L
+  dr. reddy.: RDY
+  dr0.de: DR0.DE
+  draftking.: DKNG
+  drax grou.: DRX.L
+  drct: DRCT
+  drd: DRD
+  drdgold l.: DRD
+  dream fin.: DFH
+  drh: DRH
+  dri: DRI
+  driven br.: DRVN
+  dropbox, .: DBX
+  drs: DRS
+  drvn: DRVN
+  drx.l: DRX.L
+  dsgn: DSGN
+  dsgr: DSGR
+  dsp: DSP
+  dsrt.ol: DSRT.OL
+  dsv a/s: DSV.CO
+  dsv.co: DSV.CO
+  dsx: DSX
+  dsy.pa: DSY.PA
+  dt: DT
+  dt midstr.: DTM
+  dtc.ae: DTC.AE
+  dtd2.de: DTD2.DE
+  dte: DTE
+  dte energ.: DTE
+  dte.de: DTE.DE
+  dtg.de: DTG.DE
+  dtm: DTM
+  du.ae: DU.AE
+  dubai ele.: DEWA.AE
+  dubai fin.: DFM.AE
+  dubai inv.: DIC.AE
+  dubai isl.: DIB.AE
+  dubai tax.: DTC.AE
+  ducommun .: DCO
+  due.de: DUE.DE
+  duk: DUK
+  duke ener.: DUK
+  dunelm gr.: DNLM.L
+  duol: DUOL
+  duolingo,.: DUOL
+  dupont de.: DD
+  dutch bro.: BROS
+  dv: DV
+  dva: DVA
+  dvd.ol: DVD.OL
+  dvn: DVN
+  dwni.de: DWNI.DE
+  dws group.: DWS.DE
+  dws.de: DWS.DE
+  dxc: DXC
+  dxc techn.: DXC
+  dxcm: DXCM
+  dxp enter.: DXPE
+  dxpe: DXPE
+  dxrx.l: DXRX.L
+  dy: DY
+  dycom ind.: DY
+  dyn: DYN
+  dynatrace.: DT
+  dyne ther.: DYN
+  dürr akti.: DUE.DE
+  e: E
+  e-pango: ALAGO.PA
+  e-pango sa: ALAGO.PA
+  e.l.f. be.: ELF
+  e.on se: EOAN.DE
+  e4c.de: E4C.DE
+  ea: EA
+  eaas.l: EAAS.L
+  eaf: EAF
+  eagle ban.: EGBN
+  eagle foo.: EFG.PA
+  eagle mat.: EXP
+  eapi.pa: EAPI.PA
+  east buy .: 1797.HK
+  east west.: EWBC
+  easterly .: DEA
+  eastern b.: EBC
+  eastman c.: EMN
+  easyjet p.: EZJ.L
+  eat: EAT
+  eaton cor.: ETN
+  eb: EB
+  ebay: EBAY
+  ebay inc.: EBAY
+  ebc: EBC
+  ebf: EBF
+  ebk.de: EBK.DE
+  ebo.de: EBO.DE
+  ebs: EBS
+  ec: EC
+  ecarx hol.: ECX
+  ecd autom.: ECDA
+  ecda: ECDA
+  ecf.de: ECF.DE
+  ecg: ECG
+  echostar .: SATS
+  eck.de: ECK.DE
+  ecl: ECL
+  eco (atla.: ECO.L
+  eco.l: ECO.L
+  ecolab in.: ECL
+  econb.br: ECONB.BR
+  econocom .: ECONB.BR
+  ecopetrol.: EC
+  ecor.l: ECOR.L
+  ecora roy.: ECOR.L
+  ecotel: E4C.DE
+  ecotel co.: E4C.DE
+  ecovyst i.: ECVT
+  ecpg: ECPG
+  ecvt: ECVT
+  ecx: ECX
+  ed: ED
+  ed4.de: ED4.DE
+  edag engi.: ED4.DE
+  edel se &.: EDL.DE
+  eden.pa: EDEN.PA
+  edenred se: EDEN.PA
+  edgewell .: EPC
+  edgewise .: EWTX
+  edison in.: EIX
+  edit: EDIT
+  editas me.: EDIT
+  edl.de: EDL.DE
+  edn: EDN
+  edu: EDU
+  edv.l: EDV.L
+  edwards l.: EW
+  ee: EE
+  eeft: EEFT
+  eenergy g.: EAAS.L
+  efc: EFC
+  efg.pa: EFG.PA
+  efsc: EFSC
+  efx: EFX
+  eg: EG
+  egain cor.: EGAN
+  egan: EGAN
+  egbn: EGBN
+  eght: EGHT
+  egide s.a.: ALGID.PA
+  egl.ls: EGL.LS
+  egla.mi: EGLA.MI
+  ego: EGO
+  egy: EGY
+  eh: EH
+  ehab: EHAB
+  ehang hol.: EH
+  ehc: EHC
+  ehealth, .: EHTH
+  ehth: EHTH
+  eiffage: FGR.PA
+  eiffage sa: FGR.PA
+  eig: EIG
+  eix: EIX
+  ekf diagn.: EKF.L
+  ekf.l: EKF.L
+  eki.pa: EKI.PA
+  ekinops s.: EKI.PA
+  ekop.br: EKOP.BR
+  ekopak: EKOP.BR
+  ekopak nv: EKOP.BR
+  ekt.de: EKT.DE
+  el: EL
+  el pollo .: LOCO
+  el.pa: EL.PA
+  elabs.ol: ELABS.OL
+  elan: ELAN
+  elanco an.: ELAN
+  elastic n.: ESTC
+  elb.de: ELB.DE
+  eldorado .: EGO
+  ele.mc: ELE.MC
+  electroni.: EA
+  elektroim.: ELIMP.OL
+  element s.: ESI
+  elementis.: ELM.L
+  elevance .: ELV
+  elf: ELF
+  elg.de: ELG.DE
+  eli lilly.: LLY
+  eli.br: ELI.BR
+  elia grou.: ELI.BR
+  elimp.ol: ELIMP.OL
+  elior gro.: ELIOR.PA
+  elior.pa: ELIOR.PA
+  elis: ELIS.PA
+  elis sa: ELIS.PA
+  elis.pa: ELIS.PA
+  elisa oyj: ELISA.HE
+  elisa.he: ELISA.HE
+  elix.l: ELIX.L
+  elixirr i.: ELIX.L
+  elk.ol: ELK.OL
+  elkem asa: ELK.OL
+  ellington.: EFC
+  elliptic .: ELABS.OL
+  elm.l: ELM.L
+  elme: ELME
+  elme comm.: ELME
+  elmera gr.: ELMRA.OL
+  elmos sem.: ELG.DE
+  elmra.ol: ELMRA.OL
+  elo.ol: ELO.OL
+  elopak asa: ELO.OL
+  elringkli.: ZIL2.DE
+  els: ELS
+  eltek: ELTK
+  eltek ltd.: ELTK
+  eltk: ELTK
+  elumeo se: ELB.DE
+  elv: ELV
+  elvn: ELVN
+  emaar dev.: EMAARDEV.AE
+  emaar pro.: EMAAR.AE
+  emaar.ae: EMAAR.AE
+  emaardev.ae: EMAARDEV.AE
+  eman.l: EMAN.L
+  embc: EMBC
+  embecta c.: EMBC
+  emcor gro.: EME
+  eme: EME
+  emeis: EMEIS.PA
+  emeis.pa: EMEIS.PA
+  emergent .: EBS
+  emerson e.: EMR
+  emg.l: EMG.L
+  emh.de: EMH.DE
+  emirates .: EMPOWER.AE
+  emiratesnbd.ae: EMIRATESNBD.AE
+  emn: EMN
+  empire st.: ESRT
+  employers.: EIG
+  empower.ae: EMPOWER.AE
+  empresa d.: EDN
+  emr: EMR
+  en.pa: EN.PA
+  enact hol.: ACT
+  enagás, s.: ENG.MC
+  enanta ph.: ENTA
+  enapter: H2O.DE
+  enapter ag: H2O.DE
+  enav s.p..: ENAV.MI
+  enav.mi: ENAV.MI
+  enb: ENB
+  enbridge .: ENB
+  enbw ener.: EBK.DE
+  enc.mc: ENC.MC
+  ence ener.: ENC.MC
+  encompass.: EHC
+  encore ca.: ECPG
+  endava: DAVA
+  endava plc: DAVA
+  endeavour.: EXK
+  endesa, s.: ELE.MC
+  endur.ol: ENDUR.OL
+  endúr asa: ENDUR.OL
+  enel chil.: ENIC
+  enel spa: ENEL.MI
+  enel.mi: ENEL.MI
+  enensys t.: ALNN6.PA
+  energean .: ENOG.L
+  energieko.: EKT.DE
+  energizer.: ENR
+  energy re.: ERII
+  energy tr.: ET
+  energy va.: NRGV
+  enerpac t.: EPAC
+  eng.mc: ENG.MC
+  engene th.: ENGN
+  engi.pa: ENGI.PA
+  engie: ENGI.PA
+  engie sa: ENGI.PA
+  engn: ENGN
+  enhabit, .: EHAB
+  eni s.p.a.: ENI.MI
+  eni.mi: ENI.MI
+  enic: ENIC
+  enlight r.: ENLT
+  enliven t.: ELVN
+  enlt: ENLT
+  enn energ.: 2688.HK
+  ennis, in.: EBF
+  enog.l: ENOG.L
+  enogia sas: ALENO.PA
+  enov: ENOV
+  enova int.: ENVA
+  enovis: ENOV
+  enovis co.: ENOV
+  enovix: ENVX
+  enovix co.: ENVX
+  enph: ENPH
+  enphase e.: ENPH
+  enpro: NPO
+  enpro inc.: NPO
+  enq.l: ENQ.L
+  enquest p.: ENQ.L
+  enr: ENR
+  enr.de: ENR.DE
+  ensg: ENSG
+  ent.l: ENT.L
+  enta: ENTA
+  entain: ENT.L
+  entain plc: ENT.L
+  entech: ALESE.PA
+  entech sa: ALESE.PA
+  entegris,.: ENTG
+  entergy c.: ETR
+  enterpris.: EFSC
+  entg: ENTG
+  entra asa: ENTRA.OL
+  entra.ol: ENTRA.OL
+  entrada t.: TRDA
+  enva: ENVA
+  envista h.: NVST
+  envx: ENVX
+  enw.l: ENW.L
+  enwell en.: ENW.L
+  enx.pa: ENX.PA
+  eoan.de: EOAN.DE
+  eog: EOG
+  eog resou.: EOG
+  eos energ.: EOSE
+  eose: EOSE
+  epac: EPAC
+  epam: EPAM
+  epam syst.: EPAM
+  epc: EPC
+  epc groupe: EXPL.PA
+  epd: EPD
+  eplus: PLUS
+  eplus inc.: PLUS
+  epm: EPM
+  epr: EPR
+  epr prope.: EPR
+  epr.ol: EPR.OL
+  eprt: EPRT
+  eqbk: EQBK
+  eqh: EQH
+  eqix: EQIX
+  eqnr: EQNR
+  eqnr.ol: EQNR.OL
+  eqr: EQR
+  eqs.pa: EQS.PA
+  eqt: EQT
+  eqt corpo.: EQT
+  equasens .: EQS.PA
+  equifax i.: EFX
+  equinix, .: EQIX
+  equinor a.: EQNR
+  equinox g.: EQX
+  equitable.: EQH
+  equity ba.: EQBK
+  equity li.: ELS
+  equity re.: EQR
+  eqx: EQX
+  era.pa: ERA.PA
+  eramet s..: ERA.PA
+  eras: ERAS
+  erasca, i.: ERAS
+  erf.pa: ERF.PA
+  eric: ERIC
+  eric-a.st: ERIC-A.ST
+  eric-b.st: ERIC-B.ST
+  erie: ERIE
+  erie inde.: ERIE
+  erii: ERII
+  ermenegil.: ZGN
+  erste gro.: EBO.DE
+  es: ES
+  esab: ESAB
+  esab corp.: ESAB
+  esco tech.: ESE
+  ese: ESE
+  esea: ESEA
+  esi: ESI
+  esnt: ESNT
+  esnt.l: ESNT.L
+  esperion .: ESPR
+  espr: ESPR
+  esq: ESQ
+  esquire f.: ESQ
+  esrt: ESRT
+  ess: ESS
+  ess tech,.: GWH
+  essent gr.: ESNT
+  essential.: EPRT
+  essentra .: ESNT.L
+  essex pro.: ESS
+  essilorlu.: EL.PA
+  esta: ESTA
+  establish.: ESTA
+  estc: ESTC
+  et: ET
+  etablisse.: MAU.PA
+  etd: ETD
+  ethan all.: ETD
+  etl.pa: ETL.PA
+  etn: ETN
+  eton: ETON
+  eton phar.: ETON
+  etr: ETR
+  etsy: ETSY
+  etsy,: ETSY
+  etsy, inc.: ETSY
+  eurazeo se: RF.PA
+  euroapi s.: EAPI.PA
+  eurobio s.: ALERS.PA
+  eurofins .: ERF.PA
+  eurogroup.: EGLA.MI
+  euronet w.: EEFT
+  euronext .: ENX.PA
+  europacorp: ALECP.PA
+  european .: EWCZ
+  europris .: EPR.OL
+  euroseas .: ESEA
+  eutelsat .: ETL.PA
+  evcm: EVCM
+  evd.de: EVD.DE
+  eve holdi.: EVEX
+  eventbrit.: EB
+  evercomme.: EVCM
+  evercore .: EVR
+  everest g.: EG
+  evergy, i.: EVRG
+  everpure .: PSTG
+  eversourc.: ES
+  everspin .: MRAM
+  evertec, .: EVTC
+  everus: ECG
+  everus co.: ECG
+  everyman .: EMAN.L
+  evex: EVEX
+  evgo: EVGO
+  evgo,: EVGO
+  evgo, inc.: EVGO
+  evh: EVH
+  evk.de: EVK.DE
+  evlv: EVLV
+  evo.st: EVO.ST
+  evok.l: EVOK.L
+  evoke: EVOK.L
+  evoke plc: EVOK.L
+  evolent h.: EVH
+  evolution.: EPM
+  evolv tec.: EVLV
+  evonik in.: EVK.DE
+  evotec se: EVT.DE
+  evr: EVR
+  evrg: EVRG
+  evs broad.: EVS.BR
+  evs.br: EVS.BR
+  evt.de: EVT.DE
+  evtc: EVTC
+  ew: EW
+  ewbc: EWBC
+  ewcz: EWCZ
+  ewtx: EWTX
+  exa.pa: EXA.PA
+  exact sci.: EXAS
+  exail tec.: EXA.PA
+  exas: EXAS
+  exasol: EXL.DE
+  exasol ag: EXL.DE
+  exc: EXC
+  excelerat.: EE
+  exe: EXE
+  exe.pa: EXE.PA
+  exel: EXEL
+  exel indu.: EXE.PA
+  exelixis,.: EXEL
+  exelon: EXC
+  exelon co.: EXC
+  exens.pa: EXENS.PA
+  exfy: EXFY
+  exk: EXK
+  exl.de: EXL.DE
+  exls: EXLS
+  exlservic.: EXLS
+  exosens: EXENS.PA
+  exp: EXP
+  exp world.: EXPI
+  expand en.: EXE
+  expd: EXPD
+  expe: EXPE
+  expedia g.: EXPE
+  expeditor.: EXPD
+  expensify.: EXFY
+  experian .: EXPN.L
+  expi: EXPI
+  expl.pa: EXPL.PA
+  expn.l: EXPN.L
+  expo: EXPO
+  exponent,.: EXPO
+  exr: EXR
+  extr: EXTR
+  extra spa.: EXR
+  extreme n.: EXTR
+  exxon mob.: XOM
+  eye: EYE
+  eyepoint,.: EYPT
+  eypt: EYPT
+  ezcorp, i.: EZPW
+  ezj.l: EZJ.L
+  ezpw: EZPW
+  f: F
+  f&c inves.: FCIT.L
+  f&g annui.: FG
+  f.n.b.: FNB
+  f.n.b. co.: FNB
+  f5,: FFIV
+  f5, inc.: FFIV
+  fa: FA
+  faa.de: FAA.DE
+  fabasoft .: FAA.DE
+  fabege ab.: FABG.ST
+  fabg.st: FABG.ST
+  fabrinet: FN
+  factset r.: FDS
+  fae.mc: FAE.MC
+  faes farm.: FAE.MC
+  faf: FAF
+  fagr.br: FAGR.BR
+  fagron: FAGR.BR
+  fagron nv: FAGR.BR
+  fair isaa.: FICO
+  falcon oi.: FOG.L
+  famicord .: V3V.DE
+  fan.l: FAN.L
+  fang: FANG
+  farmers n.: FMNB
+  farmland .: FPI
+  farn.l: FARN.L
+  faron pha.: FARN.L
+  fast: FAST
+  fastenal .: FAST
+  fastly, i.: FSLY
+  fate: FATE
+  fate ther.: FATE
+  fb financ.: FBK
+  fbin: FBIN
+  fbk: FBK
+  fbk.mi: FBK.MI
+  fbnc: FBNC
+  fbp: FBP
+  fbrt: FBRT
+  fc: FC
+  fc9.de: FC9.DE
+  fcbc: FCBC
+  fcc.mc: FCC.MC
+  fcel: FCEL
+  fcf: FCF
+  fcfs: FCFS
+  fch.l: FCH.L
+  fcit.l: FCIT.L
+  fcn: FCN
+  fcnca: FCNCA
+  fcpt: FCPT
+  fcr immob.: FC9.DE
+  fct.mi: FCT.MI
+  fcx: FCX
+  fde.pa: FDE.PA
+  fdev.l: FDEV.L
+  fdm group.: FDM.L
+  fdm.l: FDM.L
+  fdmt: FDMT
+  fdp: FDP
+  fdr.mc: FDR.MC
+  fds: FDS
+  fdus: FDUS
+  fdx: FDX
+  fe: FE
+  federal a.: AGM
+  federal r.: FRT
+  federal s.: FSS
+  federated.: FHI
+  fedex cor.: FDX
+  fele: FELE
+  fer.mc: FER.MC
+  ferg.l: FERG.L
+  ferguson .: FERG.L
+  fermentalg: ALGAE.PA
+  ferrari n.: RACE
+  ferrexpo .: FXPO.L
+  ferroglob.: GSM
+  ferrovial.: FER.MC
+  fev.de: FEV.DE
+  fevertree.: FEVR.L
+  fevr.l: FEVR.L
+  ffbc: FFBC
+  ffic: FFIC
+  ffin: FFIN
+  ffiv: FFIV
+  ffsb.ol: FFSB.OL
+  ffwm: FFWM
+  fg: FG
+  fga.pa: FGA.PA
+  fgp.l: FGP.L
+  fgr.pa: FGR.PA
+  fhb: FHB
+  fhi: FHI
+  fhn: FHN
+  fibk: FIBK
+  fico: FICO
+  fidelis i.: FIHL
+  fidelity .: FNF
+  fidus inv.: FDUS
+  fie.de: FIE.DE
+  fielmann .: FIE.DE
+  fifth thi.: FITB
+  figeac ae.: FGA.PA
+  figs: FIGS
+  figs,: FIGS
+  figs, inc.: FIGS
+  fihl: FIHL
+  fii.pa: FII.PA
+  fill up m.: ALFUM.PA
+  financial.: FISI
+  financièr.: TUB.BR
+  fincantie.: FCT.MI
+  finecoban.: FBK.MI
+  fintel: FNTL.L
+  fintel plc: FNTL.L
+  finv: FINV
+  finvoluti.: FINV
+  fip: FIP
+  first adv.: FA
+  first ame.: FAF
+  first ban.: FBNC
+  first bus.: BUSE
+  first cit.: FCNCA
+  first com.: FCBC
+  first fin.: THFF
+  first fou.: FFWM
+  first haw.: FHB
+  first hor.: FHN
+  first int.: INBK
+  first maj.: AG
+  first mer.: FRME
+  first mid.: FMBH
+  first sol.: FSLR
+  first wat.: FWRG
+  firstcash.: FCFS
+  firstener.: FE
+  firstgrou.: FGP.L
+  fis: FIS
+  fiscalnot.: NOTE
+  fisi: FISI
+  fitb: FITB
+  five: FIVE
+  five belo.: FIVE
+  five9, in.: FIVN
+  fiverr in.: FVRR
+  fivn: FIVN
+  fix: FIX
+  fizz: FIZZ
+  flagstar .: FLG
+  flatexdeg.: FTK.DE
+  flekkefjo.: FFSB.OL
+  fleury mi.: ALFLE.PA
+  flex: FLEX
+  flex ltd.: FLEX
+  flg: FLG
+  flgt: FLGT
+  fll: FLL
+  flnc: FLNC
+  flo: FLO
+  flo.l: FLO.L
+  floor & d.: FND
+  flowers f.: FLO
+  flowserve.: FLS
+  flowtech .: FLO.L
+  fls: FLS
+  fls.co: FLS.CO
+  flsmidth .: FLS.CO
+  fltr.l: FLTR.L
+  fluence e.: FLNC
+  fluidra, .: FDR.MC
+  flushing .: FFIC
+  flutter e.: FLTR.L
+  flws: FLWS
+  flyw: FLYW
+  flywire c.: FLYW
+  fmbh: FMBH
+  fmc: FMC
+  fmc corpo.: FMC
+  fme.de: FME.DE
+  fmnb: FMNB
+  fms: FMS
+  fmx: FMX
+  fn: FN
+  fnac dart.: FNAC.PA
+  fnac.pa: FNAC.PA
+  fnb: FNB
+  fnd: FND
+  fnf: FNF
+  fnko: FNKO
+  fntl.l: FNTL.L
+  fntn.de: FNTN.DE
+  fnv: FNV
+  fog.l: FOG.L
+  fold: FOLD
+  fomento d.: FCC.MC
+  fomento e.: FMX
+  fonciere .: INEA.PA
+  for: FOR
+  ford moto.: F
+  foresight.: FSG.L
+  forestar .: FOR
+  form: FORM
+  formfacto.: FORM
+  formula o.: FWONA
+  formycon .: FYB.DE
+  forr: FORR
+  forrester.: FORR
+  fort.l: FORT.L
+  fortec el.: FEV.DE
+  forterra .: FORT.L
+  fortinet,.: FTNT
+  fortis in.: FTS
+  fortive c.: FTV
+  fortrea h.: FTRE
+  fortum oyj: FORTUM.HE
+  fortum.he: FORTUM.HE
+  fortuna m.: FSM
+  fortune b.: FBIN
+  fortune r.: 0778.HK
+  forvia se: FRVIA.PA
+  forward a.: FWRD
+  fosun int.: 0656.HK
+  fountaine.: ALFPC.PA
+  four: FOUR
+  four corn.: FCPT
+  fox: FOX
+  fox corpo.: FOX
+  fox facto.: FOXF
+  foxa: FOXA
+  foxf: FOXF
+  foxt.l: FOXT.L
+  foxtons g.: FOXT.L
+  fpe.de: FPE.DE
+  fpi: FPI
+  fr.pa: FR.PA
+  fra.de: FRA.DE
+  franco-ne.: FNV
+  franklin .: FC
+  fraport: FRA.DE
+  fraport ag: FRA.DE
+  fre.de: FRE.DE
+  freedom h.: FRHC
+  freelance.: ALFRE.PA
+  freenet: FNTN.DE
+  freenet ag: FNTN.DE
+  freeport-.: FCX
+  fres.l: FRES.L
+  fresenius.: FME.DE
+  fresh del.: FDP
+  freshpet,.: FRPT
+  freshwork.: FRSH
+  fresnillo.: FRES.L
+  frhc: FRHC
+  friedrich.: VH2.DE
+  frme: FRME
+  fro: FRO
+  fro.ol: FRO.OL
+  frog: FROG
+  frontdoor.: FTDR
+  frontier .: FDEV.L
+  frontline.: FRO
+  frp advis.: FRP.L
+  frp.l: FRP.L
+  frpt: FRPT
+  frsh: FRSH
+  frst: FRST
+  frt: FRT
+  frvia.pa: FRVIA.PA
+  fs bancor.: FSBW
+  fs kkr ca.: FSK
+  fsbw: FSBW
+  fsg.l: FSG.L
+  fsj.l: FSJ.L
+  fsk: FSK
+  fslr: FSLR
+  fsly: FSLY
+  fsm: FSM
+  fss: FSS
+  fsta.l: FSTA.L
+  fstr: FSTR
+  ftai: FTAI
+  ftai avia.: FTAI
+  ftai infr.: FIP
+  ftdr: FTDR
+  fti: FTI
+  fti consu.: FCN
+  ftk.de: FTK.DE
+  ftnt: FTNT
+  ftre: FTRE
+  fts: FTS
+  ftv: FTV
+  fubo: FUBO
+  fubotv in.: FUBO
+  fuchs se: FPE.DE
+  fuelcell .: FCEL
+  ful: FUL
+  fulc: FULC
+  fulcrum t.: FULC
+  fulgent g.: FLGT
+  full hous.: FLL
+  full truc.: YMM
+  fuller, s.: FSTA.L
+  fult: FULT
+  fulton fi.: FULT
+  fum.l: FUM.L
+  fun: FUN
+  funding c.: FCH.L
+  funko, in.: FNKO
+  futr.l: FUTR.L
+  futu: FUTU
+  futu hold.: FUTU
+  futura me.: FUM.L
+  future: FUTR.L
+  future plc: FUTR.L
+  fvrr: FVRR
+  fwona: FWONA
+  fwonk: FWONK
+  fwrd: FWRD
+  fwrg: FWRG
+  fxpo.l: FXPO.L
+  fyb.de: FYB.DE
+  g: G
+  g-iii app.: GIII
+  g.mi: G.MI
+  g1a.de: G1A.DE
+  g24.de: G24.DE
+  gabc: GABC
+  gain: GAIN
+  galapagos.: GLPG
+  galaxy en.: 0027.HK
+  galliford.: GFRD.L
+  galp ener.: GALP.LS
+  galp.ls: GALP.LS
+  gamb: GAMB
+  gambling..: GAMB
+  games wor.: GAW.L
+  gamestop .: GME
+  gaming an.: GLPI
+  gaming re.: GMR.L
+  gaotu tec.: GOTU
+  gap: GAP
+  garmin lt.: GRMN
+  gartner, .: IT
+  gass: GASS
+  gatc.l: GATC.L
+  gateley (.: GTLY.L
+  gates ind.: GTES
+  gattaca p.: GATC.L
+  gatx: GATX
+  gatx corp.: GATX
+  gaw.l: GAW.L
+  gaztransp.: GTT.PA
+  gbci: GBCI
+  gbdc: GBDC
+  gbf.de: GBF.DE
+  gblb.br: GBLB.BR
+  gbt.pa: GBT.PA
+  gcl techn.: 3800.HK
+  gcm grosv.: GCMG
+  gcmg: GCMG
+  gco: GCO
+  gct: GCT
+  gct semic.: GCTS
+  gcts: GCTS
+  gd: GD
+  gddy: GDDY
+  gden: GDEN
+  gdot: GDOT
+  gdrx: GDRX
+  gds: GDS
+  gds holdi.: GDS
+  gdwn.l: GDWN.L
+  gdyn: GDYN
+  ge: GE
+  ge aerosp.: GE
+  ge health.: GEHC
+  ge vernov.: GEV
+  gea group.: G1A.DE
+  gecina: GFC.PA
+  geely aut.: 0175.HK
+  gef: GEF
+  gehc: GEHC
+  gem diamo.: GEMD.L
+  gemd.l: GEMD.L
+  gen: GEN
+  gen digit.: GEN
+  gen resta.: GENK
+  gen.l: GEN.L
+  genel ene.: GENL.L
+  genelux c.: GNLX
+  generac h.: GNRC
+  general d.: GD
+  general m.: GIS
+  genesco i.: GCO
+  genfit s..: GNFT.PA
+  geni: GENI
+  genius sp.: GENI
+  genk: GENK
+  genl.l: GENL.L
+  genmab a/s: GMAB.CO
+  genpact l.: G
+  gensight .: SIGHT.PA
+  gent.ol: GENT.OL
+  gentex: GNTX
+  gentex co.: GNTX
+  gentherm .: THRM
+  gentian d.: GENT.OL
+  genuine p.: GPC
+  genuit gr.: GEN.L
+  genus: GNS.L
+  genus plc: GNS.L
+  genworth .: GNW
+  geo: GEO
+  geopark l.: GPRK
+  geratherm.: GME.DE
+  gerdau s..: GGB
+  german am.: GABC
+  gern: GERN
+  geron cor.: GERN
+  gerreshei.: GXI.DE
+  gesco se: GSC1.DE
+  gest.mc: GEST.MC
+  gestamp a.: GEST.MC
+  get.pa: GET.PA
+  getlink se: GET.PA
+  getty ima.: GETY
+  gety: GETY
+  gev: GEV
+  gevo: GEVO
+  gevo,: GEVO
+  gevo, inc.: GEVO
+  gfc.pa: GFC.PA
+  gff: GFF
+  gfg.de: GFG.DE
+  gfi: GFI
+  gfm.l: GFM.L
+  gfrd.l: GFRD.L
+  gfs: GFS
+  gft techn.: GFT.DE
+  gft.de: GFT.DE
+  gftu.l: GFTU.L
+  ggal: GGAL
+  ggb: GGB
+  ggg: GGG
+  ggp.l: GGP.L
+  gh: GH
+  gh resear.: GHRS
+  ghc: GHC
+  ghh.l: GHH.L
+  ghm: GHM
+  ghrs: GHRS
+  gib: GIB
+  gibraltar.: ROCK
+  gic: GIC
+  giga.ol: GIGA.OL
+  gigacloud.: GCT
+  gigante s.: GIGA.OL
+  giii: GIII
+  gil: GIL
+  gilat sat.: GILT
+  gild: GILD
+  gildan ac.: GIL
+  gilead sc.: GILD
+  gilt: GILT
+  gimb.br: GIMB.BR
+  gimv: GIMB.BR
+  gimv nv: GIMB.BR
+  ginkgo bi.: DNA
+  gis: GIS
+  gitlab in.: GTLB
+  gjensidig.: GJF.OL
+  gjf.ol: GJF.OL
+  gkos: GKOS
+  gkp.l: GKP.L
+  gl: GL
+  gl events.: GLO.PA
+  glacier b.: GBCI
+  gladstone.: LAND
+  glaukos c.: GKOS
+  glbe: GLBE
+  glbs: GLBS
+  gldd: GLDD
+  gle.l: GLE.L
+  gle.pa: GLE.PA
+  glen.l: GLEN.L
+  glencore .: GLEN.L
+  glj.de: GLJ.DE
+  glng: GLNG
+  glo.pa: GLO.PA
+  glob: GLOB
+  global fa.: GFG.DE
+  global in.: GIC
+  global ne.: GNL
+  global pa.: GLP
+  global sh.: GSL
+  global-e .: GLBE
+  globalfou.: GFS
+  globalsta.: GSAT
+  globant s.: GLOB
+  globe lif.: GL
+  globus ma.: GLBS
+  globus me.: GMED
+  glp: GLP
+  glpg: GLPG
+  glpi: GLPI
+  glue: GLUE
+  glw: GLW
+  gm: GM
+  gmab.co: GMAB.CO
+  gme: GME
+  gme.de: GME.DE
+  gmed: GMED
+  gmm.de: GMM.DE
+  gmr.l: GMR.L
+  gms.l: GMS.L
+  gn store .: GN.CO
+  gn.co: GN.CO
+  gnc.l: GNC.L
+  gnft.pa: GNFT.PA
+  gnl: GNL
+  gnlx: GNLX
+  gnrc: GNRC
+  gns.l: GNS.L
+  gntx: GNTX
+  gnw: GNW
+  go: GO
+  goco: GOCO
+  god.ol: GOD.OL
+  godaddy i.: GDDY
+  gogo: GOGO
+  gogo inc.: GOGO
+  gohealth,.: GOCO
+  golar lng.: GLNG
+  gold fiel.: GFI
+  gold roya.: GROY
+  golden en.: GDEN
+  goldman s.: GSBD
+  golf: GOLF
+  golub cap.: GBDC
+  gooch & h.: GHH.L
+  goodrx ho.: GDRX
+  goodtech .: GOD.OL
+  goodwin p.: GDWN.L
+  goog: GOOG
+  goos: GOOS
+  goosehead.: GSHD
+  gopro, in.: GPRO
+  goss: GOSS
+  gossamer .: GOSS
+  gotu: GOTU
+  gpc: GPC
+  gpcr: GPCR
+  gpe.l: GPE.L
+  gpe.pa: GPE.PA
+  gpi: GPI
+  gpk: GPK
+  gpmt: GPMT
+  gpn: GPN
+  gpor: GPOR
+  gpre: GPRE
+  gprk: GPRK
+  gpro: GPRO
+  grab: GRAB
+  grab hold.: GRAB
+  graco: GGG
+  graco inc.: GGG
+  graftech .: EAF
+  grafton g.: GFTU.L
+  graham: GHM
+  graham co.: GHM
+  graham ho.: GHC
+  grail, in.: GRAL
+  graines v.: GRVO.PA
+  grainger .: GRI.L
+  gral: GRAL
+  grammer: GMM.DE
+  grammer ag: GMM.DE
+  grand can.: LOPE
+  grand cit.: GYC.DE
+  granite c.: GVA
+  granite p.: GPMT
+  granite r.: GRNT
+  graphic p.: GPK
+  gray medi.: GTN
+  grbk: GRBK
+  gre.mc: GRE.MC
+  great lak.: GLDD
+  great por.: GPE.L
+  great sou.: GSBC
+  great wal.: 2333.HK
+  greatland.: GGP.L
+  green bri.: GRBK
+  green dot.: GDOT
+  green pla.: GPRE
+  greencore.: GNC.L
+  greggs: GRG.L
+  greggs plc: GRG.L
+  greif, in.: GEF
+  grenergy .: GRE.MC
+  grenke: GLJ.DE
+  grenke ag: GLJ.DE
+  grf.mc: GRF.MC
+  grfs: GRFS
+  grg.l: GRG.L
+  gri.l: GRI.L
+  grid dyna.: GDYN
+  grieg sea.: GSF.OL
+  griffin m.: GFM.L
+  griffon c.: GFF
+  grifols, .: GRFS
+  grindr in.: GRND
+  grmn: GRMN
+  grnd: GRND
+  grnt: GRNT
+  grocery o.: GO
+  grong spa.: GRONG.OL
+  grong.ol: GRONG.OL
+  group 1 a.: GPI
+  groupe br.: GBLB.BR
+  groupe cr.: CEN.PA
+  groupe gu.: ALGIL.PA
+  groupe ld.: ALLDL.PA
+  groupe ok.: ALOKW.PA
+  groupe pa.: PARP.PA
+  groupe pi.: GPE.PA
+  groupon, .: GRPN
+  grow.l: GROW.L
+  growgener.: GRWG
+  groy: GROY
+  grpn: GRPN
+  grupo aer.: OMAB
+  grupo cib.: CIB
+  grupo fin.: GGAL
+  grupo tel.: TV
+  grvo.pa: GRVO.PA
+  grwg: GRWG
+  gs: GS
+  gsat: GSAT
+  gsbc: GSBC
+  gsbd: GSBD
+  gsc1.de: GSC1.DE
+  gsf.ol: GSF.OL
+  gshd: GSHD
+  gsk: GSK.L
+  gsk plc: GSK.L
+  gsk.l: GSK.L
+  gsl: GSL
+  gsm: GSM
+  gt: GT
+  gtco.l: GTCO.L
+  gtes: GTES
+  gtlb: GTLB
+  gtls: GTLS
+  gtly.l: GTLY.L
+  gtn: GTN
+  gtt.pa: GTT.PA
+  guangzhou.: 2238.HK
+  guaranty .: GTCO.L
+  guardant .: GH
+  gubra a/s: GUBRA.CO
+  gubra.co: GUBRA.CO
+  guerbet: GBT.PA
+  guerbet sa: GBT.PA
+  gui.pa: GUI.PA
+  guidewire.: GWRE
+  guillemot.: GUI.PA
+  gulf keys.: GKP.L
+  gulf mari.: GMS.L
+  gulf navi.: GULFNAV.AE
+  gulfnav.ae: GULFNAV.AE
+  gulfport .: GPOR
+  gva: GVA
+  gvs s.p.a.: GVS.MI
+  gvs.mi: GVS.MI
+  gwh: GWH
+  gwre: GWRE
+  gww: GWW
+  gxi.de: GXI.DE
+  gxo: GXO
+  gxo logis.: GXO
+  gyc.de: GYC.DE
+  gym.l: GYM.L
+  gérard pe.: PERR.PA
+  h: H
+  h & m hen.: HM-B.ST
+  h world g.: HTHT
+  h&r block.: HRB
+  h&r gmbh .: 2HRA.DE
+  h+h inter.: HH.CO
+  h.b. full.: FUL
+  h2 core: M5S.DE
+  h2 core ag: M5S.DE
+  h2o.de: H2O.DE
+  ha sustai.: HASI
+  haba.de: HABA.DE
+  hae: HAE
+  haemoneti.: HAE
+  hafc: HAFC
+  haffner e.: ALHAF.PA
+  hag.de: HAG.DE
+  hagerty, .: HGTY
+  haidilao .: 6862.HK
+  haier sma.: 690D.DE
+  hain: HAIN
+  hal: HAL
+  haleon: HLN
+  haleon plc: HLN
+  halfords .: HFD.L
+  hallador .: HNRG
+  halliburt.: HAL
+  halma: HLMA.L
+  halma plc: HLMA.L
+  halo: HALO
+  halozyme .: HALO
+  halyk ban.: HSBK.L
+  hamborner.: HABA.DE
+  hamburger.: HHFA.DE
+  hamilton .: HLNE
+  hammerson.: HMSO.L
+  hancock w.: HWC
+  hanmi fin.: HAFC
+  hannover .: HNR1.DE
+  hansard g.: HSD.L
+  hapag-llo.: HLAG.DE
+  harbour e.: HBR.L
+  harbourve.: HVPE.L
+  hargreave.: HSP.L
+  harley-da.: HOG
+  harmony b.: HRMY
+  harmony g.: HMY
+  harrow, i.: HROW
+  harworth .: HWG.L
+  has: HAS
+  has.l: HAS.L
+  hasbro, i.: HAS
+  hasi: HASI
+  haugesund.: HGSB.OL
+  haulotte .: PIG.PA
+  hauto.ol: HAUTO.OL
+  haverty f.: HVT
+  havila ky.: HKY.OL
+  haw.de: HAW.DE
+  hawaiian .: HE
+  hawesko h.: HAW.DE
+  hawkins, .: HWKN
+  hays: HAS.L
+  hays plc: HAS.L
+  hayw: HAYW
+  hayward h.: HAYW
+  hban: HBAN
+  hbh.de: HBH.DE
+  hbnc: HBNC
+  hbr.l: HBR.L
+  hbt: HBT
+  hbt finan.: HBT
+  hca: HCA
+  hca healt.: HCA
+  hcat: HCAT
+  hcc: HCC
+  hci: HCI
+  hci group.: HCI
+  hckt: HCKT
+  hcm: HCM
+  hcm.l: HCM.L
+  hco.pa: HCO.PA
+  hcsg: HCSG
+  hd: HD
+  hdb: HDB
+  hdd.de: HDD.DE
+  hdf.pa: HDF.PA
+  hdfc bank.: HDB
+  hdsn: HDSN
+  he: HE
+  he1.l: HE1.L
+  head.l: HEAD.L
+  headlam g.: HEAD.L
+  health ca.: HCAT
+  healthcar.: HCSG
+  healthequ.: HQY
+  healthpea.: DOC
+  healthstr.: HSTM
+  heartbeam.: BEAT
+  heartland.: HTLD
+  hecla min.: HL
+  hei: HEI
+  hei.de: HEI.DE
+  heico cor.: HEI
+  heidelber.: HPHA.DE
+  hele: HELE
+  helen of .: HELE
+  helg.ol: HELG.OL
+  heliad: A7A.DE
+  heliad ag: A7A.DE
+  helical p.: HLCL.L
+  helios te.: HLIO
+  helios to.: HTWS.L
+  helium on.: HE1.L
+  hella gmb.: HLE.DE
+  hello gro.: MOMO
+  hellofres.: HFG.DE
+  helmerich.: HP
+  hen.de: HEN.DE
+  hen3.de: HEN3.DE
+  henderson.: 0012.HK
+  hengan in.: 1044.HK
+  henkel ag.: HEN.DE
+  henry boo.: BOOT.L
+  henry sch.: HSIC
+  hensoldt .: HAG.DE
+  heps: HEPS
+  her.mi: HER.MI
+  hera s.p..: HER.MI
+  herbalife.: HLF
+  herc hold.: HRI
+  hercules .: HTGC
+  herige: ALHRG.PA
+  heritage .: HTBK
+  hermès in.: RMS.PA
+  heron the.: HRTX
+  hertz glo.: HTZ
+  hesai gro.: HSAI
+  hesm: HESM
+  hess mids.: HESM
+  hewlett p.: HPE
+  hex.ol: HEX.OL
+  hexa-b.st: HEXA-B.ST
+  hexagon a.: HEXA-B.ST
+  hexagon c.: HEX.OL
+  hexagon p.: HPUR.OL
+  hexaom s..: ALHEX.PA
+  hexcel: HXL
+  hexcel co.: HXL
+  hf compan.: ALHF.PA
+  hf sincla.: DINO
+  hfd.l: HFD.L
+  hfg.de: HFG.DE
+  hfwa: HFWA
+  hgea.de: HGEA.DE
+  hgears: HGEA.DE
+  hgears ag: HGEA.DE
+  hgsb.ol: HGSB.OL
+  hgty: HGTY
+  hgv: HGV
+  hh.co: HH.CO
+  hhfa.de: HHFA.DE
+  hhh: HHH
+  hhpd.l: HHPD.L
+  hicl infr.: HICL.L
+  hicl.l: HICL.L
+  hig: HIG
+  high co. .: HCO.PA
+  high.de: HIGH.DE
+  highlight.: HLG.DE
+  highpeak .: HPK
+  highwoods.: HIW
+  hii: HII
+  hik.l: HIK.L
+  hikma pha.: HIK.L
+  hill & sm.: HILS.L
+  hillman s.: HLMN
+  hilltop h.: HTH
+  hils.l: HILS.L
+  hilton gr.: HGV
+  hilton wo.: HLT
+  himalaya .: HSHP.OL
+  himax tec.: HIMX
+  hims: HIMS
+  hims & he.: HIMS
+  himx: HIMX
+  hipay gro.: ALHYP.PA
+  hipo: HIPO
+  hippo hol.: HIPO
+  hiscox: HSX.L
+  hiscox ltd: HSX.L
+  hive: HIVE
+  hive digi.: HIVE
+  hiw: HIW
+  hky.ol: HKY.OL
+  hl: HL
+  hlag.de: HLAG.DE
+  hlcl.l: HLCL.L
+  hle.de: HLE.DE
+  hlf: HLF
+  hlg.de: HLG.DE
+  hli: HLI
+  hlio: HLIO
+  hlly: HLLY
+  hlma.l: HLMA.L
+  hlmn: HLMN
+  hln: HLN
+  hlne: HLNE
+  hlt: HLT
+  hm-b.st: HM-B.ST
+  hmc: HMC
+  hmn: HMN
+  hms bergb.: HMU.DE
+  hmso.l: HMSO.L
+  hmu.de: HMU.DE
+  hmy: HMY
+  hni: HNI
+  hni corpo.: HNI
+  hnl.de: HNL.DE
+  hnr1.de: HNR1.DE
+  hnrg: HNRG
+  hnst: HNST
+  ho.pa: HO.PA
+  hoc.l: HOC.L
+  hochschil.: HOC.L
+  hochtief .: HOT.DE
+  hoenle: HNL.DE
+  hoenle ag: HNL.DE
+  hoffmann .: ALHGR.PA
+  hoft: HOFT
+  hog: HOG
+  holley in.: HLLY
+  hollywood.: BOWL.L
+  hologic, .: HOLX
+  holx: HOLX
+  homb: HOMB
+  home banc.: HOMB
+  home inve.: HOMI.BR
+  hometogo .: HTG.DE
+  hometrust.: HTBI
+  homi.br: HOMI.BR
+  hon: HON
+  hon hai p.: HHPD.L
+  honda mot.: HMC
+  honeywell.: HON
+  hong kong.: 0388.HK
+  hood: HOOD
+  hooker fu.: HOFT
+  hope: HOPE
+  hope banc.: HOPE
+  hopscotch.: ALHOP.PA
+  horace ma.: HMN
+  horizon b.: HBNC
+  horizon t.: HRZN
+  hormel fo.: HRL
+  hornbach .: HBH.DE
+  host hote.: HST
+  hostelwor.: HSW.L
+  hot.de: HOT.DE
+  houlihan .: HLI
+  hov: HOV
+  hovnanian.: HOV
+  hovr: HOVR
+  howard hu.: HHH
+  howden jo.: HWDN.L
+  howl: HOWL
+  howmet ae.: HWM
+  hp: HP
+  hp inc.: HPQ
+  hp3a.de: HP3A.DE
+  hpe: HPE
+  hpha.de: HPHA.DE
+  hpk: HPK
+  hpp: HPP
+  hpq: HPQ
+  hpur.ol: HPUR.OL
+  hqy: HQY
+  hr: HR
+  hrb: HRB
+  hri: HRI
+  hrl: HRL
+  hrmy: HRMY
+  hrow: HROW
+  hrpk.de: HRPK.DE
+  hrtg: HRTG
+  hrtx: HRTX
+  hrzn: HRZN
+  hsai: HSAI
+  hsba.l: HSBA.L
+  hsbc: HSBC
+  hsbc hold.: HSBA.L
+  hsbk.l: HSBK.L
+  hsd.l: HSD.L
+  hshp.ol: HSHP.OL
+  hsic: HSIC
+  hsp.l: HSP.L
+  hst: HST
+  hstm: HSTM
+  hsw.l: HSW.L
+  hsx.l: HSX.L
+  hsy: HSY
+  htbi: HTBI
+  htbk: HTBK
+  htg.de: HTG.DE
+  htg.l: HTG.L
+  htgc: HTGC
+  hth: HTH
+  htht: HTHT
+  htld: HTLD
+  htws.l: HTWS.L
+  htz: HTZ
+  huaneng p.: 0902.HK
+  huatai se.: 6886.HK
+  hub group.: HUBG
+  hubb: HUBB
+  hubbell i.: HUBB
+  hubg: HUBG
+  hubs: HUBS
+  hubspot, .: HUBS
+  hudson pa.: HPP
+  hudson te.: HDSN
+  hugo boss.: BOSS.DE
+  huh1v.he: HUH1V.HE
+  huhtamäki.: HUH1V.HE
+  hum: HUM
+  huma: HUMA
+  humacyte,.: HUMA
+  humana in.: HUM
+  hun: HUN
+  hunting p.: HTG.L
+  huntingto.: HII
+  huntsman .: HUN
+  hunyvers .: ALHUN.PA
+  hurn: HURN
+  huron con.: HURN
+  hut: HUT
+  hut 8 cor.: HUT
+  hutchmed .: HCM.L
+  hvpe.l: HVPE.L
+  hvt: HVT
+  hwc: HWC
+  hwdn.l: HWDN.L
+  hwg.l: HWG.L
+  hwkn: HWKN
+  hwm: HWM
+  hxl: HXL
+  hy: HY
+  hyatt hot.: H
+  hybrid so.: HYSG.BR
+  hydrofarm.: HYFM
+  hydrogen-.: ALHRS.PA
+  hydrogenp.: HYPRO.OL
+  hydrogène.: HDF.PA
+  hyfm: HYFM
+  hyl.br: HYL.BR
+  hyloris p.: HYL.BR
+  hypoport .: HYQ.DE
+  hypro.ol: HYPRO.OL
+  hyq.de: HYQ.DE
+  hysg.br: HYSG.BR
+  hyster-ya.: HY
+  hzo: HZO
+  höegh aut.: HAUTO.OL
+  i3 vertic.: IIIV
+  iac: IAC
+  iac inc.: IAC
+  iag: IAG
+  iag.l: IAG.L
+  iam.pa: IAM.PA
+  iamgold c.: IAG
+  iart: IART
+  ias: IAS
+  ibab.br: IBAB.BR
+  ibcp: IBCP
+  ibe.mc: IBE.MC
+  iberdrola.: IBE.MC
+  ibersol, .: IBS.LS
+  ibex: IBEX
+  ibex limi.: IBEX
+  ibkr: IBKR
+  ibm: IBM
+  ibn: IBN
+  iboc: IBOC
+  ibp: IBP
+  ibrx: IBRX
+  ibs.ls: IBS.LS
+  ibst.l: IBST.L
+  ibstock p.: IBST.L
+  ibu-tec a.: IBU.DE
+  ibu.de: IBU.DE
+  icad.pa: ICAD.PA
+  icade: ICAD.PA
+  icahn ent.: IEP
+  icape hol.: ALICA.PA
+  ice: ICE
+  icelandic.: ISLAX.OL
+  icf inter.: ICFI
+  icfi: ICFI
+  icg: ICG.L
+  icg plc: ICG.L
+  icg.l: ICG.L
+  ichor hol.: ICHR
+  ichr: ICHR
+  icici ban.: IBN
+  icl: ICL
+  icl group.: ICL
+  iclr: ICLR
+  icon publ.: ICLR
+  icos.mi: ICOS.MI
+  icu medic.: ICUI
+  icui: ICUI
+  id logist.: IDL.PA
+  ida: IDA
+  idacorp, .: IDA
+  idcc: IDCC
+  ideaya bi.: IDYA
+  identiv, .: INVE
+  idex: IEX
+  idex corp.: IEX
+  idexx lab.: IDXX
+  idhc.l: IDHC.L
+  idi: IDIP.PA
+  idip.pa: IDIP.PA
+  idl.pa: IDL.PA
+  idox: IDOX.L
+  idox plc: IDOX.L
+  idox.l: IDOX.L
+  idr.mc: IDR.MC
+  idxx: IDXX
+  idya: IDYA
+  ie: IE
+  iep: IEP
+  ies holdi.: IESC
+  ies.l: IES.L
+  iesc: IESC
+  iex: IEX
+  iff: IFF
+  ifrx: IFRX
+  ifs: IFS
+  ifx.de: IFX.DE
+  ig group .: IGG.L
+  ig.mi: IG.MI
+  igg.l: IGG.L
+  igic: IGIC
+  iheartmed.: IHRT
+  ihg: IHG
+  ihg.l: IHG.L
+  ihp.l: IHP.L
+  ihrt: IHRT
+  ihs: IHS
+  ihs holdi.: IHS
+  iii: III
+  iiin: IIIN
+  iiiv: IIIV
+  iipr: IIPR
+  ikonisys .: ALIKO.PA
+  illinois .: ITW
+  illumina,.: ILMN
+  ilm1.de: ILM1.DE
+  ilmn: ILMN
+  imax: IMAX
+  imax corp.: IMAX
+  imb.l: IMB.L
+  imcr: IMCR
+  imerys s..: NK.PA
+  imi: IMI.L
+  imi plc: IMI.L
+  imi.l: IMI.L
+  immatics .: IMTX
+  immersion.: IMMR
+  immix bio.: IMMX
+  immo.br: IMMO.BR
+  immobel: IMMO.BR
+  immobel sa: IMMO.BR
+  immr: IMMR
+  immuneeri.: IMRX
+  immunic, .: IMUX
+  immunityb.: IBRX
+  immunocor.: IMCR
+  immunome,.: IMNM
+  immunovan.: IMVT
+  immx: IMMX
+  imnm: IMNM
+  imo: IMO
+  imperial .: IMB.L
+  impinj, i.: PI
+  imrx: IMRX
+  imtx: IMTX
+  imux: IMUX
+  imvt: IMVT
+  imxi: IMXI
+  inbk: INBK
+  inbx: INBX
+  inch.l: INCH.L
+  inchcape .: INCH.L
+  inclu.br: INCLU.BR
+  inclusio .: INCLU.BR
+  incy: INCY
+  incyte: INCY
+  incyte co.: INCY
+  indb: INDB
+  independe.: IBCP
+  indi: INDI
+  indie sem.: INDI
+  indra sis.: IDR.MC
+  indu-a.st: INDU-A.ST
+  indus hol.: INH.DE
+  industria.: ITX.MC
+  industrie.: DNR.MI
+  inea.pa: INEA.PA
+  inf.l: INF.L
+  inf.pa: INF.PA
+  infineon .: IFX.DE
+  inflarx n.: IFRX
+  informa p.: INF.L
+  informati.: III
+  infosys l.: INFY
+  infotel: INF.PA
+  infotel sa: INF.PA
+  infrastru.: INW.MI
+  infy: INFY
+  ing.l: ING.L
+  ingenta p.: ING.L
+  ingersoll.: IR
+  ingevity .: NGVT
+  ingm: INGM
+  ingn: INGN
+  ingr: INGR
+  ingram mi.: INGM
+  ingredion.: INGR
+  inh.de: INH.DE
+  inhibrx b.: INBX
+  inin grou.: ININ.OL
+  inin.ol: ININ.OL
+  init inno.: IXX.DE
+  inkt: INKT
+  inmd: INMD
+  inmode lt.: INMD
+  inn: INN
+  innate ph.: IPH.PA
+  innelec m.: ALINN.PA
+  innodata .: INOD
+  innospec .: IOSP
+  innovativ.: IIPR
+  innovent .: 1801.HK
+  innovex i.: INVX
+  innoviva,.: INVA
+  innoviz t.: INVZ
+  innventur.: INV
+  ino: INO
+  inod: INOD
+  inogen, i.: INGN
+  inotiv, i.: NOTV
+  inovio ph.: INO
+  inpp.l: INPP.L
+  ins.de: INS.DE
+  inse: INSE
+  insm: INSM
+  insmed in.: INSM
+  insp: INSP
+  insperity.: NSP
+  inspire m.: INSP
+  inspired .: INSE
+  insta.ol: INSTA.OL
+  instabank.: INSTA.OL
+  installed.: IBP
+  insteel i.: IIIN
+  instone r.: INS.DE
+  insulet c.: PODD
+  insw: INSW
+  inta: INTA
+  intapp, i.: INTA
+  intc: INTC
+  integer h.: ITGR
+  integra l.: IART
+  integrafi.: IHP.L
+  integral .: IAS
+  integrate.: IDHC.L
+  intel cor.: INTC
+  intellia .: NTLA
+  intensity.: INTS
+  inter & c.: INTR
+  interacti.: IBKR
+  intercont.: IHG
+  intercorp.: IFS
+  intercos .: ICOS.MI
+  interdigi.: IDCC
+  interface.: TILE
+  internati.: IMXI
+  interparf.: ITP.PA
+  interpump.: IP.MI
+  intershop.: ISHA.DE
+  intertek .: ITRK.L
+  intesa sa.: ISP.MI
+  intest: INTT
+  intest co.: INTT
+  intica sy.: IS7.DE
+  intr: INTR
+  intrepid .: IPI
+  ints: INTS
+  intt: INTT
+  intu: INTU
+  intuit in.: INTU
+  intuitive.: LUNR
+  inv: INV
+  inva: INVA
+  inve: INVE
+  inve-a.st: INVE-A.ST
+  inventiva.: IVA.PA
+  inventrus.: IVT
+  invesco m.: IVR
+  investec .: INVP.L
+  investor .: INVE-A.ST
+  invh: INVH
+  invibes a.: ALINV.PA
+  invinity .: IES.L
+  invitatio.: INVH
+  invivyd, .: IVVD
+  invp.l: INVP.L
+  invx: INVX
+  invz: INVZ
+  inw.mi: INW.MI
+  iom.l: IOM.L
+  iomart gr.: IOM.L
+  ion beam .: IBAB.BR
+  ionis pha.: IONS
+  ionos gro.: IOS.DE
+  ionq: IONQ
+  ionq,: IONQ
+  ionq, inc.: IONQ
+  ions: IONS
+  ios.de: IOS.DE
+  iosp: IOSP
+  iot: IOT
+  iova: IOVA
+  iovance b.: IOVA
+  ip: IP
+  ip group .: IPO.L
+  ip.mi: IP.MI
+  ipar: IPAR
+  iperionx .: IPX
+  ipf.l: IPF.L
+  ipg photo.: IPGP
+  ipgp: IPGP
+  iph.pa: IPH.PA
+  ipi: IPI
+  ipn.pa: IPN.PA
+  ipo.l: IPO.L
+  ips.pa: IPS.PA
+  ipsen s.a.: IPN.PA
+  ipsos: IPS.PA
+  ipsos sa: IPS.PA
+  ipx: IPX
+  iqe: IQE.L
+  iqe plc: IQE.L
+  iqe.l: IQE.L
+  iqv: IQV
+  iqvia hol.: IQV
+  ir: IR
+  iradimed .: IRMD
+  ird: IRD
+  irdm: IRDM
+  ire.mi: IRE.MI
+  iren: IREN
+  iren limi.: IREN
+  iren spa: IRE.MI
+  irhythm h.: IRTC
+  iridium c.: IRDM
+  irm: IRM
+  irmd: IRMD
+  iron: IRON
+  iron moun.: IRM
+  ironwood .: IRWD
+  irs: IRS
+  irsa inve.: IRS
+  irt: IRT
+  irtc: IRTC
+  irwd: IRWD
+  is7.de: IS7.DE
+  isha.de: ISHA.DE
+  islax.ol: ISLAX.OL
+  isp.mi: ISP.MI
+  ispire te.: ISPR
+  ispr: ISPR
+  isrg: ISRG
+  iss a/s: ISS.CO
+  iss.co: ISS.CO
+  it: IT
+  it link: ALITL.PA
+  it link sa: ALITL.PA
+  italgas s.: IG.MI
+  italmobil.: ITM.MI
+  itaú unib.: ITUB
+  itera asa: ITERA.OL
+  itera.ol: ITERA.OL
+  itgr: ITGR
+  itissalat.: IAM.PA
+  itm.mi: ITM.MI
+  itp.pa: ITP.PA
+  itri: ITRI
+  itrk.l: ITRK.L
+  itrn: ITRN
+  itron, in.: ITRI
+  itt: ITT
+  itt inc.: ITT
+  itub: ITUB
+  ituran lo.: ITRN
+  itv: ITV.L
+  itv plc: ITV.L
+  itv.l: ITV.L
+  itw: ITW
+  itx.mc: ITX.MC
+  iva.pa: IVA.PA
+  ivanhoe e.: IE
+  iveco gro.: IVG.MI
+  ivg.mi: IVG.MI
+  ivr: IVR
+  ivt: IVT
+  ivvd: IVVD
+  iwg.l: IWG.L
+  ix: IX
+  ixx.de: IXX.DE
+  izea: IZEA
+  izea worl.: IZEA
+  j: J
+  j d wethe.: JDW.L
+  j sainsbu.: SBRY.L
+  j&j snack.: JJSF
+  j.b. hunt.: JBHT
+  j.jill, i.: JILL
+  jabil: JBL
+  jabil inc.: JBL
+  jack: JACK
+  jack henr.: JKHY
+  jack in t.: JACK
+  jackson f.: JXN
+  jacobs so.: J
+  jacquet m.: JCQ.PA
+  jaguar he.: JAGX
+  jagx: JAGX
+  jakk: JAKK
+  jakks pac.: JAKK
+  james fis.: FSJ.L
+  james har.: JHX
+  james riv.: JRVR
+  janus hen.: JHG
+  janux the.: JANX
+  janx: JANX
+  jaren.ol: JAREN.OL
+  jazz: JAZZ
+  jazz phar.: JAZZ
+  jbht: JBHT
+  jbl: JBL
+  jblu: JBLU
+  jbt marel.: JBTM
+  jbtm: JBTM
+  jcdecaux .: DEC.PA
+  jci: JCI
+  jcq.pa: JCQ.PA
+  jd sports.: JD.L
+  jd.com, i.: 9618.HK
+  jd.l: JD.L
+  jdc group.: JDC.DE
+  jdc.de: JDC.DE
+  jdw.l: JDW.L
+  jef: JEF
+  jefferies.: JEF
+  jeld: JELD
+  jeld-wen .: JELD
+  jen.br: JEN.BR
+  jen.de: JEN.DE
+  jenoptik .: JEN.DE
+  jensen-gr.: JEN.BR
+  jetblue a.: JBLU
+  jfrog: FROG
+  jfrog ltd.: FROG
+  jhg: JHG
+  jhx: JHX
+  jill: JILL
+  jinkosola.: JKS
+  jjsf: JJSF
+  jkhy: JKHY
+  jks: JKS
+  jll: JLL
+  jlp.l: JLP.L
+  jmat.l: JMAT.L
+  jmia: JMIA
+  jnj: JNJ
+  joby: JOBY
+  joby avia.: JOBY
+  joe: JOE
+  john wile.: WLY
+  john wood.: WG.L
+  johnson &.: JNJ
+  johnson c.: JCI
+  johnson m.: JMAT.L
+  johnson o.: JOUT
+  jones lan.: JLL
+  jost werk.: JST.DE
+  journey m.: DERM
+  jout: JOUT
+  jpm: JPM
+  jpmorgan .: JPM
+  jrvr: JRVR
+  jst.de: JST.DE
+  jtc: JTC.L
+  jtc plc: JTC.L
+  jtc.l: JTC.L
+  jtkwy: JTKWY
+  jubilee m.: JLP.L
+  jumia tec.: JMIA
+  jun3.de: JUN3.DE
+  jungheinr.: JUN3.DE
+  jup.l: JUP.L
+  jupiter f.: JUP.L
+  just eat .: JTKWY
+  just grou.: JUST.L
+  just.l: JUST.L
+  juve.mi: JUVE.MI
+  juventus .: JUVE.MI
+  jxn: JXN
+  jy0.de: JY0.DE
+  jynt: JYNT
+  jysk.co: JYSK.CO
+  jyske ban.: JYSK.CO
+  jæren spa.: JAREN.OL
+  k+s aktie.: SDF.DE
+  kadant in.: KAI
+  kai: KAI
+  kainos gr.: KNOS.L
+  kaiser al.: KALU
+  kala: KALA
+  kala bio,.: KALA
+  kaldvik as: KLDVK.OL
+  kalmar oyj: KALMAR.HE
+  kalmar.he: KALMAR.HE
+  kalray s..: ALKAL.PA
+  kaltura, .: KLTR
+  kalu: KALU
+  kalv: KALV
+  kalvista .: KALV
+  kanzhun l.: BZ
+  kap.l: KAP.L
+  karat pac.: KRT
+  kaufman &.: KOF.PA
+  kb: KB
+  kb financ.: KB
+  kb home: KBH
+  kbc ancor.: KBCA.BR
+  kbc group.: KBC.BR
+  kbc.br: KBC.BR
+  kbca.br: KBCA.BR
+  kbh: KBH
+  kbr: KBR
+  kbr,: KBR
+  kbr, inc.: KBR
+  kbx.de: KBX.DE
+  kc: KC
+  kcc.ol: KCC.OL
+  kco.de: KCO.DE
+  kcr.he: KCR.HE
+  kd: KD
+  kdp: KDP
+  ke: KE
+  ke holdin.: BEKE
+  kearny fi.: KRNY
+  keller gr.: KLR.L
+  kemper: KMPR
+  kemper co.: KMPR
+  ken: KEN
+  kennameta.: KMT
+  kenon hol.: KEN
+  kenvue in.: KVUE
+  kep: KEP
+  ker.pa: KER.PA
+  kering: KER.PA
+  kering sa: KER.PA
+  keros the.: KROS
+  kesko oyj: KESKOB.HE
+  keskob.he: KESKOB.HE
+  ketl.l: KETL.L
+  keurig dr.: KDP
+  kex: KEX
+  key: KEY
+  keycorp: KEY
+  keys: KEYS
+  keys.l: KEYS.L
+  keysight .: KEYS
+  keystone .: KEYS.L
+  kforce in.: KFRC
+  kfrc: KFRC
+  kfy: KFY
+  kgc: KGC
+  kgf.l: KGF.L
+  kgh.l: KGH.L
+  kgx.de: KGX.DE
+  khc: KHC
+  kid asa: KID.OL
+  kid.ol: KID.OL
+  kids: KIDS
+  kie.l: KIE.L
+  kier grou.: KIE.L
+  kilroy re.: KRC
+  kim: KIM
+  kimball e.: KE
+  kimberly-.: KMB
+  kimco rea.: KIM
+  kin.br: KIN.BR
+  kinder mo.: KMI
+  kindercar.: KLC
+  kinepolis.: KIN.BR
+  kinetik h.: KNTK
+  kingdee i.: 0268.HK
+  kingfishe.: KGF.L
+  kingsoft .: KC
+  kiniksa p.: KNSA
+  kinross g.: KGC
+  kinsale c.: KNSL
+  kion grou.: KGX.DE
+  kirby cor.: KEX
+  kist.l: KIST.L
+  kistos ho.: KIST.L
+  kit.ol: KIT.OL
+  kite real.: KRG
+  kitron asa: KIT.OL
+  kitw.l: KITW.L
+  kitwave g.: KITW.L
+  kkr: KKR
+  kkr & co..: KKR
+  kkr real .: KREF
+  kla corpo.: KLAC
+  klac: KLAC
+  klaveness.: KCC.OL
+  klaviyo, .: KVYO
+  klc: KLC
+  kldvk.ol: KLDVK.OL
+  klic: KLIC
+  klr.l: KLR.L
+  kltr: KLTR
+  klx energ.: KLXE
+  klxe: KLXE
+  klépierre.: LI.PA
+  klöckner .: KCO.DE
+  kmb: KMB
+  kmi: KMI
+  kmk.l: KMK.L
+  kmpr: KMPR
+  kmt: KMT
+  kmx: KMX
+  kn: KN
+  knaus tab.: KTA.DE
+  knebv.he: KNEBV.HE
+  knf: KNF
+  knife riv.: KNF
+  knight-sw.: KNX
+  knights g.: KGH.L
+  knop: KNOP
+  knorr-bre.: KBX.DE
+  knos.l: KNOS.L
+  knot offs.: KNOP
+  knowles c.: KN
+  knsa: KNSA
+  knsl: KNSL
+  kntk: KNTK
+  knx: KNX
+  ko: KO
+  kod: KOD
+  kodiak sc.: KOD
+  koenig & .: SKB.DE
+  kof.pa: KOF.PA
+  kog.ol: KOG.OL
+  kohl's: KSS
+  kohl's co.: KSS
+  kompl.ol: KOMPL.OL
+  komplett .: KOMPL.OL
+  kone oyj: KNEBV.HE
+  konecrane.: KCR.HE
+  kongsberg.: KOG.OL
+  koninklij.: PHG
+  kontoor b.: KTB
+  kop: KOP
+  kopin cor.: KOPN
+  kopn: KOPN
+  koppers h.: KOP
+  korea ele.: KEP
+  korn ferry: KFY
+  kornit di.: KRNT
+  korro bio.: KRRO
+  kos: KOS
+  kosmos en.: KOS
+  kps: KSC.DE
+  kps ag: KSC.DE
+  kr: KR
+  kratos de.: KTOS
+  krc: KRC
+  kref: KREF
+  krg: KRG
+  krispy kr.: DNUT
+  krn.de: KRN.DE
+  krnt: KRNT
+  krny: KRNY
+  kro: KRO
+  kromek gr.: KMK.L
+  krones: KRN.DE
+  krones ag: KRN.DE
+  kronos wo.: KRO
+  kros: KROS
+  krro: KRRO
+  krt: KRT
+  krus: KRUS
+  krys: KRYS
+  krystal b.: KRYS
+  ksb se & .: KSB3.DE
+  ksb.de: KSB.DE
+  ksb3.de: KSB3.DE
+  ksc.de: KSC.DE
+  kss: KSS
+  kt: KT
+  kt corpor.: KT
+  kta.de: KTA.DE
+  ktb: KTB
+  ktos: KTOS
+  kulicke a.: KLIC
+  kumulus v.: ALVAP.PA
+  kunlun en.: 0135.HK
+  kura: KURA
+  kura onco.: KURA
+  kura sush.: KRUS
+  kvue: KVUE
+  kvyo: KVYO
+  kwr: KWR
+  kws saat .: KWS.DE
+  kws.de: KWS.DE
+  kymera th.: KYMR
+  kymr: KYMR
+  kyndryl h.: KD
+  l: L
+  l e lundb.: LUND-B.ST
+  l'air liq.: AI.PA
+  l'oréal s.: OR.PA
+  l.b. fost.: FSTR
+  l3harris .: LHX
+  la frança.: FDE.PA
+  la-z-boy .: LZB
+  lab: LAB
+  labcorp h.: LH
+  laboratoi.: ALEMG.PA
+  laborator.: ROVI.MC
+  labs.l: LABS.L
+  lac: LAC
+  lacr.pa: LACR.PA
+  lacroix g.: LACR.PA
+  lad: LAD
+  ladder ca.: LADR
+  ladr: LADR
+  lagardere.: MMB.PA
+  laiqon: LQAG.DE
+  laiqon ag: LQAG.DE
+  lakeland .: LKFN
+  lam resea.: LRCX
+  lamar adv.: LAMR
+  lamb west.: LW
+  lamr: LAMR
+  lanc: LANC
+  lancashir.: LRE.L
+  lancaster.: LANC
+  land: LAND
+  land secu.: LAND.L
+  land.l: LAND.L
+  landbridg.: LB
+  lands' en.: LE
+  landstar .: LSTR
+  lanson-bcc: ALLAN.PA
+  lantheus .: LNTH
+  lantronix.: LTRX
+  lanxess a.: LXS.DE
+  lanzatech.: LNZA
+  lar: LAR
+  largo: ALLGO.PA
+  largo sa: ALLGO.PA
+  larsen & .: LTOD.L
+  las vegas.: LVS
+  lasr: LASR
+  lat.pa: LAT.PA
+  lattice s.: LSCC
+  latécoère.: LAT.PA
+  laur: LAUR
+  laureate .: LAUR
+  laurent-p.: LPE.PA
+  law: LAW
+  laz: LAZ
+  lazard, i.: LAZ
+  lb: LB
+  lbg media.: LBG.L
+  lbg.l: LBG.L
+  lbird.pa: LBIRD.PA
+  lbrda: LBRDA
+  lbrdk: LBRDK
+  lbtya: LBTYA
+  lbtyk: LBTYK
+  lc: LC
+  lci indus.: LCII
+  lcid: LCID
+  lcii: LCII
+  lctx: LCTX
+  lda.mc: LDA.MC
+  ldi: LDI
+  ldo.mi: LDO.MI
+  ldos: LDOS
+  le: LE
+  lea: LEA
+  lear: LEA
+  lear corp.: LEA
+  leco: LECO
+  lectra: LSS.PA
+  lectra sa: LSS.PA
+  leg: LEG
+  leg immob.: LEG.DE
+  leg.de: LEG.DE
+  legacy ho.: LEGH
+  legal & g.: LGEN.L
+  legalzoom.: LZ
+  legend bi.: LEGN
+  leggett &.: LEG
+  legh: LEGH
+  legn: LEGN
+  legrand: LR.PA
+  legrand sa: LR.PA
+  lei.de: LEI.DE
+  leidos ho.: LDOS
+  leifheit .: LEI.DE
+  lemaitre .: LMAT
+  lemonade,.: LMND
+  len: LEN
+  lendingcl.: LC
+  lendingtr.: TREE
+  lennar: LEN
+  lennar co.: LEN
+  lennox in.: LII
+  lenovo gr.: 0992.HK
+  leonardo .: DRS
+  lerøy sea.: LSG.OL
+  lesl: LESL
+  leslie's,.: LESL
+  leu: LEU
+  levgq: LEVGQ
+  levi: LEVI
+  levi stra.: LEVI
+  lexicon p.: LXRX
+  lfcr: LFCR
+  lfmd: LFMD
+  lfst: LFST
+  lfus: LFUS
+  lg displa.: LPL
+  lgen.l: LGEN.L
+  lgi homes.: LGIH
+  lgih: LGIH
+  lgnd: LGND
+  lgty: LGTY
+  lgvn: LGVN
+  lh: LH
+  lha.de: LHA.DE
+  lhx: LHX
+  lhyfe: LHYFE.PA
+  lhyfe sa: LHYFE.PA
+  lhyfe.pa: LHYFE.PA
+  li: LI
+  li auto i.: LI
+  li ning c.: 2331.HK
+  li.pa: LI.PA
+  liberty b.: LBRDA
+  liberty g.: LBTYK
+  liberty l.: LILA
+  life scie.: LABS.L
+  life time.: LTH
+  lifecore .: LFCR
+  lifemd, i.: LFMD
+  lifestanc.: LFST
+  lifeway f.: LWAY
+  lifezone .: LZM
+  ligand ph.: LGND
+  light & w.: LNW
+  lightspee.: LSPD
+  lii: LII
+  lik.de: LIK.DE
+  lila: LILA
+  lilak: LILAK
+  limbach h.: LMB
+  limes sch.: LIK.DE
+  lin: LIN
+  lin.de: LIN.DE
+  lin.pa: LIN.PA
+  linc: LINC
+  lincoln e.: LINC
+  lincoln n.: LNC
+  lind: LIND
+  lindblad .: LIND
+  linde: LIN.DE
+  linde plc: LIN.DE
+  lindsay c.: LNN
+  lineage c.: LCTX
+  linedata .: LIN.PA
+  link mobi.: LINK.OL
+  link real.: 0823.HK
+  link.ol: LINK.OL
+  lio.l: LIO.L
+  lion: LION
+  lion fina.: BGEO.L
+  lionsgate.: LION
+  liontrust.: LIO.L
+  liquidia .: LQDA
+  liquidity.: LQDT
+  lisi s.a.: FII.PA
+  lit.l: LIT.L
+  lite: LITE
+  lithia mo.: LAD
+  lithium a.: LAR
+  litigatio.: LIT.L
+  littelfus.: LFUS
+  livanova .: LIVN
+  live nati.: LYV
+  live oak .: LOB
+  liveperso.: LPSN
+  liveramp .: RAMP
+  livn: LIVN
+  lkfn: LKFN
+  lkq: LKQ
+  lkq corpo.: LKQ
+  lloy.l: LLOY.L
+  lloyds ba.: LLOY.L
+  lly: LLY
+  llyva: LLYVA
+  llyvk: LLYVK
+  lmat: LMAT
+  lmb: LMB
+  lmnd: LMND
+  lmp.l: LMP.L
+  lmt: LMT
+  lna santé.: LNA.PA
+  lna.pa: LNA.PA
+  lnc: LNC
+  lng: LNG
+  lnn: LNN
+  lnt: LNT
+  lnth: LNTH
+  lnw: LNW
+  lnza: LNZA
+  loandepot.: LDI
+  loar: LOAR
+  loar hold.: LOAR
+  lob: LOB
+  lockheed .: LMT
+  loco: LOCO
+  loews cor.: L
+  log.mc: LOG.MC
+  logc: LOGC
+  logi: LOGI
+  logic ins.: ALLOG.PA
+  logility .: LGTY
+  logista i.: LOG.MC
+  logitech .: LOGI
+  logwin: TGHN.DE
+  logwin ag: TGHN.DE
+  loko.ol: LOKO.OL
+  lokotech .: LOKO.OL
+  loma: LOMA
+  loma negr.: LOMA
+  london st.: LSEG.L
+  londonmet.: LMP.L
+  longevero.: LGVN
+  loomis ab.: LOOMIS.ST
+  loomis.st: LOOMIS.ST
+  lope: LOPE
+  lot: LOT
+  lotb.br: LOTB.BR
+  lottomati.: LTMC.MI
+  lotus bak.: LOTB.BR
+  lotus tec.: LOT
+  louis hac.: ALHG.PA
+  louisiana.: LPX
+  love: LOVE
+  low: LOW
+  lowe's: LOW
+  lowe's co.: LOW
+  lpe.pa: LPE.PA
+  lpg: LPG
+  lpk.de: LPK.DE
+  lpkf lase.: LPK.DE
+  lpl: LPL
+  lpro: LPRO
+  lpsn: LPSN
+  lpx: LPX
+  lqag.de: LQAG.DE
+  lqda: LQDA
+  lqdt: LQDT
+  lr.pa: LR.PA
+  lrcx: LRCX
+  lre.l: LRE.L
+  lrn: LRN
+  ls telcom.: LSX.DE
+  lsb indus.: LXU
+  lscc: LSCC
+  lseg.l: LSEG.L
+  lsg.ol: LSG.OL
+  lsi indus.: LYTS
+  lsl prope.: LSL.L
+  lsl.l: LSL.L
+  lspd: LSPD
+  lss.pa: LSS.PA
+  lstr: LSTR
+  lsx.de: LSX.DE
+  lta.pa: LTA.PA
+  lth: LTH
+  ltmc.mi: LTMC.MI
+  ltod.l: LTOD.L
+  ltrx: LTRX
+  lu: LU
+  luce.l: LUCE.L
+  luceco: LUCE.L
+  luceco plc: LUCE.L
+  lucid gro.: LCID
+  luck: LUCK
+  lucky str.: LUCK
+  ludwig be.: ECK.DE
+  lufax hol.: LU
+  lulu: LULU
+  lululemon.: LULU
+  lumen tec.: LUMN
+  lumentum .: LITE
+  lumibird .: LBIRD.PA
+  lumn: LUMN
+  lund-b.st: LUND-B.ST
+  lung: LUNG
+  lunr: LUNR
+  luv: LUV
+  luxfer ho.: LXFR
+  lvmh moët.: MC.PA
+  lvs: LVS
+  lw: LW
+  lway: LWAY
+  lxfr: LXFR
+  lxp: LXP
+  lxp indus.: LXP
+  lxrx: LXRX
+  lxs.de: LXS.DE
+  lxu: LXU
+  lyb: LYB
+  lyel: LYEL
+  lyell imm.: LYEL
+  lyft: LYFT
+  lyft,: LYFT
+  lyft, inc.: LYFT
+  lyg: LYG
+  lyondellb.: LYB
+  lyra: LYRA
+  lyra ther.: LYRA
+  lytix bio.: LYTIX.OL
+  lytix.ol: LYTIX.OL
+  lyts: LYTS
+  lyv: LYV
+  lz: LZ
+  lzb: LZB
+  lzm: LZM
+  línea dir.: LDA.MC
+  m: M
+  m vest wa.: MVW.OL
+  m&c saatc.: SAA.L
+  m&g: MNG.L
+  m&g plc: MNG.L
+  m&t bank .: MTB
+  m-tron in.: MPTI
+  m.p. evan.: MPE.L
+  m/i homes.: MHO
+  m1 klinik.: M12.DE
+  m12.de: M12.DE
+  m5s.de: M5S.DE
+  m7u.de: M7U.DE
+  ma: MA
+  ma10.de: MA10.DE
+  maa: MAA
+  maat phar.: MAAT.PA
+  maat.pa: MAAT.PA
+  mab.l: MAB.L
+  mab1.l: MAB1.L
+  mac: MAC
+  macf.l: MACF.L
+  macfarlan.: MACF.L
+  macom tec.: MTSI
+  macrogeni.: MGNX
+  macy's, i.: M
+  madison s.: MSGE
+  madrigal .: MDGL
+  magn: MAGN
+  magna int.: MGA
+  magnachip.: MX
+  magnera c.: MAGN
+  magnite, .: MGNI
+  magnolia .: MGY
+  magnora a.: MGN.OL
+  mahindra .: MHID.L
+  main: MAIN
+  main stre.: MAIN
+  maire s.p.: MAIRE.MI
+  maire.mi: MAIRE.MI
+  maisons d.: MDM.PA
+  makemytri.: MMYT
+  malibu bo.: MBUU
+  mama: MAMA
+  mama's cr.: MAMA
+  man: MAN
+  man group.: EMG.L
+  mancheste.: MANU
+  mandatum .: MANTA.HE
+  manh: MANH
+  manhattan.: MANH
+  manitou b.: MTU.PA
+  mannkind .: MNKD
+  mano.l: MANO.L
+  manolete .: MANO.L
+  manpowerg.: MAN
+  manta.he: MANTA.HE
+  manu: MANU
+  manulife .: MFC
+  map.mc: MAP.MC
+  mapfre, s.: MAP.MC
+  maplebear.: CART
+  mar: MAR
+  mara: MARA
+  mara hold.: MARA
+  marathon .: MPC
+  maravai l.: MRVI
+  marcus & .: MMI
+  marex gro.: MRX
+  marie bri.: MBWS.PA
+  marine pr.: MPX
+  marinemax.: HZO
+  markel gr.: MKL
+  marketaxe.: MKTX
+  marketwis.: MKTW
+  marks and.: MKS.L
+  marqeta, .: MQ
+  marriott .: VAC
+  mars.l: MARS.L
+  marshalls.: MSLH.L
+  marston's.: MARS.L
+  marten tr.: MRTN
+  martin ma.: MLM
+  marvell t.: MRVL
+  mas: MAS
+  mas.ol: MAS.OL
+  masco cor.: MAS
+  masi: MASI
+  masimo: MASI
+  masimo co.: MASI
+  mass: MASS
+  mastec, i.: MTZ
+  masterbra.: MBC
+  mastercar.: MA
+  mastercra.: MCFT
+  masterfle.: MZX.DE
+  mat: MAT
+  matador r.: MTDR
+  match gro.: MTCH
+  materiali.: MTLS
+  materion .: MTRN
+  mativ hol.: MATV
+  matrix se.: MTRX
+  matson, i.: MATX
+  mattel, i.: MAT
+  matthews .: MATW
+  matv: MATV
+  matvareex.: MVE.OL
+  matw: MATW
+  matx: MATX
+  mau.pa: MAU.PA
+  max: MAX
+  max autom.: MXHN.DE
+  maxeon so.: MAXN
+  maximus, .: MMS
+  maxlinear.: MXL
+  maxn: MAXN
+  mayville .: MEC
+  mb.mi: MB.MI
+  mbb se: MBB.DE
+  mbb.de: MBB.DE
+  mbc: MBC
+  mbg.de: MBG.DE
+  mbi: MBI
+  mbia: MBI
+  mbia inc.: MBI
+  mbin: MBIN
+  mbk.de: MBK.DE
+  mbly: MBLY
+  mbq.de: MBQ.DE
+  mbuu: MBUU
+  mbwm: MBWM
+  mbws.pa: MBWS.PA
+  mc: MC
+  mc.pa: MC.PA
+  mcb: MCB
+  mcb.l: MCB.L
+  mcbride p.: MCB.L
+  mcbs: MCBS
+  mccormick.: MKC
+  mcd: MCD
+  mcdonald'.: MCD
+  mcft: MCFT
+  mcg.l: MCG.L
+  mcgrath r.: MGRC
+  mchp: MCHP
+  mck: MCK
+  mckesson .: MCK
+  mco: MCO
+  mcrb: MCRB
+  mcri: MCRI
+  mcw: MCW
+  mcy: MCY
+  md: MD
+  mdb: MDB
+  mdgl: MDGL
+  mdlz: MDLZ
+  mdm.pa: MDM.PA
+  mdrx: MDRX
+  mdu: MDU
+  mdu resou.: MDU
+  mdxg: MDXG
+  mears gro.: MER.L
+  mec: MEC
+  med.de: MED.DE
+  medallion.: MFIN
+  medcl.pa: MEDCL.PA
+  medi.ol: MEDI.OL
+  mediaalph.: MAX
+  median te.: ALMDT.PA
+  mediclin .: MED.DE
+  medincell.: MEDCL.PA
+  mediobanc.: MB.MI
+  medios: ILM1.DE
+  medios ag: ILM1.DE
+  medistim .: MEDI.OL
+  medondo h.: AMI.DE
+  medp: MEDP
+  medpace h.: MEDP
+  medtronic.: 2M6.DE
+  meg: MEG
+  mei: MEI
+  meiragtx .: MGTX
+  meituan: 3690.HK
+  mel.mc: MEL.MC
+  melco res.: MLCO
+  mele.br: MELE.BR
+  melexis: MELE.BR
+  melexis nv: MELE.BR
+  melg.ol: MELG.OL
+  melhus sp.: MELG.OL
+  meli: MELI
+  meliá hot.: MEL.MC
+  melrose i.: MRO.L
+  mems.pa: MEMS.PA
+  memscap, .: MEMS.PA
+  mensch un.: MUM.DE
+  mer.l: MER.L
+  merc: MERC
+  mercadoli.: MELI
+  mercantil.: MBWM
+  mercedes-.: MBG.DE
+  mercer in.: MERC
+  merchants.: MBIN
+  mercialys.: MERY.PA
+  merck & c.: MRK
+  merck kgaa: MRK.DE
+  mercury g.: MCY
+  mercury s.: MRCY
+  mereo bio.: MREO
+  merit med.: MMSI
+  meritage .: MTH
+  merkur pr.: MBK.DE
+  merlin pr.: MRL.MC
+  mersen s..: MRN.PA
+  mery.pa: MERY.PA
+  mesa labo.: MLAB
+  met: MET
+  meta: META
+  meta plat.: META
+  metallurg.: 1618.HK
+  metallus .: MTUS
+  metc: METC
+  metcb: METCB
+  methode e.: MEI
+  metlife, .: MET
+  metro ban.: MTRO.L
+  metrocity.: MCBS
+  metropoli.: MCB
+  metsb.he: METSB.HE
+  metso oyj: METSO.HE
+  metso.he: METSO.HE
+  metsä boa.: METSB.HE
+  mettler-t.: MTD
+  mf.pa: MF.PA
+  mfa: MFA
+  mfa finan.: MFA
+  mfc: MFC
+  mfe-media.: MFEB.MI
+  mfeb.mi: MFEB.MI
+  mfg: MFG
+  mfin: MFIN
+  mg: MG
+  mga: MGA
+  mgam.l: MGAM.L
+  mge energ.: MGEE
+  mgee: MGEE
+  mgi digit.: ALMDG.PA
+  mgic inve.: MTG
+  mgm: MGM
+  mgm resor.: MGM
+  mgn.ol: MGN.OL
+  mgni: MGNI
+  mgnx: MGNX
+  mgp ingre.: MGPI
+  mgpi: MGPI
+  mgrc: MGRC
+  mgtx: MGTX
+  mgy: MGY
+  mhid.l: MHID.L
+  mhk: MHK
+  mho: MHO
+  microchip.: MCHP
+  micron te.: MU
+  microsoft.: MSFT
+  microvast.: MVST
+  microvisi.: MVIS
+  mid penn .: MPB
+  mid-ameri.: MAA
+  middlesex.: MSEX
+  midland s.: MSBI
+  midw.l: MIDW.L
+  midwich g.: MIDW.L
+  miliboo s.: ALMLB.PA
+  miller in.: MLR
+  millerkno.: MLKN
+  millrose .: MRP
+  mimedx gr.: MDXG
+  minerals .: MTX
+  mineralys.: MLYS
+  ming.ol: MING.OL
+  miniso gr.: MNSO
+  mink ther.: INKT
+  mint soci.: ALMIN.PA
+  mirm: MIRM
+  mirum pha.: MIRM
+  mission p.: AVO
+  mister ca.: MCW
+  mister sp.: MRX.DE
+  mistras g.: MG
+  mitchells.: MAB.L
+  mitek sys.: MITK
+  mitie gro.: MTO.L
+  mitk: MITK
+  mitsubish.: MUFG
+  mizuho fi.: MFG
+  mj gleeso.: GLE.L
+  mkc: MKC
+  mkl: MKL
+  mks: MKSI
+  mks inc.: MKSI
+  mks.l: MKS.L
+  mksi: MKSI
+  mktw: MKTW
+  mktx: MKTX
+  ml.pa: ML.PA
+  mlab: MLAB
+  mlco: MLCO
+  mli: MLI
+  mlkn: MLKN
+  mlm: MLM
+  mlp se: MLP.DE
+  mlp.de: MLP.DE
+  mlr: MLR
+  mltx: MLTX
+  mlys: MLYS
+  mmb.pa: MMB.PA
+  mmi: MMI
+  mmm: MMM
+  mms: MMS
+  mmsi: MMSI
+  mmt.pa: MMT.PA
+  mmyt: MMYT
+  mndi.l: MNDI.L
+  mndy: MNDY
+  mng.l: MNG.L
+  mnkd: MNKD
+  mnks.l: MNKS.L
+  mnro: MNRO
+  mnso: MNSO
+  mnst: MNST
+  mntk: MNTK
+  mo: MO
+  mobico gr.: MCG.L
+  mobileye .: MBLY
+  mobotix: MBQ.DE
+  mobotix ag: MBQ.DE
+  mod: MOD
+  moderna, .: MRNA
+  modine ma.: MOD
+  modivcare.: MODV
+  modv: MODV
+  moelis & .: MC
+  moh: MOH
+  mohawk in.: MHK
+  mol.mi: MOL.MI
+  molina he.: MOH
+  molson: TAP
+  molson co.: TAP
+  molten ve.: GROW.L
+  moltiply .: MOL.MI
+  momo: MOMO
+  mon court.: ALMCE.PA
+  monarch c.: MCRI
+  monc.mi: MONC.MI
+  moncler s.: MONC.MI
+  monday.co.: MNDY
+  mondelez .: MDLZ
+  mondi: MNDI.L
+  mondi plc: MNDI.L
+  mongodb, .: MDB
+  monks ord: MNKS.L
+  monolithi.: MPWR
+  monro, in.: MNRO
+  monster b.: MNST
+  mont.br: MONT.BR
+  montauk r.: MNTK
+  monte ros.: GLUE
+  montea: MONT.BR
+  montea co.: MONT.BR
+  montrose .: MEG
+  mony grou.: MONY.L
+  mony.l: MONY.L
+  moody's c.: MCO
+  moonlake .: MLTX
+  morg.ol: MORG.OL
+  morgan ad.: MGAM.L
+  morgan st.: MS
+  morn: MORN
+  morningst.: MORN
+  mortgage .: MAB1.L
+  mos: MOS
+  mota-engi.: EGL.LS
+  mothercar.: MTC.L
+  motorcar .: MPAA
+  motorola .: MSI
+  motorpoin.: MOTR.L
+  motr.l: MOTR.L
+  moulinves.: ALMOU.PA
+  mountain .: ECF.DE
+  mov: MOV
+  movado gr.: MOV
+  mowi asa: MOWI.OL
+  mowi.ol: MOWI.OL
+  mp: MP
+  mp materi.: MP
+  mpaa: MPAA
+  mpb: MPB
+  mpc: MPC
+  mpc conta.: MPCC.OL
+  mpc energ.: MPCES.OL
+  mpc münch.: MPCK.DE
+  mpcc.ol: MPCC.OL
+  mpces.ol: MPCES.OL
+  mpck.de: MPCK.DE
+  mpe.l: MPE.L
+  mph healt.: 93M1.DE
+  mplx: MPLX
+  mplx lp: MPLX
+  mpti: MPTI
+  mpwr: MPWR
+  mpx: MPX
+  mq: MQ
+  mr.bricol.: ALMRB.PA
+  mram: MRAM
+  mrcy: MRCY
+  mreo: MREO
+  mrk: MRK
+  mrk.de: MRK.DE
+  mrl.ls: MRL.LS
+  mrl.mc: MRL.MC
+  mrn.pa: MRN.PA
+  mrna: MRNA
+  mro.l: MRO.L
+  mrp: MRP
+  mrtn: MRTN
+  mrvi: MRVI
+  mrvl: MRVL
+  mrx: MRX
+  mrx.de: MRX.DE
+  ms: MS
+  ms indust.: MSAG.DE
+  msa: MSA
+  msa safet.: MSA
+  msag.de: MSAG.DE
+  msbi: MSBI
+  msc indus.: MSM
+  msci: MSCI
+  msci inc.: MSCI
+  msex: MSEX
+  msft: MSFT
+  msge: MSGE
+  msgs: MSGS
+  msi: MSI
+  mslh.l: MSLH.L
+  msm: MSM
+  mstr: MSTR
+  mtb: MTB
+  mtc.l: MTC.L
+  mtch: MTCH
+  mtd: MTD
+  mtdr: MTDR
+  mtg: MTG
+  mth: MTH
+  mtls: MTLS
+  mtn: MTN
+  mto.l: MTO.L
+  mtr corpo.: 0066.HK
+  mtrn: MTRN
+  mtro.l: MTRO.L
+  mtrx: MTRX
+  mts.mc: MTS.MC
+  mtsi: MTSI
+  mtu aero .: MTX.DE
+  mtu.pa: MTU.PA
+  mtus: MTUS
+  mtw: MTW
+  mtx: MTX
+  mtx.de: MTX.DE
+  mtz: MTZ
+  mu: MU
+  mueller i.: MLI
+  mueller w.: MWA
+  mufg: MUFG
+  multi.ol: MULTI.OL
+  multicons.: MULTI.OL
+  mum.de: MUM.DE
+  mur: MUR
+  murphy oi.: MUR
+  murphy us.: MUSA
+  musa: MUSA
+  mutares s.: MUX.DE
+  muv2.de: MUV2.DE
+  mux.de: MUX.DE
+  mvb finan.: MVBF
+  mvbf: MVBF
+  mve.ol: MVE.OL
+  mvis: MVIS
+  mvst: MVST
+  mvv energ.: MVV1.DE
+  mvv1.de: MVV1.DE
+  mvw.ol: MVW.OL
+  mwa: MWA
+  mx: MX
+  mxhn.de: MXHN.DE
+  mxl: MXL
+  mygn: MYGN
+  myo: MYO
+  myomo, in.: MYO
+  myps: MYPS
+  myr group.: MYRG
+  myrg: MYRG
+  myriad ge.: MYGN
+  mzx.de: MZX.DE
+  måsøval as: MAS.OL
+  métropole.: MMT.PA
+  münchener.: MUV2.DE
+  n-able, i.: NABL
+  n91.l: N91.L
+  na9.de: NA9.DE
+  nabaltec .: NTG.DE
+  nabl: NABL
+  nabors in.: NBR
+  nacon s.a.: NACON.PA
+  nacon.pa: NACON.PA
+  nagarro se: NA9.DE
+  nah.l: NAH.L
+  nahl grou.: NAH.L
+  naked win.: WINE.L
+  nams: NAMS
+  nano-x im.: NNOX
+  nano.l: NANO.L
+  nano.pa: NANO.PA
+  nanobioti.: NANO.PA
+  nanoco gr.: NANO.L
+  napa.ol: NAPA.OL
+  napatech .: NAPA.OL
+  napco sec.: NSSC
+  nas.ol: NAS.OL
+  nasdaq, i.: NDAQ
+  nat: NAT
+  natera, i.: NTRA
+  national .: NKSH
+  natl: NATL
+  natr: NATR
+  natural g.: NGS
+  nature's .: NATR
+  naturgy e.: NTGY.MC
+  natwest g.: NWG.L
+  nava.ol: NAVA.OL
+  navamedic.: NAVA.OL
+  navi: NAVI
+  navient c.: NAVI
+  navitas s.: NVTS
+  nbg6.de: NBG6.DE
+  nbhc: NBHC
+  nbis: NBIS
+  nbix: NBIX
+  nbn: NBN
+  nbr: NBR
+  nbt banco.: NBTB
+  nbtb: NBTB
+  ncc group.: NCC.L
+  ncc.l: NCC.L
+  nch2.de: NCH2.DE
+  ncino, in.: NCNO
+  nclh: NCLH
+  ncno: NCNO
+  ncr atleo.: NATL
+  ncr voyix.: VYX
+  nda.de: NDA.DE
+  ndaq: NDAQ
+  ndsn: NDSN
+  ndx1.de: NDX1.DE
+  ne: NE
+  nebius gr.: NBIS
+  necb: NECB
+  nee: NEE
+  nekkar asa: NKR.OL
+  nektar th.: NKTR
+  nel asa: NEL.OL
+  nel.ol: NEL.OL
+  nelnet, i.: NNI
+  nem: NEM
+  nem.de: NEM.DE
+  nemetsche.: NEM.DE
+  neog: NEOG
+  neogen: NEOG
+  neogen co.: NEOG
+  nerdwalle.: NRDS
+  nerdy: NRDY
+  nerdy inc.: NRDY
+  neste oyj: NESTE.HE
+  neste.he: NESTE.HE
+  net: NET
+  net lease.: NLOP
+  net power.: NPWR
+  netapp, i.: NTAP
+  netc.co: NETC.CO
+  netcompan.: NETC.CO
+  netease, .: NTES
+  netflix, .: NFLX
+  netfonds .: NF4.DE
+  netgear, .: NTGR
+  netgem: ALNTG.PA
+  netgem sa: ALNTG.PA
+  netscout .: NTCT
+  netstreit.: NTST
+  neu: NEU
+  neurocrin.: NBIX
+  neurones .: NRO.PA
+  neuropace.: NPCE
+  new china.: 1336.HK
+  new fortr.: NFE
+  new horiz.: HOVR
+  new jerse.: NJR
+  new mount.: NMFC
+  new orien.: EDU
+  new world.: 0017.HK
+  newamster.: NAMS
+  newell br.: NWL
+  newmarket.: NEU
+  newmont c.: NEM
+  newriver .: NRR.L
+  news: NWSA
+  news corp.: NWSA
+  newt: NEWT
+  newtekone.: NEWT
+  nex.pa: NEX.PA
+  nexa: NEXA
+  nexa reso.: NEXA
+  nexans s..: NEX.PA
+  nexi s.p..: NEXI.MI
+  nexi.mi: NEXI.MI
+  nexity: NXI.PA
+  nexity sa: NXI.PA
+  nexpoint .: NXRT
+  nexstar m.: NXST
+  next: NEXT
+  next plc: NXT.L
+  nexta.br: NEXTA.BR
+  nextdecad.: NEXT
+  nextedia .: ALNXT.PA
+  nextensa .: NEXTA.BR
+  nextera e.: NEE
+  nextnav i.: NN
+  nf4.de: NF4.DE
+  nfbk: NFBK
+  nfe: NFE
+  nfg: NFG
+  nfl biosc.: ALNFL.PA
+  nflx: NFLX
+  nfn.de: NFN.DE
+  nfon: NFN.DE
+  nfon ag: NFN.DE
+  ng.l: NG.L
+  ngg: NGG
+  ngs: NGS
+  ngvt: NGVT
+  nhc: NHC
+  nhi: NHI
+  nhy.ol: NHY.OL
+  ni: NI
+  nic: NIC
+  nice: NICE
+  nice ltd.: NICE
+  nichols p.: NICL.L
+  nicl.l: NICL.L
+  nicolet b.: NIC
+  nicox s.a.: ALCOX.PA
+  nidaros s.: NISB.OL
+  nike,: NKE
+  nike, inc.: NKE
+  nikola: NKLA
+  nikola co.: NKLA
+  nine: NINE
+  nine ener.: NINE
+  ninety on.: N91.L
+  nintendo .: NTDOY
+  nio: NIO
+  nio inc.: NIO
+  niox grou.: NIOX.L
+  niox.l: NIOX.L
+  nisb.ol: NISB.OL
+  nisource .: NI
+  niu: NIU
+  niu techn.: NIU
+  njr: NJR
+  nk.pa: NK.PA
+  nkarta, i.: NKTX
+  nke: NKE
+  nkla: NKLA
+  nkr.ol: NKR.OL
+  nksh: NKSH
+  nkt a/s: NKT.CO
+  nkt.co: NKT.CO
+  nktr: NKTR
+  nktx: NKTX
+  nlight, i.: LASR
+  nlop: NLOP
+  nly: NLY
+  nmfc: NMFC
+  nmi holdi.: NMIH
+  nmih: NMIH
+  nn: NN
+  nni: NNI
+  nnn: NNN
+  nnn reit,.: NNN
+  nnox: NNOX
+  noah: NOAH
+  noah hold.: NOAH
+  noap.ol: NOAP.OL
+  noble cor.: NE
+  noc: NOC
+  nod.ol: NOD.OL
+  nog: NOG
+  nog.l: NOG.L
+  nohal.ol: NOHAL.OL
+  nok: NOK
+  nokia oyj: NOKIA.HE
+  nokia.he: NOKIA.HE
+  nokian re.: TYRES.HE
+  nol.ol: NOL.OL
+  nomad foo.: NOMD
+  nomd: NOMD
+  nong.ol: NONG.OL
+  noram dri.: NORAM.OL
+  noram.ol: NORAM.OL
+  noratis: NUVA.DE
+  noratis ag: NUVA.DE
+  norbit asa: NORBT.OL
+  norbt.ol: NORBT.OL
+  norco.ol: NORCO.OL
+  norconsul.: NORCO.OL
+  norcros p.: NXR.L
+  nordex se: NDX1.DE
+  nordh.ol: NORDH.OL
+  nordhealt.: NORDH.OL
+  nordic am.: NAT
+  nordic aq.: NOAP.OL
+  nordic ha.: NOHAL.OL
+  nordic se.: NOD.OL
+  nordson c.: NDSN
+  norfolk s.: NSC
+  norsk hyd.: NHY.OL
+  norsk tit.: NTI.OL
+  norske sk.: NSKOG.OL
+  northeast.: NECB
+  northern .: NOL.OL
+  northfiel.: NFBK
+  northrim .: NRIM
+  northrop .: NOC
+  northwest.: NWBI
+  norwegian.: NCLH
+  nos, s.g..: NOS.LS
+  nos.ls: NOS.LS
+  nostrum o.: NOG.L
+  note: NOTE
+  notv: NOTV
+  nov: NOV
+  nov inc.: NOV
+  nova: NVMI
+  nova ltd.: NVMI
+  novanta i.: NOVT
+  novartis .: NVS
+  novavax, .: NVAX
+  novem gro.: NVM.DE
+  novo nord.: NOVO-B.CO
+  novo-b.co: NOVO-B.CO
+  novocure .: NVCR
+  novozymes.: NSIS-B.CO
+  novt: NOVT
+  now: NOW
+  npce: NPCE
+  npk inter.: NPKI
+  npki: NPKI
+  npo: NPO
+  npwr: NPWR
+  nrc group.: NRC.OL
+  nrc.ol: NRC.OL
+  nrds: NRDS
+  nrdy: NRDY
+  nrg: NRG
+  nrg energ.: NRG
+  nrg.pa: NRG.PA
+  nrgv: NRGV
+  nrim: NRIM
+  nrix: NRIX
+  nrj group.: NRG.PA
+  nro.pa: NRO.PA
+  nrr.l: NRR.L
+  nsa: NSA
+  nsc: NSC
+  nse s.a.: ALNSE.PA
+  nsis-b.co: NSIS-B.CO
+  nskog.ol: NSKOG.OL
+  nsp: NSP
+  nssc: NSSC
+  ntap: NTAP
+  ntct: NTCT
+  ntdoy: NTDOY
+  ntes: NTES
+  ntg.de: NTG.DE
+  ntgr: NTGR
+  ntgy.mc: NTGY.MC
+  nti.ol: NTI.OL
+  ntla: NTLA
+  ntnx: NTNX
+  ntr: NTR
+  ntra: NTRA
+  ntrs: NTRS
+  ntst: NTST
+  nu: NU
+  nu holdin.: NU
+  nu skin e.: NUS
+  nucor cor.: NUE
+  nue: NUE
+  nurix the.: NRIX
+  nus: NUS
+  nuscale p.: SMR
+  nutanix, .: NTNX
+  nutrien l.: NTR
+  nuva.de: NUVA.DE
+  nuvalent,.: NUVL
+  nuvation .: NUVB
+  nuvb: NUVB
+  nuvectis .: NVCT
+  nuvl: NUVL
+  nuwe: NUWE
+  nuwellis,.: NUWE
+  nv bekaer.: BEKB.BR
+  nvax: NVAX
+  nvcr: NVCR
+  nvct: NVCT
+  nvda: NVDA
+  nvent ele.: NVT
+  nvg.ls: NVG.LS
+  nvidia: NVDA
+  nvidia co.: NVDA
+  nvm.de: NVM.DE
+  nvmi: NVMI
+  nvr: NVR
+  nvr,: NVR
+  nvr, inc.: NVR
+  nvs: NVS
+  nvst: NVST
+  nvt: NVT
+  nvts: NVTS
+  nwbi: NWBI
+  nwe: NWE
+  nwf group.: NWF.L
+  nwf.l: NWF.L
+  nwg: NWG
+  nwg.l: NWG.L
+  nwl: NWL
+  nwn: NWN
+  nws: NWS
+  nwsa: NWSA
+  nx: NX
+  nxi.pa: NXI.PA
+  nxp semic.: NXPI
+  nxpi: NXPI
+  nxr.l: NXR.L
+  nxrt: NXRT
+  nxst: NXST
+  nxt.l: NXT.L
+  nykd.ol: NYKD.OL
+  nykode th.: NYKD.OL
+  nynomic: M7U.DE
+  nynomic ag: M7U.DE
+  nyt: NYT
+  nyxh.br: NYXH.BR
+  nyxoah: NYXH.BR
+  nyxoah sa: NYXH.BR
+  nürnberge.: NBG6.DE
+  o: O
+  o'reilly .: ORLY
+  o-i glass.: OI
+  o4b.de: O4B.DE
+  o5g.de: O5G.DE
+  oabi: OABI
+  oaktree s.: OCSL
+  oatly gro.: OTLY
+  obdc: OBDC
+  obel.br: OBEL.BR
+  obio: OBIO
+  obiz s.a.: ALBIZ.PA
+  obk: OBK
+  obrascón .: OHLA.MC
+  obs.de: OBS.DE
+  obt: OBT
+  oc: OC
+  ocado gro.: OCDO.L
+  occidenta.: OXY
+  ocdo.l: OCDO.L
+  ocean sun.: OSUN.OL
+  oceaneeri.: OII
+  oceanfirs.: OCFC
+  ocfc: OCFC
+  ocgn: OCGN
+  ocsl: OCSL
+  ocugen, i.: OCGN
+  ocul: OCUL
+  ocular th.: OCUL
+  odd: ODD
+  oddity te.: ODD
+  odet.pa: ODET.PA
+  odf.ol: ODF.OL
+  odfb.ol: ODFB.OL
+  odfjell d.: ODL.OL
+  odfjell se: ODFB.OL
+  odfjell t.: OTL.OL
+  odfl: ODFL
+  odl.ol: ODL.OL
+  oec: OEC
+  oeneo: SBT.PA
+  oeneo sa: SBT.PA
+  oet.ol: OET.OL
+  oewa.de: OEWA.DE
+  offerpad .: OPAD
+  ofg: OFG
+  ofg banco.: OFG
+  ofix: OFIX
+  oge: OGE
+  oge energ.: OGE
+  ogs: OGS
+  ohb se: OHB.DE
+  ohb.de: OHB.DE
+  ohi: OHI
+  ohla.mc: OHLA.MC
+  oi: OI
+  oii: OII
+  oil state.: OIS
+  ois: OIS
+  oke: OKE
+  okea asa: OKEA.OL
+  okea.ol: OKEA.OL
+  okeanis e.: OET.OL
+  oklo: OKLO
+  oklo inc.: OKLO
+  okta: OKTA
+  okta,: OKTA
+  okta, inc.: OKTA
+  okur: OKUR
+  olaplex h.: OLPX
+  old domin.: ODFL
+  old mutua.: OMU.L
+  old natio.: ONB
+  old repub.: ORI
+  old secon.: OSBC
+  oled: OLED
+  olema pha.: OLMA
+  olin: OLN
+  olin corp.: OLN
+  olli: OLLI
+  ollie's b.: OLLI
+  olma: OLMA
+  oln: OLN
+  olp: OLP
+  olpx: OLPX
+  om: OM
+  omab: OMAB
+  omc: OMC
+  omcl: OMCL
+  omda as: OMDA.OL
+  omda.ol: OMDA.OL
+  omega hea.: OHI
+  omega the.: OMGA
+  omer: OMER
+  omer-decu.: ALODC.PA
+  omeros: OMER
+  omeros co.: OMER
+  omf: OMF
+  omga: OMGA
+  omniab, i.: OABI
+  omnicell,.: OMCL
+  omnicom g.: OMC
+  omu.l: OMU.L
+  'on': 'ON'
+  on holdin.: ONON
+  on semico.: 'ON'
+  on the be.: OTB.L
+  on24,: ONTF
+  on24, inc.: ONTF
+  onb: ONB
+  onc: ONC
+  oncodesig.: ALOPM.PA
+  one gas, .: OGS
+  one liber.: OLP
+  onemain h.: OMF
+  oneok, in.: OKE
+  onespan i.: OSPN
+  onespawor.: OSW
+  onew: ONEW
+  onewater .: ONEW
+  onit: ONIT
+  onity gro.: ONIT
+  onkure th.: OKUR
+  onon: ONON
+  ont.l: ONT.L
+  ontex gro.: ONTEX.BR
+  ontex.br: ONTEX.BR
+  ontf: ONTF
+  onto: ONTO
+  onto inno.: ONTO
+  onward me.: ONWD.BR
+  onwd.br: ONWD.BR
+  ooma: OOMA
+  ooma,: OOMA
+  ooma, inc.: OOMA
+  opad: OPAD
+  opal: OPAL
+  opal fuel.: OPAL
+  opch: OPCH
+  open: OPEN
+  open lend.: LPRO
+  opendoor .: OPEN
+  opera lim.: OPRA
+  opfi: OPFI
+  opk: OPK
+  opko heal.: OPK
+  opm.pa: OPM.PA
+  opmobilit.: OPM.PA
+  oportun f.: OPRT
+  oppfi: OPFI
+  oppfi inc.: OPFI
+  opra: OPRA
+  oprt: OPRT
+  oprx: OPRX
+  optimizer.: OPRX
+  option ca.: OPCH
+  opus gene.: IRD
+  or.pa: OR.PA
+  ora.pa: ORA.PA
+  oracle: ORCL
+  oracle co.: ORCL
+  orange: OBT
+  orange be.: OBEL.BR
+  orange co.: OBT
+  orange s..: ORA.PA
+  orany: ORANY
+  orbis: OBS.DE
+  orbis ag: OBS.DE
+  orc: ORC
+  orchestra.: OBIO
+  orchid is.: ORC
+  orcl: ORCL
+  organogen.: ORGO
+  orgn: ORGN
+  orgo: ORGO
+  ori: ORI
+  oric: ORIC
+  oric phar.: ORIC
+  origin ba.: OBK
+  origin ma.: ORGN
+  orion gro.: ORN
+  orion oyj: ORNBV.HE
+  orion s.a.: OEC
+  orix: IX
+  orix corp.: IX
+  ork.ol: ORK.OL
+  orkla asa: ORK.OL
+  orly: ORLY
+  orn: ORN
+  ornbv.he: ORNBV.HE
+  orron.st: ORRON.ST
+  orrön ene.: ORRON.ST
+  orsted.co: ORSTED.CO
+  orthofix .: OFIX
+  orthopedi.: KIDS
+  osb group.: OSB.L
+  osb.l: OSB.L
+  osbc: OSBC
+  oscar hea.: OSCR
+  oscr: OSCR
+  ose immun.: OSE.PA
+  ose.pa: OSE.PA
+  oshkosh c.: OSK
+  osi syste.: OSIS
+  osis: OSIS
+  osk: OSK
+  ospn: OSPN
+  osun.ol: OSUN.OL
+  osw: OSW
+  otb.l: OTB.L
+  otis: OTIS
+  otis worl.: OTIS
+  otl.ol: OTL.OL
+  otly: OTLY
+  otovo asa: OTOVO.OL
+  otovo.ol: OTOVO.OL
+  otter tai.: OTTR
+  ottr: OTTR
+  oust: OUST
+  ouster, i.: OUST
+  out: OUT
+  out1v.he: OUT1V.HE
+  outdoor h.: POWW
+  outfront .: OUT
+  outokumpu.: OUT1V.HE
+  outset me.: OM
+  ovb holdi.: O4B.DE
+  ovintiv i.: OVV
+  ovv: OVV
+  owens cor.: OC
+  owl: OWL
+  oxb.l: OXB.L
+  oxford bi.: OXB.L
+  oxford in.: OXM
+  oxford na.: ONT.L
+  oxig.l: OXIG.L
+  oxm: OXM
+  oxy: OXY
+  ozk: OZK
+  p/f bakka.: BAKKA.OL
+  p3 health.: PIII
+  p911.de: P911.DE
+  paa: PAA
+  paas: PAAS
+  pac: PAC
+  pacb: PACB
+  paccar: PCAR
+  paccar inc: PCAR
+  pacific b.: PACB
+  pacira bi.: PCRX
+  pack: PACK
+  packaging.: PKG
+  paf.l: PAF.L
+  pag: PAG
+  pag.l: PAG.L
+  pagaya te.: PGY
+  page.l: PAGE.L
+  pagegroup.: PAGE.L
+  pagerduty.: PD
+  pagp: PAGP
+  pags: PAGS
+  pagseguro.: PAGS
+  pah3.de: PAH3.DE
+  pahc: PAHC
+  pal next .: PAL.DE
+  pal.de: PAL.DE
+  palantir .: PLTR
+  palo alto.: PANW
+  palomar h.: PLMR
+  pam: PAM
+  pampa ene.: PAM
+  pan afric.: PAF.L
+  pan ameri.: PAAS
+  pandora a.: PNDORA.CO
+  pangaea l.: PANL
+  panl: PANL
+  panoro en.: PEN.OL
+  panr.l: PANR.L
+  pantheon .: PANR.L
+  panw: PANW
+  papa john.: PZZA
+  par: PAR
+  par pacif.: PARR
+  par techn.: PAR
+  paragon b.: PAG.L
+  paratus e.: PLSV.OL
+  parb.ol: PARB.OL
+  pareto ba.: PARB.OL
+  park hote.: PK
+  park nati.: PRK
+  parker-ha.: PH
+  parkin: PARKIN.AE
+  parkin co.: PARKIN.AE
+  parkin.ae: PARKIN.AE
+  parp.pa: PARP.PA
+  parr: PARR
+  partec: JY0.DE
+  partec ag: JY0.DE
+  pat.de: PAT.DE
+  path: PATH
+  pathward .: CASH
+  patk: PATK
+  patria in.: PAX
+  patrick i.: PATK
+  patrizia .: PAT.DE
+  patterson.: PTEN
+  paulic me.: ALPAU.PA
+  pax: PAX
+  pay.l: PAY.L
+  payc: PAYC
+  paychex, .: PAYX
+  paycom so.: PAYC
+  paycor hc.: PYCR
+  paylocity.: PCTY
+  payo: PAYO
+  payoneer .: PAYO
+  paypal ho.: PYPL
+  paypoint .: PAY.L
+  pays: PAYS
+  paysafe l.: PSFE
+  paysign, .: PAYS
+  payx: PAYX
+  pb: PB
+  pba: PBA
+  pbee.l: PBEE.L
+  pbf: PBF
+  pbf energ.: PBF
+  pbh: PBH
+  pbr: PBR
+  pbyi: PBYI
+  pc connec.: CNXN
+  pcar: PCAR
+  pcg: PCG
+  pcor: PCOR
+  pcrx: PCRX
+  pctn.l: PCTN.L
+  pcty: PCTY
+  pcvx: PCVX
+  pcz.de: PCZ.DE
+  pd: PD
+  pda0.de: PDA0.DE
+  pdd: PDD
+  pdd holdi.: PDD
+  pdf solut.: PDFS
+  pdfs: PDFS
+  pdl.l: PDL.L
+  pdlb: PDLB
+  pdm: PDM
+  pds biote.: PDSB
+  pdsb: PDSB
+  peabody e.: BTU
+  peakstone.: PKST
+  peapack-g.: PGC
+  pearson p.: PSON.L
+  peb: PEB
+  pebblebro.: PEB
+  pebo: PEBO
+  peco: PECO
+  pediatrix.: MD
+  peg: PEG
+  pega: PEGA
+  pegasyste.: PEGA
+  peloton i.: PTON
+  pembina p.: PBA
+  pen: PEN
+  pen.ol: PEN.OL
+  peng: PENG
+  penguin s.: PENG
+  penn: PENN
+  penn ente.: PENN
+  pennon gr.: PNN.L
+  pennymac .: PMT
+  pensana p.: PRE.L
+  pensionbe.: PBEE.L
+  penske au.: PAG
+  pentair p.: PNR
+  penumbra,.: PEN
+  peoples b.: PEBO
+  peoples f.: PFIS
+  pep: PEP
+  pepsico, .: PEP
+  perdoceo .: PRDO
+  perella w.: PWP
+  performan.: PFGC
+  peri: PERI
+  perimeter.: PRM
+  perion ne.: PERI
+  perma-fix.: PESI
+  permian r.: PR
+  pernod ri.: RI.PA
+  perr.pa: PERR.PA
+  perrigo c.: PRGO
+  pershing .: PSH.L
+  persimmon.: PSN.L
+  personal .: PGH.L
+  personali.: PSNL
+  perusahaa.: TLK
+  pesi: PESI
+  petco hea.: WOOF
+  petra dia.: PDL.L
+  petrochin.: 0857.HK
+  petróleo .: PBR
+  pets at h.: PETS.L
+  pets.l: PETS.L
+  peug.pa: PEUG.PA
+  peugeot i.: PEUG.PA
+  pexip hol.: PEXIP.OL
+  pexip.ol: PEXIP.OL
+  pfbc: PFBC
+  pfd.l: PFD.L
+  pfe: PFE
+  pfeiffer .: PFV.DE
+  pferdewet.: EMH.DE
+  pfg: PFG
+  pfgc: PFGC
+  pfis: PFIS
+  pfizer in.: PFE
+  pfs: PFS
+  pfsi: PFSI
+  pfv.de: PFV.DE
+  pg: PG
+  pg&e: PCG
+  pg&e corp.: PCG
+  pgc: PGC
+  pgh.l: PGH.L
+  pgny: PGNY
+  pgr: PGR
+  pgy: PGY
+  ph: PH
+  phar.l: PHAR.L
+  pharma ma.: PHM.MC
+  pharos en.: PHAR.L
+  pharvaris.: PHVS
+  phat: PHAT
+  phathom p.: PHAT
+  phg: PHG
+  phi: PHI
+  phibro an.: PAHC
+  philip mo.: PM
+  phillips .: PECO
+  phin: PHIN
+  phinia in.: PHIN
+  phm: PHM
+  phm.mc: PHM.MC
+  pho.ol: PHO.OL
+  photocure.: PHO.OL
+  photronic.: PLAB
+  php.l: PHP.L
+  phr: PHR
+  phreesia,.: PHR
+  phun: PHUN
+  phunware,.: PHUN
+  phvs: PHVS
+  pi: PI
+  pia.mi: PIA.MI
+  piaggio &.: PIA.MI
+  picc prop.: 2328.HK
+  picton pr.: PCTN.L
+  piedmont .: PDM
+  pierre et.: VAC.PA
+  pig.pa: PIG.PA
+  pii: PII
+  piii: PIII
+  pilgrim's.: PPC
+  pin.l: PIN.L
+  pinc: PINC
+  pine: PINE
+  pine.l: PINE.L
+  pinewood .: PINE.L
+  ping an h.: 1833.HK
+  ping an i.: 2318.HK
+  pinnacle .: PNW
+  pins: PINS
+  pinterest.: PINS
+  piper san.: PIPR
+  pipr: PIPR
+  pirc.mi: PIRC.MI
+  pirelli &.: PIRC.MI
+  pjt: PJT
+  pjt partn.: PJT
+  pk: PK
+  pkg: PKG
+  pkst: PKST
+  pkx: PKX
+  pl: PL
+  plab: PLAB
+  plains al.: PAA
+  plains gp.: PAGP
+  planet fi.: PLNT
+  planet la.: PL
+  planisware: PLNW.PA
+  plastique.: PVL.PA
+  play: PLAY
+  playstudi.: MYPS
+  playtech .: PTEC.L
+  playtika .: PLTK
+  plce: PLCE
+  pld: PLD
+  pldt: PHI
+  pldt inc.: PHI
+  plexus: PLXS
+  plexus co.: PLXS
+  pliant th.: PLRX
+  plmr: PLMR
+  plnt: PLNT
+  plnw.pa: PLNW.PA
+  plow: PLOW
+  plrx: PLRX
+  plsv.ol: PLSV.OL
+  pltk: PLTK
+  pltr: PLTR
+  plug: PLUG
+  plug powe.: PLUG
+  plus: PLUS
+  plus.l: PLUS.L
+  plus500 l.: PLUS.L
+  pluxee n..: PLX.PA
+  plx: PLX
+  plx.pa: PLX.PA
+  plxs: PLXS
+  pm: PM
+  pmt: PMT
+  pmts: PMTS
+  pmv pharm.: PMVP
+  pmvp: PMVP
+  pnc: PNC
+  pndora.co: PNDORA.CO
+  pne: PNE3.DE
+  pne ag: PNE3.DE
+  pne3.de: PNE3.DE
+  pnfp: PNFP
+  pnn.l: PNN.L
+  pnr: PNR
+  pntg: PNTG
+  pnw: PNW
+  podd: PODD
+  pol.ol: POL.OL
+  polar cap.: POLR.L
+  polaris i.: PII
+  polaris m.: POL.OL
+  polb.l: POLB.L
+  polestar .: PSNY
+  pollen st.: POLN.L
+  poln.l: POLN.L
+  polr.l: POLR.L
+  ponce fin.: PDLB
+  pool: POOL
+  pool corp.: POOL
+  poolbeg p.: POLB.L
+  popular, .: BPOP
+  por: POR
+  porch gro.: PRCH
+  porsche a.: PAH3.DE
+  portillo'.: PTLO
+  portland .: POR
+  porvair p.: PRV.L
+  posco hol.: PKX
+  post: POST
+  post hold.: POST
+  postal re.: PSTL
+  poste ita.: PST.MI
+  poujoulat.: ALPJT.PA
+  poulaillo.: ALPOU.PA
+  powell in.: POWL
+  power ass.: 0006.HK
+  power int.: POWI
+  powerflee.: AIOT
+  powi: POWI
+  powl: POWL
+  poww: POWW
+  ppc: PPC
+  ppg: PPG
+  ppg indus.: PPG
+  pph.l: PPH.L
+  pphe hote.: PPH.L
+  ppl: PPL
+  ppl corpo.: PPL
+  pr: PR
+  pra: PRA
+  pra group.: PRAA
+  praa: PRAA
+  prax: PRAX
+  praxis pr.: PRAX
+  prch: PRCH
+  prct: PRCT
+  prdo: PRDO
+  pre.l: PRE.L
+  precia s..: ALPM.PA
+  preferred.: PFBC
+  prelude t.: PRLD
+  premier f.: PFD.L
+  premier, .: PINC
+  prestige .: PBH
+  prg: PRG
+  prgo: PRGO
+  prgs: PRGS
+  pri: PRI
+  pricesmar.: PSMT
+  prim: PRIM
+  primary h.: PHP.L
+  prime med.: PRME
+  primerica.: PRI
+  primis fi.: FRST
+  primo bra.: PRMB
+  primoris .: PRIM
+  principal.: PFG
+  privia he.: PRVA
+  prk: PRK
+  prks: PRKS
+  prlb: PRLB
+  prld: PRLD
+  prm: PRM
+  prmb: PRMB
+  prme: PRME
+  pro dv: PDA0.DE
+  pro dv ag: PDA0.DE
+  proassura.: PRA
+  proc.l: PROC.L
+  procept b.: PRCT
+  procook g.: PROC.L
+  procore t.: PCOR
+  procredit.: PCZ.DE
+  profrac h.: ACDC
+  prog hold.: PRG
+  progress .: PRGS
+  progyny, .: PGNY
+  prok: PROK
+  prokidney.: PROK
+  prologis,.: PLD
+  propetro .: PUMP
+  proqr the.: PRQR
+  prosafe se: PRS.OL
+  prosegur .: PSG.MC
+  prosieben.: PSM.DE
+  prospect .: PSEC
+  prosperit.: PB
+  prospex e.: PXEN.L
+  prot.ol: PROT.OL
+  protagoni.: PTGX
+  protalix .: PLX
+  protector.: PROT.OL
+  prothena .: PRTA
+  proto lab.: PRLB
+  provident.: PFS
+  prox.br: PROX.BR
+  proxi.ol: PROXI.OL
+  proximar .: PROXI.OL
+  proximus .: PROX.BR
+  prpl: PRPL
+  prqr: PRQR
+  prs.ol: PRS.OL
+  prta: PRTA
+  prts: PRTS
+  pru: PRU
+  pru.l: PRU.L
+  prudentia.: PRU.L
+  prv.l: PRV.L
+  prva: PRVA
+  pry.mi: PRY.MI
+  pryme n.v.: PRYME.OL
+  pryme.ol: PRYME.OL
+  prysmian .: PRY.MI
+  psa: PSA
+  psan.de: PSAN.DE
+  psec: PSEC
+  psfe: PSFE
+  psg.mc: PSG.MC
+  psh.l: PSH.L
+  psi softw.: PSAN.DE
+  psm.de: PSM.DE
+  psmt: PSMT
+  psn.l: PSN.L
+  psnl: PSNL
+  psny: PSNY
+  pso: PSO
+  pson.l: PSON.L
+  psq holdi.: PSQH
+  psqh: PSQH
+  pst.mi: PST.MI
+  pstg: PSTG
+  pstl: PSTL
+  psx: PSX
+  ptc: PTC
+  ptc inc.: PTC
+  ptc thera.: PTCT
+  ptct: PTCT
+  ptec.l: PTEC.L
+  pten: PTEN
+  ptgx: PTGX
+  ptlo: PTLO
+  pton: PTON
+  pub.pa: PUB.PA
+  publi.ol: PUBLI.OL
+  public pr.: PUBLI.OL
+  public se.: PEG
+  public st.: PSA
+  publicis .: PUB.PA
+  pubm: PUBM
+  pubmatic,.: PUBM
+  puk: PUK
+  pullup en.: ALPUL.PA
+  pulmonx c.: LUNG
+  pultegrou.: PHM
+  pum.de: PUM.DE
+  puma biot.: PBYI
+  puma se: PUM.DE
+  pump: PUMP
+  purple in.: PRPL
+  pva tepla.: TPE.DE
+  pvh: PVH
+  pvh corp.: PVH
+  pvl.pa: PVL.PA
+  pwo: PWO.DE
+  pwo ag: PWO.DE
+  pwo.de: PWO.DE
+  pwp: PWP
+  pwr: PWR
+  pxen.l: PXEN.L
+  pycr: PYCR
+  pypl: PYPL
+  pyrum inn.: PYRUM.OL
+  pyrum.ol: PYRUM.OL
+  pyx resou.: PYX.L
+  pyx.l: PYX.L
+  pz cusson.: PZC.L
+  pzc.l: PZC.L
+  pzs.de: PZS.DE
+  pzza: PZZA
+  q.beyond .: QBY.DE
+  q2 holdin.: QTWO
+  qbts: QBTS
+  qby.de: QBY.DE
+  qcom: QCOM
+  qcr holdi.: QCRH
+  qcrh: QCRH
+  qdel: QDEL
+  qdt.pa: QDT.PA
+  qfg.br: QFG.BR
+  qfin: QFIN
+  qfin hold.: QFIN
+  qia.de: QIA.DE
+  qiagen n..: QIA.DE
+  qinetiq g.: QQ.L
+  qingling .: 1122.HK
+  qlt.l: QLT.L
+  qlys: QLYS
+  qnst: QNST
+  qorvo, in.: QRVO
+  qq.l: QQ.L
+  qrf comm..: QRF.BR
+  qrf.br: QRF.BR
+  qrvo: QRVO
+  qs: QS
+  qsi: QSI
+  qsr: QSR
+  qtrx: QTRX
+  qtwo: QTWO
+  quadient .: QDT.PA
+  quaker ch.: KWR
+  qualcomm .: QCOM
+  qualys, i.: QLYS
+  quanex bu.: NX
+  quanta se.: PWR
+  quanterix.: QTRX
+  quantum-s.: QSI
+  quantumsc.: QS
+  quest dia.: DGX
+  quest for.: QFG.BR
+  quicklogi.: QUIK
+  quidelort.: QDEL
+  quik: QUIK
+  quilter p.: QLT.L
+  quinstree.: QNST
+  qure: QURE
+  qxo: QXO
+  qxo,: QXO
+  qxo, inc.: QXO
+  r: R
+  r. stahl .: RSL2.DE
+  r1b.de: R1B.DE
+  r3nk.de: R3NK.DE
+  raa.de: RAA.DE
+  race: RACE
+  rackspace.: RXT
+  radian gr.: RDN
+  radiant l.: RLGT
+  radnet, i.: RDNT
+  radware l.: RDWR
+  rai way s.: RWAY.MI
+  raiffeise.: RAW.DE
+  ralph lau.: RL
+  ram.ls: RAM.LS
+  ramaco re.: METCB
+  ramada in.: RAM.LS
+  rambus in.: RMBS
+  ramp: RAMP
+  rana grub.: RANA.OL
+  rana.ol: RANA.OL
+  range res.: RRC
+  ranger en.: RNGR
+  ranpak ho.: PACK
+  rapid nut.: ALRPD.PA
+  rapid7, i.: RPD
+  rapt: RAPT
+  rapt ther.: RAPT
+  raspberry.: RPI.L
+  rat.l: RAT.L
+  rathbones.: RAT.L
+  rational .: RAA.DE
+  raw.de: RAW.DE
+  raymond j.: RJF
+  rayonier .: RYN
+  rb global.: RBA
+  rba: RBA
+  rbb: RBB
+  rbb banco.: RBB
+  rbbn: RBBN
+  rbc: RBC
+  rbc beari.: RBC
+  rbcaa: RBCAA
+  rblx: RBLX
+  rbo.pa: RBO.PA
+  rbrew.co: RBREW.CO
+  rbrk: RBRK
+  rbt.pa: RBT.PA
+  rc: RC
+  rcel: RCEL
+  rch.l: RCH.L
+  rci: RCI
+  rci hospi.: RICK
+  rckt: RCKT
+  rcky: RCKY
+  rcl: RCL
+  rcm techn.: RCMT
+  rcmt: RCMT
+  rcn.l: RCN.L
+  rco.pa: RCO.PA
+  rcp.l: RCP.L
+  rcus: RCUS
+  rddt: RDDT
+  rdn: RDN
+  rdnt: RDNT
+  rdwr: RDWR
+  rdy: RDY
+  rdzn: RDZN
+  re/max ho.: RMAX
+  reach: RCH.L
+  reach plc: RCH.L
+  reach sub.: REACH.OL
+  reach.ol: REACH.OL
+  ready cap.: RC
+  real: REAL
+  realty in.: O
+  rec.l: REC.L
+  rec.mi: REC.MI
+  reckitt b.: RKT.L
+  record: REC.L
+  record plc: REC.L
+  recordati.: REC.MI
+  rect.br: RECT.BR
+  recticel .: RECT.BR
+  recursion.: RXRX
+  red robin.: RRGB
+  red rock .: RRR
+  red.mc: RED.MC
+  redcentri.: RCN.L
+  reddit, i.: RDDT
+  redeia: RED.MC
+  redeia co.: RED.MC
+  redwood t.: RWT
+  refi: REFI
+  reg: REG
+  regal rex.: RRX
+  regency c.: REG
+  regeneron.: REGN
+  regenxbio.: RGNX
+  regional .: RGL.L
+  regions f.: RF
+  regn: REGN
+  rei: REI
+  reinsuran.: RGA
+  rekor sys.: REKR
+  rekr: REKR
+  rel.l: REL.L
+  relay the.: RLAY
+  reliance .: RIGD.L
+  reliance,.: RS
+  rell: RELL
+  relmada t.: RLMD
+  relx: REL.L
+  relx plc: REL.L
+  rely: RELY
+  remitly g.: RELY
+  ren - red.: RENE.LS
+  renaissan.: RNR
+  renasant .: RNST
+  renault: RNO.PA
+  renault sa: RNO.PA
+  rene.ls: RENE.LS
+  renew ene.: RNW
+  renishaw .: RSW.L
+  renk grou.: R3NK.DE
+  rent: RENT
+  rent the .: RENT
+  rentokil .: RTO.L
+  rep.mc: REP.MC
+  repay hol.: RPAY
+  repl: REPL
+  repligen .: RGEN
+  replimune.: REPL
+  reply s.p.: REY.MI
+  repsol, s.: REP.MC
+  republic .: RBCAA
+  repx: REPX
+  res: RES
+  resideo t.: REZI
+  resmed in.: RMD
+  resolute .: RSG.L
+  resources.: RGP
+  restauran.: QSR
+  ret.br: RET.BR
+  retail es.: RET.BR
+  revb.l: REVB.L
+  reviva ph.: RVPH
+  revolutio.: REVB.L
+  revolve g.: RVLV
+  revvity, .: RVTY
+  reworld m.: ALREW.PA
+  rex: REX
+  rex ameri.: REX
+  rexel s.a.: RXL.PA
+  rexford i.: REXR
+  rexr: REXR
+  rey.mi: REY.MI
+  reyn: REYN
+  reynolds .: REYN
+  rezi: REZI
+  rf: RF
+  rf.pa: RF.PA
+  rga: RGA
+  rgc resou.: RGCO
+  rgco: RGCO
+  rgen: RGEN
+  rgl.l: RGL.L
+  rgld: RGLD
+  rgnx: RGNX
+  rgp: RGP
+  rgr: RGR
+  rgti: RGTI
+  rh: RH
+  rheinmeta.: RHM.DE
+  rhi: RHI
+  rhi magne.: RHIM.L
+  rhim.l: RHIM.L
+  rhk.de: RHK.DE
+  rhm.de: RHM.DE
+  rhp: RHP
+  rhythm ph.: RYTM
+  rhön-klin.: RHK.DE
+  ri.pa: RI.PA
+  ribbon: RBBN
+  ribbon co.: RBBN
+  riber s.a.: ALRIB.PA
+  richardso.: RELL
+  rick: RICK
+  rig: RIG
+  rigd.l: RIGD.L
+  rigel pha.: RIGL
+  rigetti c.: RGTI
+  rightmove.: RMV.L
+  rigl: RIGL
+  riley exp.: REPX
+  rimini st.: RMNI
+  ring ener.: REI
+  ring.ol: RING.OL
+  ringcentr.: RNG
+  ringmetal.: HP3A.DE
+  rio tinto.: RIO.L
+  rio.l: RIO.L
+  riot: RIOT
+  riot plat.: RIOT
+  riskified.: RSKD
+  rit capit.: RCP.L
+  rithm cap.: RITM
+  rithm pro.: RPT
+  ritm: RITM
+  rivian au.: RIVN
+  rivn: RIVN
+  rjf: RJF
+  rkh.l: RKH.L
+  rklb: RKLB
+  rkt: RKT
+  rkt.l: RKT.L
+  rl: RL
+  rlay: RLAY
+  rlgt: RLGT
+  rli: RLI
+  rli corp.: RLI
+  rlj: RLJ
+  rlj lodgi.: RLJ
+  rlmd: RLMD
+  rlx: RLX
+  rlx techn.: RLX
+  rm: RM
+  rmax: RMAX
+  rmbs: RMBS
+  rmd: RMD
+  rmni: RMNI
+  rmr: RMR
+  rms.pa: RMS.PA
+  rmti: RMTI
+  rmv.l: RMV.L
+  rna: RNA
+  rng: RNG
+  rngr: RNGR
+  rnk.l: RNK.L
+  rno.pa: RNO.PA
+  rnr: RNR
+  rnst: RNST
+  rnw: RNW
+  road: ROAD
+  roadzen, .: RDZN
+  robert ha.: RHI
+  robert wa.: RWA.L
+  robertet .: RBT.PA
+  robinhood.: HOOD
+  roblox: RBLX
+  roblox co.: RBLX
+  roche bob.: RBO.PA
+  rock: ROCK
+  rocket: RKT
+  rocket co.: RKT
+  rocket la.: RKLB
+  rocket ph.: RCKT
+  rockhoppe.: RKH.L
+  rockwell .: RMTI
+  rocky bra.: RCKY
+  rog: ROG
+  rogaland .: ROGS.OL
+  rogers: ROG
+  rogers co.: ROG
+  rogs.ol: ROGS.OL
+  roiv: ROIV
+  roivant s.: ROIV
+  rok: ROK
+  roku: ROKU
+  roku,: ROKU
+  roku, inc.: ROKU
+  rol: ROL
+  rollins, .: ROL
+  rolls-roy.: RR.L
+  romer.ol: ROMER.OL
+  romerike .: ROMER.OL
+  root: ROOT
+  root,: ROOT
+  root, inc.: ROOT
+  rop: ROP
+  roper tec.: ROP
+  ror.l: ROR.L
+  ross stor.: ROST
+  rost: ROST
+  rotork: ROR.L
+  rotork plc: ROR.L
+  rou.br: ROU.BR
+  roularta .: ROU.BR
+  rovi.mc: ROVI.MC
+  royal ban.: RY
+  royal car.: RCL
+  royal gol.: RGLD
+  royal uni.: RBREW.CO
+  royalty p.: RPRX
+  rpay: RPAY
+  rpc,: RES
+  rpc, inc.: RES
+  rpd: RPD
+  rpi.l: RPI.L
+  rpm: RPM
+  rpm inter.: RPM
+  rprx: RPRX
+  rpt: RPT
+  rr.l: RR.L
+  rrc: RRC
+  rrgb: RRGB
+  rrr: RRR
+  rrtl.de: RRTL.DE
+  rrx: RRX
+  rs: RS
+  rs group .: RS1.L
+  rs1.l: RS1.L
+  rsg: RSG
+  rsg.l: RSG.L
+  rsi: RSI
+  rskd: RSKD
+  rsl2.de: RSL2.DE
+  rsw.l: RSW.L
+  rtl group.: RRTL.DE
+  rto.l: RTO.L
+  rtx: RTX
+  rtx corpo.: RTX
+  rubean: R1B.DE
+  rubean ag: R1B.DE
+  rubis: RUI.PA
+  rubrik, i.: RBRK
+  rui.pa: RUI.PA
+  rum: RUM
+  rumble in.: RUM
+  run: RUN
+  runway gr.: RWAY
+  rush ente.: RUSHA
+  rush stre.: RSI
+  rusha: RUSHA
+  rvlv: RVLV
+  rvmd: RVMD
+  rvph: RVPH
+  rvty: RVTY
+  rwa.l: RWA.L
+  rway: RWAY
+  rway.mi: RWAY.MI
+  rwe aktie.: RWE.DE
+  rwe.de: RWE.DE
+  rwt: RWT
+  rxl.pa: RXL.PA
+  rxo: RXO
+  rxo,: RXO
+  rxo, inc.: RXO
+  rxrx: RXRX
+  rxsight, .: RXST
+  rxst: RXST
+  rxt: RXT
+  ry: RY
+  ry4c.de: RY4C.DE
+  ryaay: RYAAY
+  ryan: RYAN
+  ryan spec.: RYAN
+  ryanair h.: RY4C.DE
+  ryder sys.: R
+  ryman hos.: RHP
+  ryn: RYN
+  rytm: RYTM
+  rémy coin.: RCO.PA
+  s&p globa.: SPGI
+  s&t banco.: STBA
+  s&u: SUS.L
+  s&u plc: SUS.L
+  s.m.a.i.o.: ALSMA.PA
+  s188.de: S188.DE
+  s30.pa: S30.PA
+  s92.de: S92.DE
+  saa.l: SAA.L
+  sab.mc: SAB.MC
+  sabr: SABR
+  sabra hea.: SBRA
+  sabre cor.: SABR
+  sabre ins.: SBRE.L
+  sach: SACH
+  sachem ca.: SACH
+  sacyr, s..: SCYR.MC
+  saf-holla.: SFQ.DE
+  saf.pa: SAF.PA
+  safe bulk.: SB
+  safe.l: SAFE.L
+  safestore.: SAFE.L
+  safran: SAF.PA
+  safran sa: SAF.PA
+  saga: SAGA.L
+  saga plc: SAGA.L
+  saga.l: SAGA.L
+  sagimet b.: SGMT
+  sah: SAH
+  saia: SAIA
+  saia,: SAIA
+  saia, inc.: SAIA
+  saic: SAIC
+  sail: SAIL
+  sailpoint.: SAIL
+  saipem spa: SPM.MI
+  salesforc.: CRM
+  salik com.: SALIK.AE
+  salik.ae: SALIK.AE
+  sally bea.: SBH
+  salm.ol: SALM.OL
+  salmar asa: SALM.OL
+  salme.ol: SALME.OL
+  salmon ev.: SALME.OL
+  salvatore.: SFER.MI
+  salzgitte.: SZG.DE
+  sam: SAM
+  samg: SAMG
+  sampo oyj: SAMPO.HE
+  sampo.he: SAMPO.HE
+  sams.pa: SAMS.PA
+  samsara i.: IOT
+  samse: SAMS.PA
+  samse sa: SAMS.PA
+  samsung e.: SMSD.L
+  san: SAN
+  san.mc: SAN.MC
+  san.pa: SAN.PA
+  sana: SANA
+  sana biot.: SANA
+  sanara me.: SMTI
+  sand.st: SAND.ST
+  sanderson.: SDG.L
+  sandoz gr.: SDZNY
+  sandridge.: SD
+  sands chi.: 1928.HK
+  sandvik a.: SAND.ST
+  sanlorenz.: SL.MI
+  sanm: SANM
+  sanmina c.: SANM
+  sanofi: SAN.PA
+  sap se: SAP.DE
+  sap.de: SAP.DE
+  sarepta t.: SRPT
+  sartorius.: SRT.DE
+  sasol lim.: SSL
+  sats: SATS
+  sats asa: SATS.OL
+  sats.ol: SATS.OL
+  saul cent.: BFS
+  savara in.: SVRA
+  save.pa: SAVE.PA
+  savencia .: SAVE.PA
+  savers va.: SVV
+  savills p.: SVS.L
+  sax.de: SAX.DE
+  sb: SB
+  sb1.de: SB1.DE
+  sb1no.ol: SB1NO.OL
+  sb68.ol: SB68.OL
+  sba commu.: SBAC
+  sbac: SBAC
+  sbcf: SBCF
+  sbf: CY1K.DE
+  sbf ag: CY1K.DE
+  sbgi: SBGI
+  sbh: SBH
+  sbid.l: SBID.L
+  sblk: SBLK
+  sbo.ol: SBO.OL
+  sbra: SBRA
+  sbre.l: SBRE.L
+  sbry.l: SBRY.L
+  sbs: SBS
+  sbs.de: SBS.DE
+  sbsi: SBSI
+  sbsw: SBSW
+  sbt.pa: SBT.PA
+  sbux: SBUX
+  scana asa: SCANA.OL
+  scana.ol: SCANA.OL
+  scansourc.: SCSC
+  scatc.ol: SCATC.OL
+  scatec asa: SCATC.OL
+  scco: SCCO
+  sce.de: SCE.DE
+  schaeffle.: SHA0.DE
+  scherzer .: PZS.DE
+  schl: SCHL
+  schloss w.: SWA.DE
+  schneider.: SNDR
+  scholar r.: SRRK
+  scholasti.: SCHL
+  schott ph.: 1SXP.DE
+  schp.pa: SCHP.PA
+  schroder .: SERE.L
+  schroders.: SDR.L
+  schröding.: SDGR
+  schw: SCHW
+  schweizer.: SCE.DE
+  sci: SCI
+  science a.: SAIC
+  scienjoy .: SJ
+  scilex ho.: SCLX
+  scl: SCL
+  sclx: SCLX
+  scm: SCM
+  scor se: SCR.PA
+  scorpio t.: STNG
+  scorpius .: SCPX
+  scottish .: SMT.L
+  scout24 se: G24.DE
+  scpx: SCPX
+  scr.pa: SCR.PA
+  scsc: SCSC
+  sct.l: SCT.L
+  scvl: SCVL
+  scynexis,.: SCYX
+  scyr.mc: SCYR.MC
+  scyx: SCYX
+  sd: SD
+  sda: SDA
+  sdcl effi.: SEIT.L
+  sdf.de: SDF.DE
+  sdg.l: SDG.L
+  sdg.pa: SDG.PA
+  sdgr: SDGR
+  sdhc: SDHC
+  sdi group.: SDI.L
+  sdi.l: SDI.L
+  sdr.l: SDR.L
+  sdy.l: SDY.L
+  sdzny: SDZNY
+  se: SE
+  sea limit.: SE
+  sea.l: SEA.L
+  sea1 offs.: SEA1.OL
+  sea1.ol: SEA1.OL
+  seacoast .: SBCF
+  seacor ma.: SMHI
+  sealed ai.: SEE
+  seanergy .: SHIP
+  seascape .: SEA.L
+  seat: SEAT
+  seb: SK.PA
+  seb sa: SK.PA
+  seb-a.st: SEB-A.ST
+  secu-b.st: SECU-B.ST
+  secunet s.: YSN.DE
+  secure tr.: STB.L
+  securitas.: SECU-B.ST
+  sedg: SEDG
+  see: SEE
+  see.l: SEE.L
+  seeing ma.: SEE.L
+  seer: SEER
+  seer,: SEER
+  seer, inc.: SEER
+  sefer.pa: SEFER.PA
+  segro: SGRO.L
+  segro plc: SGRO.L
+  sei inves.: SEIC
+  seic: SEIC
+  seit.l: SEIT.L
+  select me.: SEM
+  select wa.: WTTR
+  selective.: SIGI
+  selectquo.: SLQT
+  selvaag b.: SBO.OL
+  sem: SEM
+  sem.ls: SEM.LS
+  semapa - .: SEM.LS
+  semicondu.: 0981.HK
+  sempra: SRE
+  semr: SEMR
+  semrush h.: SEMR
+  semtech c.: SMTC
+  sendas di.: ASAIY
+  senior: SNR.L
+  senior plc: SNR.L
+  sensata t.: ST
+  sensient .: SXT
+  sensorion.: ALSEN.PA
+  sepl.l: SEPL.L
+  seplat en.: SEPL.L
+  seqi.l: SEQI.L
+  sequa.br: SEQUA.BR
+  sequana m.: SEQUA.BR
+  sequoia e.: SEQI.L
+  serabi go.: SRB.L
+  serco gro.: SRP.L
+  sere.l: SERE.L
+  seres the.: MCRB
+  sergeferr.: SEFER.PA
+  service c.: SCI
+  service p.: SVC
+  serviceno.: NOW
+  servicewa.: SJJ.DE
+  servisfir.: SFBS
+  ses: SES
+  ses ai: SES
+  ses ai co.: SES
+  ses s.a.: SESG.PA
+  ses.mi: SES.MI
+  sesa s.p..: SES.MI
+  sesg.pa: SESG.PA
+  severfiel.: SFR.L
+  severn tr.: SVT.L
+  sezl: SEZL
+  sezzle in.: SEZL
+  sf.st: SF.ST
+  sf3.de: SF3.DE
+  sfbs: SFBS
+  sfd: SFD
+  sfer.mi: SFER.MI
+  sfix: SFIX
+  sfl: SFL
+  sfl corpo.: SFL
+  sfm: SFM
+  sfnc: SFNC
+  sfq.de: SFQ.DE
+  sfr.l: SFR.L
+  sg: SG
+  sge.l: SGE.L
+  sghc: SGHC
+  sght: SGHT
+  sgl carbo.: SGL.DE
+  sgl.de: SGL.DE
+  sgml: SGML
+  sgmt: SGMT
+  sgo.pa: SGO.PA
+  sgro.l: SGRO.L
+  sgry: SGRY
+  sha0.de: SHA0.DE
+  shaftesbu.: SHC.L
+  shak: SHAK
+  shake sha.: SHAK
+  shanghai .: 2196.HK
+  sharkninj.: SN
+  shattuck .: STTK
+  shb-a.st: SHB-A.ST
+  shbi: SHBI
+  shc: SHC
+  shc.l: SHC.L
+  shel.l: SHEL.L
+  shell: SHEL.L
+  shell plc: SHEL.L
+  shen: SHEN
+  shenandoa.: SHEN
+  shenzhou .: 2313.HK
+  shf.de: SHF.DE
+  shg: SHG
+  shi.l: SHI.L
+  shift4 pa.: FOUR
+  shinhan f.: SHG
+  ship: SHIP
+  shl.de: SHL.DE
+  shls: SHLS
+  sho: SHO
+  shoals te.: SHLS
+  shoe carn.: SCVL
+  shoo: SHOO
+  shop: SHOP
+  shopify i.: SHOP
+  shore ban.: SHBI
+  shur.br: SHUR.BR
+  shurgard .: SHUR.BR
+  shutterst.: SSTK
+  shw: SHW
+  si-bone, .: SIBN
+  sibanye s.: SBSW
+  sibn: SIBN
+  sid: SID
+  sidetrade.: ALBFR.PA
+  sie.de: SIE.DE
+  siemens a.: SIE.DE
+  siemens e.: ENR.DE
+  siemens h.: SHL.DE
+  sig: SHI.L
+  sig plc: SHI.L
+  sight sci.: SGHT
+  sight.pa: SIGHT.PA
+  sigi: SIGI
+  sigma lit.: SGML
+  sigmaroc .: SRC.L
+  signet je.: SIG
+  silence t.: SLN
+  silgan ho.: SLGN
+  silicon l.: SLAB
+  silicon m.: SIMO
+  siltronic.: WAF.DE
+  silvercre.: SAMG
+  similarwe.: SMWB
+  simmons f.: SFNC
+  simo: SIMO
+  simon pro.: SPG
+  simpson m.: SSD
+  simulatio.: SLP
+  sinch ab .: SINCH.ST
+  sinch.st: SINCH.ST
+  sinclair,.: SBGI
+  singulus .: SNG.DE
+  sino: XTP.DE
+  sino ag: XTP.DE
+  sino biop.: 1177.HK
+  sino land.: 0083.HK
+  sinopec e.: 2386.HK
+  sip.br: SIP.BR
+  sipef: SIP.BR
+  sipef nv: SIP.BR
+  siri: SIRI
+  sirius re.: SRE.L
+  sirius xm.: SIRI
+  siriuspoi.: SPNT
+  sitc: SITC
+  site: SITE
+  site cent.: SITC
+  siteone l.: SITE
+  sitime: SITM
+  sitime co.: SITM
+  sitm: SITM
+  six flags.: FUN
+  six2.de: SIX2.DE
+  six3.de: SIX3.DE
+  sixt se: SIX3.DE
+  sixth str.: TSLX
+  sj: SJ
+  sjj.de: SJJ.DE
+  sjm: SJM
+  sjm holdi.: 0880.HK
+  sk teleco.: SKM
+  sk.pa: SK.PA
+  ska-b.st: SKA-B.ST
+  skandinav.: SEB-A.ST
+  skanska a.: SKA-B.ST
+  skb.de: SKB.DE
+  skf-a.st: SKF-A.ST
+  skf-b.st: SKF-B.ST
+  skillz in.: SKLZ
+  skin: SKIN
+  skinhealt.: SKIN
+  sklz: SKLZ
+  skm: SKM
+  skt: SKT
+  skue spar.: SKUE.OL
+  skue.ol: SKUE.OL
+  skwd: SKWD
+  sky: SKY
+  skyt: SKYT
+  skyw: SKYW
+  skyward s.: SKWD
+  skywater .: SKYT
+  skywest, .: SKYW
+  skyworks .: SWKS
+  sl green .: SLG
+  sl.mi: SL.MI
+  slab: SLAB
+  slb: SLB
+  slb n.v.: SLB
+  sldb: SLDB
+  sldp: SLDP
+  sleep num.: SNBR
+  slf: SLF
+  slg: SLG
+  slgn: SLGN
+  slm: SLM
+  slm corpo.: SLM
+  sln: SLN
+  slno: SLNO
+  slp: SLP
+  slqt: SLQT
+  slr inves.: SLRC
+  slrc: SLRC
+  slvm: SLVM
+  sm: SM
+  sm energy.: SM
+  sma solar.: S92.DE
+  smartbrok.: SB1.DE
+  smartcraf.: SMCRT.OL
+  smartfina.: SMBK
+  smartopti.: SMOP.OL
+  smartrent.: SMRT
+  smbc: SMBC
+  smbk: SMBK
+  smci: SMCI
+  smcp s.a.: SMCP.PA
+  smcp.pa: SMCP.PA
+  smcrt.ol: SMCRT.OL
+  smfg: SMFG
+  smg: SMG
+  smhi: SMHI
+  smhn.de: SMHN.DE
+  smin.l: SMIN.L
+  smith & n.: SN.L
+  smith & w.: SWBI
+  smith dou.: SDHC
+  smithfiel.: SFD
+  smiths gr.: SMIN.L
+  smiths ne.: SNWS.L
+  smmt: SMMT
+  smop.ol: SMOP.OL
+  smpl: SMPL
+  smr: SMR
+  smrt: SMRT
+  smsd.l: SMSD.L
+  smsn.l: SMSN.L
+  smt schar.: S188.DE
+  smt.l: SMT.L
+  smtc: SMTC
+  smti: SMTI
+  smurfit w.: SWR.L
+  smwb: SMWB
+  smwh.l: SMWH.L
+  sn: SN
+  sn.l: SN.L
+  sna: SNA
+  snam s.p..: SRG.MI
+  snap: SNAP
+  snap inc.: SNAP
+  snap-on i.: SNA
+  snbr: SNBR
+  sncy: SNCY
+  sndl: SNDL
+  sndl inc.: SNDL
+  sndr: SNDR
+  sndx: SNDX
+  snex: SNEX
+  sng.de: SNG.DE
+  sni.ol: SNI.OL
+  snor.ol: SNOR.OL
+  snow: SNOW
+  snowflake.: SNOW
+  snp schne.: SHF.DE
+  snps: SNPS
+  snr.l: SNR.L
+  snws.l: SNWS.L
+  so: SO
+  soag.ol: SOAG.OL
+  sobi.st: SOBI.ST
+  sobo: SOBO
+  social ho.: SOHO.L
+  sociedad .: SQM
+  société a.: BAIN.PA
+  société b.: BB.PA
+  société g.: GLE.PA
+  société m.: ALTPC.PA
+  sodexo s..: SW.PA
+  sof.br: SOF.BR
+  soff.ol: SOFF.OL
+  sofi: SOFI
+  sofi tech.: SOFI
+  sofina so.: SOF.BR
+  softcat p.: SCT.L
+  softing: SYT.DE
+  softing ag: SYT.DE
+  sogeclair.: ALSOG.PA
+  sogn spar.: SOGN.OL
+  sogn.ol: SOGN.OL
+  soho.l: SOHO.L
+  soi.pa: SOI.PA
+  soitec: SOI.PA
+  soitec sa: SOI.PA
+  sol s.p.a.: SOL.MI
+  sol.mi: SOL.MI
+  solaredge.: SEDG
+  solb.br: SOLB.BR
+  soleno th.: SLNO
+  solid bio.: SLDB
+  solid pow.: SLDP
+  solstad o.: SOFF.OL
+  solutions.: S30.PA
+  solv: SOLV
+  solvay: SOLB.BR
+  solvay sa: SOLB.BR
+  solventum.: SOLV
+  son: SON
+  son.ls: SON.LS
+  sonae, sg.: SON.LS
+  sonic aut.: SAH
+  sono: SONO
+  sonoco pr.: SON
+  sonos, in.: SONO
+  sony: SONY
+  sony grou.: SONY
+  sop.pa: SOP.PA
+  sopra ste.: SOP.PA
+  sos.l: SOS.L
+  sosandar .: SOS.L
+  sotera he.: SHC
+  sou.l: SOU.L
+  soun: SOUN
+  sound ene.: SOU.L
+  soundhoun.: SOUN
+  south bow.: SOBO
+  south pla.: SPFI
+  southern .: SMBC
+  southside.: SBSI
+  southstat.: SSB
+  southwest.: SWX
+  sparebank.: SB68.OL
+  spartoo s.: ALSPT.PA
+  spb: SPB
+  spce: SPCE
+  spectra s.: SPSY.L
+  spectrum .: SPB
+  speedy hi.: SDY.L
+  spfi: SPFI
+  spg: SPG
+  spgi: SPGI
+  sphere en.: SPHR
+  sphr: SPHR
+  spi.l: SPI.L
+  spie: SPIE.PA
+  spie sa: SPIE.PA
+  spie.pa: SPIE.PA
+  spineway .: ALSPW.PA
+  spinneys .: SPINNEYS.AE
+  spinneys.ae: SPINNEYS.AE
+  spir: SPIR
+  spirax gr.: SPX.L
+  spire: SR
+  spire glo.: SPIR
+  spire hea.: SPI.L
+  spire inc.: SR
+  spm.mi: SPM.MI
+  spnt: SPNT
+  spog.ol: SPOG.OL
+  spok: SPOK
+  spok hold.: SPOK
+  spol.ol: SPOL.OL
+  sportrada.: SRAD
+  sportsman.: SPWH
+  spot: SPOT
+  spotify t.: SPOT
+  sprout so.: SPT
+  sprouts f.: SFM
+  spry: SPRY
+  sps comme.: SPSC
+  spsc: SPSC
+  spsy.l: SPSY.L
+  spt: SPT
+  spwh: SPWH
+  spx techn.: SPXC
+  spx.l: SPX.L
+  spxc: SPXC
+  spyre the.: SYRE
+  sqm: SQM
+  sr: SR
+  srad: SRAD
+  srad.l: SRAD.L
+  srb.l: SRB.L
+  src.l: SRC.L
+  srce: SRCE
+  sre: SRE
+  sre.l: SRE.L
+  srg.mi: SRG.MI
+  sri: SRI
+  srp group.: SRP.PA
+  srp.l: SRP.L
+  srp.pa: SRP.PA
+  srpt: SRPT
+  srrk: SRRK
+  srt.de: SRT.DE
+  ss&c tech.: SSNC
+  ssab ab (.: SSABAH.HE
+  ssabah.he: SSABAH.HE
+  ssb: SSB
+  ssd: SSD
+  sse: SSE.L
+  sse plc: SSE.L
+  sse.l: SSE.L
+  ssl: SSL
+  ssnc: SSNC
+  ssp group.: SSPG.L
+  sspg.l: SSPG.L
+  ssr minin.: SSRM
+  ssrm: SSRM
+  ssss: SSSS
+  sstk: SSTK
+  st: ST
+  st. james.: STJ.L
+  st5.de: ST5.DE
+  staa: STAA
+  staar sur.: STAA
+  stabilus .: STM.DE
+  staf.l: STAF.L
+  staffline.: STAF.L
+  stag: STAG
+  stag indu.: STAG
+  stagwell .: STGW
+  stainless.: STST.OL
+  stan.l: STAN.L
+  standard .: LAB
+  standex i.: SXI
+  stanley b.: SWK
+  star bulk.: SBLK
+  starbucks.: SBUX
+  starwood .: STWD
+  state ban.: SBID.L
+  state str.: STT
+  stb.l: STB.L
+  stb.ol: STB.OL
+  stba: STBA
+  stc: STC
+  ste: STE
+  stealthga.: GASS
+  steel dyn.: STLD
+  stef: STF.PA
+  stef sa: STF.PA
+  steico se: ST5.DE
+  stel: STEL
+  stellanti.: STLAP.PA
+  stellar b.: STEL
+  stellus c.: SCM
+  stelrad g.: SRAD.L
+  stem: STEM
+  stem,: STEM
+  stem, inc.: STEM
+  step: STEP
+  stepan: SCL
+  stepan co.: SCL
+  stepstone.: STEP
+  steris: STE
+  steris plc: STE
+  sterv.he: STERV.HE
+  stevanato.: STVN
+  steven ma.: SHOO
+  stewart i.: STC
+  stf.pa: STF.PA
+  stgw: STGW
+  stif soci.: ALSTI.PA
+  stillfron.: SF.ST
+  stitch fi.: SFIX
+  stj.l: STJ.L
+  stks: STKS
+  stlam.mi: STLAM.MI
+  stlap.pa: STLAP.PA
+  stld: STLD
+  stm.de: STM.DE
+  stmicroel.: STMMI.MI
+  stmmi.mi: STMMI.MI
+  stmpa.pa: STMPA.PA
+  stne: STNE
+  stng: STNG
+  sto se & .: STO3.DE
+  sto3.de: STO3.DE
+  stock yar.: SYBT
+  stok: STOK
+  stoke the.: STOK
+  stolt-nie.: SNI.OL
+  stoneco l.: STNE
+  stoneridg.: SRI
+  stonex gr.: SNEX
+  stora ens.: STERV.HE
+  storebran.: STB.OL
+  stra: STRA
+  stratec se: SBS.DE
+  strategic.: STRA
+  strategy .: MSTR
+  streamwid.: ALSTW.PA
+  stride, i.: LRN
+  strix gro.: KETL.L
+  stro: STRO
+  stro.ol: STRO.OL
+  strongpoi.: STRO.OL
+  structure.: GPCR
+  stryker c.: SYK
+  ströer se.: SAX.DE
+  sts group.: SF3.DE
+  stst.ol: STST.OL
+  stt: STT
+  sttk: STTK
+  sturm, ru.: RGR
+  stv group.: STVG.L
+  stvg.l: STVG.L
+  stvn: STVN
+  stwd: STWD
+  stz: STZ
+  su: SU
+  su.pa: SU.PA
+  subc.ol: SUBC.OL
+  subsea 7 .: SUBC.OL
+  sumitomo .: SMFG
+  summit ho.: INN
+  summit th.: SMMT
+  sun: SUN
+  sun count.: SNCY
+  sun hung .: 0016.HK
+  sun life .: SLF
+  suncar te.: SDA
+  suncoke e.: SXC
+  suncor en.: SU
+  sunny opt.: 2382.HK
+  sunoco lp: SUN
+  sunrise r.: SUNS
+  sunrun in.: RUN
+  suns: SUNS
+  sunstone .: SHO
+  sup.l: SUP.L
+  super gro.: SGHC
+  super hi .: 9658.HK
+  super mic.: SMCI
+  supernus .: SUPN
+  supn: SUPN
+  supreme p.: SUP.L
+  sur.de: SUR.DE
+  surg: SURG
+  surgepays.: SURG
+  surgery p.: SGRY
+  suro capi.: SSSS
+  surteco g.: SUR.DE
+  sus.l: SUS.L
+  suss micr.: SMHN.DE
+  sutro bio.: STRO
+  suz: SUZ
+  suzano s..: SUZ
+  svc: SVC
+  svenska h.: SHB-A.ST
+  svra: SVRA
+  svs.l: SVS.L
+  svt.l: SVT.L
+  svv: SVV
+  sw: SW
+  sw.pa: SW.PA
+  swa.de: SWA.DE
+  swbi: SWBI
+  swed-a.st: SWED-A.ST
+  swedbank .: SWED-A.ST
+  swedish o.: SOBI.ST
+  sweetgree.: SG
+  swire pac.: 0019.HK
+  swk: SWK
+  swks: SWKS
+  sword gro.: SWP.PA
+  swp.pa: SWP.PA
+  swr.l: SWR.L
+  swx: SWX
+  sxc: SXC
+  sxi: SXI
+  sxt: SXT
+  sy1.de: SY1.DE
+  sybt: SYBT
+  syens.br: SYENS.BR
+  syensqo s.: SYENS.BR
+  syf: SYF
+  syk: SYK
+  sylvamo c.: SLVM
+  sym: SYM
+  symbotic .: SYM
+  symrise: SY1.DE
+  symrise ag: SY1.DE
+  syna: SYNA
+  synaptics.: SYNA
+  synchrony.: SYF
+  syndax ph.: SNDX
+  synergie .: SDG.PA
+  synopsys,.: SNPS
+  synt.l: SYNT.L
+  synthomer.: SYNT.L
+  syre: SYRE
+  syros pha.: SYRS
+  syrs: SYRS
+  sysco cor.: SYY
+  syt.de: SYT.DE
+  syy: SYY
+  syz.de: SYZ.DE
+  syzygy: SYZ.DE
+  syzygy ag: SYZ.DE
+  szg.de: SZG.DE
+  szu.de: SZU.DE
+  séché env.: SCHP.PA
+  südzucker.: SZU.DE
+  t: T
+  t-mobile .: TMUS
+  t. rowe p.: TROW
+  taaleem h.: TAALEEM.AE
+  taaleem.ae: TAALEEM.AE
+  taboola.c.: TBLA
+  tabreed.ae: TABREED.AE
+  tactile s.: TCMD
+  tag immob.: TEG.DE
+  taiwan se.: TSM
+  tak: TAK
+  take-two .: TTWO
+  takeda ph.: TAK
+  takkt: TTK.DE
+  takkt ag: TTK.DE
+  tal: TAL
+  tal educa.: TAL
+  talanx: TLX.DE
+  talanx ag: TLX.DE
+  tam.l: TAM.L
+  tamboran .: TBN
+  tamburi i.: TIP.MI
+  tandem di.: TNDM
+  tanger in.: SKT
+  tango the.: TNGX
+  tap: TAP
+  tapestry,.: TPR
+  targa res.: TRGP
+  target: TGT
+  target co.: TGT
+  target he.: THRL.L
+  tars: TARS
+  tarsus ph.: TARS
+  task: TASK
+  taskus, i.: TASK
+  tata stee.: TTST.L
+  tate & ly.: TATE.L
+  tate.l: TATE.L
+  tatton as.: TAM.L
+  taylor mo.: TMHC
+  taylor wi.: TW.L
+  taysha ge.: TSHA
+  tbbk: TBBK
+  tbc bank .: TBCG.L
+  tbcg.l: TBCG.L
+  tbch: TBCH
+  tbi: TBI
+  tbla: TBLA
+  tbn: TBN
+  tbph: TBPH
+  tbrg: TBRG
+  tc energy.: TRP
+  tcap.l: TCAP.L
+  tcbi: TCBI
+  tcbk: TCBK
+  tcmd: TCMD
+  tcpc: TCPC
+  tcrx: TCRX
+  td: TD
+  tdc: TDC
+  tdg: TDG
+  tdoc: TDOC
+  tds: TDS
+  tdup: TDUP
+  tdw: TDW
+  tdy: TDY
+  te.pa: TE.PA
+  team: TEAM
+  team inte.: TIG.L
+  teamviewe.: TMV.DE
+  tech: TECH
+  technip e.: TE.PA
+  technipfm.: FTI
+  technogym.: TGYM.MI
+  technopro.: TPRO.MI
+  technotra.: TTR1.DE
+  techtroni.: 0669.HK
+  teck: TECK
+  teck reso.: TECK
+  tecnoglas.: TGLS
+  tecom gro.: TECOM.AE
+  tecom.ae: TECOM.AE
+  tectonic .: TECX
+  tecx: TECX
+  teekay ta.: TNK
+  tef.mc: TEF.MC
+  teg.de: TEG.DE
+  tegna: TGNA
+  tegna inc: TGNA
+  tejon ran.: TRC
+  tel.ol: TEL.OL
+  tela: TELA
+  tela bio,.: TELA
+  teladoc h.: TDOC
+  telecom a.: TEO
+  telecom i.: TIT.MI
+  telecom p.: TEP.L
+  teledyne .: TDY
+  teleflex .: TFX
+  telefonak.: ERIC
+  telefónic.: TEF.MC
+  telenor a.: TEL.OL
+  teleperfo.: TEP.PA
+  telephone.: TDS
+  telia com.: TELIA.ST
+  telia.st: TELIA.ST
+  telos cor.: TLS
+  telus cor.: TU
+  tem.l: TEM.L
+  tempest t.: TPST
+  templeton.: TEM.L
+  ten lifes.: TENG.L
+  ten.mi: TEN.MI
+  tenable h.: TENB
+  tenaris s.: TEN.MI
+  tenaya th.: TNYA
+  tenb: TENB
+  tencent h.: 0700.HK
+  tencent m.: TME
+  tenet hea.: THC
+  teng.l: TENG.L
+  tennant c.: TNC
+  teo: TEO
+  tep.l: TEP.L
+  tep.pa: TEP.PA
+  ter: TER
+  teradata .: TDC
+  teradyne,.: TER
+  terawulf .: WULF
+  terex cor.: TEX
+  tern: TERN
+  terna s.p.: TRN.MI
+  ternium s.: TX
+  terns pha.: TERN
+  terreno r.: TRNO
+  tesb.br: TESB.BR
+  tesco: TSCO.L
+  tesco plc: TSCO.L
+  tesla, in.: TSLA
+  tessender.: TESB.BR
+  tet.l: TET.L
+  tetra tec.: TTEK
+  teva: TEVA
+  teva phar.: TEVA
+  tex: TEX
+  texaf s.a.: TEXF.BR
+  texas cap.: TCBI
+  texas ins.: TXN
+  texas pac.: TPL
+  texas roa.: TXRH
+  texf.br: TEXF.BR
+  textron i.: TXT
+  tf1: TFI.PA
+  tf1 sa: TFI.PA
+  tfc: TFC
+  tff: TFF.PA
+  tff group: TFF.PA
+  tff.pa: TFF.PA
+  tfi inter.: TFII
+  tfi.pa: TFI.PA
+  tfii: TFII
+  tfin: TFIN
+  tfpm: TFPM
+  tfs finan.: TFSL
+  tfsl: TFSL
+  tfx: TFX
+  tg therap.: TGTX
+  tga.l: TGA.L
+  tghn.de: TGHN.DE
+  tgls: TGLS
+  tgna: TGNA
+  tgs asa: TGS.OL
+  tgs.ol: TGS.OL
+  tgt: TGT
+  tgtx: TGTX
+  tgym.mi: TGYM.MI
+  thales s..: HO.PA
+  tharisa p.: THS.L
+  thc: THC
+  the aes c.: AES
+  the allst.: ALL
+  the ander.: ANDE
+  the baldw.: BWIN
+  the banco.: TBBK
+  the bank .: BK
+  the berke.: BKG.L
+  the boein.: BA
+  the bosto.: SAM
+  the brink.: BCO
+  the buckl.: BKE
+  the campb.: CPB
+  the carly.: CG
+  the charl.: SCHW
+  the chees.: CAKE
+  the chefs.: CHEF
+  the chemo.: CC
+  the child.: PLCE
+  the cigna.: CI
+  the cloro.: CLX
+  the coca-.: KO
+  the coope.: COO
+  the ensig.: ENSG
+  the estée.: EL
+  the gap, .: GAP
+  the geo g.: GEO
+  the goldm.: GS
+  the goody.: GT
+  the gym g.: GYM.L
+  the hacke.: HCKT
+  the hain .: HAIN
+  the hanov.: THG
+  the hartf.: HIG
+  the hersh.: HSY
+  the home .: HD
+  the hones.: HNST
+  the hong .: 0003.HK
+  the j. m..: SJM
+  the joint.: JYNT
+  the kraft.: KHC
+  the kroge.: KR
+  the lion .: LEVGQ
+  the loves.: LOVE
+  the macer.: MAC
+  the manit.: MTW
+  the mosai.: MOS
+  the navig.: NVG.LS
+  the new y.: NYT
+  the one g.: STKS
+  the penna.: PNTG
+  the peopl.: 1339.HK
+  the pnc f.: PNC
+  the proct.: PG
+  the progr.: PGR
+  the rank .: RNK.L
+  the realr.: REAL
+  the renew.: TRIG.L
+  the rmr g.: RMR
+  the sage .: SGE.L
+  the scott.: SMG
+  the sherw.: SHW
+  the simpl.: SMPL
+  the south.: SO
+  the st. j.: JOE
+  the timke.: TKR
+  the tjx c.: TJX
+  the toro .: TTC
+  the toron.: TD
+  the trade.: TTD
+  the trave.: TRV
+  the vita .: COCO
+  the walt .: DIS
+  the weir .: WEIR.L
+  the wendy.: WEN
+  the weste.: WU
+  the willi.: WMB
+  thep.pa: THEP.PA
+  theravanc.: TBPH
+  thermador.: THEP.PA
+  thermo fi.: TMO
+  thermon g.: THR
+  theworks..: WRKS.L
+  thff: THFF
+  thg: THG.L
+  thg plc: THG.L
+  thg.l: THG.L
+  tho: THO
+  thomson r.: TRI
+  thor expl.: THX.L
+  thor indu.: THO
+  thr: THR
+  thredup i.: TDUP
+  thrl.l: THRL.L
+  thrm: THRM
+  thry: THRY
+  thryv hol.: THRY
+  ths.l: THS.L
+  thungela .: TGA.L
+  thx pharm.: ALTHX.PA
+  thx.l: THX.L
+  thyssenkr.: NCH2.DE
+  tidewater.: TDW
+  tieto oyj: TIETO.OL
+  tieto.ol: TIETO.OL
+  tig.l: TIG.L
+  tigr: TIGR
+  tikehau c.: TKO.PA
+  tile: TILE
+  tilly's, .: TLYS
+  tilray br.: TLRY
+  tim s.a.: TIMB
+  tima.de: TIMA.DE
+  timb: TIMB
+  tinc: TINC.BR
+  tinc nv: TINC.BR
+  tinc.br: TINC.BR
+  tingyi (c.: 0322.HK
+  tip.mi: TIP.MI
+  tit.mi: TIT.MI
+  titan mac.: TITN
+  titan s.a.: TITC.BR
+  titc.br: TITC.BR
+  titn: TITN
+  tjx: TJX
+  tka.de: TKA.DE
+  tkc: TKC
+  tko: TKO
+  tko group.: TKO
+  tko.pa: TKO.PA
+  tkr: TKR
+  tlk: TLK
+  tlry: TLRY
+  tls: TLS
+  tlw.l: TLW.L
+  tlx.de: TLX.DE
+  tlys: TLYS
+  tm: TM
+  tmc: TMC
+  tmc the m.: TMC
+  tmci: TMCI
+  tmdx: TMDX
+  tme: TME
+  tme pharm.: ALTME.PA
+  tmhc: TMHC
+  tmo: TMO
+  tmp: TMP
+  tmus: TMUS
+  tmv.de: TMV.DE
+  tnc: TNC
+  tndm: TNDM
+  tnet: TNET
+  tng.pa: TNG.PA
+  tngx: TNGX
+  tnie.de: TNIE.DE
+  tnk: TNK
+  tnl: TNL
+  tnya: TNYA
+  toast, in.: TOST
+  tol: TOL
+  toll brot.: TOL
+  tom.ol: TOM.OL
+  tompkins .: TMP
+  tomra sys.: TOM.OL
+  tonies se: TNIE.DE
+  tootsie r.: TR
+  topbuild .: BLD
+  topps til.: TPT.L
+  torm: TRMD-A.CO
+  torm plc: TRMD-A.CO
+  torrid ho.: CURV
+  tost: TOST
+  totalener.: TTE.PA
+  tower sem.: TSEM
+  town: TOWN
+  town cent.: TOWN.L
+  town.l: TOWN.L
+  townebank: TOWN
+  toyota mo.: TM
+  tp icap g.: TCAP.L
+  tpb: TPB
+  tpc: TPC
+  tpe.de: TPE.DE
+  tpg: TPG
+  tpg inc.: TPG
+  tpg re fi.: TRTX
+  tph: TPH
+  tpi compo.: TPIC
+  tpic: TPIC
+  tpk.l: TPK.L
+  tpl: TPL
+  tpr: TPR
+  tpro.mi: TPRO.MI
+  tpst: TPST
+  tpt.l: TPT.L
+  tpvg: TPVG
+  tr: TR
+  tracsis p.: TRCS.L
+  tractor s.: TSCO
+  tradeweb .: TW
+  traeger, .: COOK
+  trainline.: TRN.L
+  trane tec.: TT
+  transcat,.: TRNS
+  transdigm.: TDG
+  transgene.: TNG.PA
+  transmedi.: TMDX
+  transocea.: RIG
+  transunion: TRU
+  traton se: 8TRA.DE
+  travel + .: TNL
+  travelzoo: TZOO
+  travere t.: TVTX
+  travis pe.: TPK.L
+  trb.l: TRB.L
+  trc: TRC
+  trcs.l: TRCS.L
+  trda: TRDA
+  tre.mc: TRE.MC
+  treace me.: TMCI
+  treatt: TET.L
+  treatt plc: TET.L
+  tree: TREE
+  trel-b.st: TREL-B.ST
+  trellebor.: TREL-B.ST
+  trevena, .: TRVN
+  trex: TREX
+  trex comp.: TREX
+  trgp: TRGP
+  tri: TRI
+  tri point.: TPH
+  tri.l: TRI.L
+  tri.pa: TRI.PA
+  tribal gr.: TRB.L
+  trico ban.: TCBK
+  trifast p.: TRI.L
+  trig.l: TRIG.L
+  trigano s.: TRI.PA
+  trimas: TRS
+  trimas co.: TRS
+  trimble i.: TRMB
+  trin: TRIN
+  trinet gr.: TNET
+  trinity c.: TRIN
+  trip: TRIP
+  tripadvis.: TRIP
+  triple fl.: TFPM
+  triplepoi.: TPVG
+  tritax bi.: BBOX.L
+  triumph f.: TFIN
+  trivago n.: TRVG
+  trmb: TRMB
+  trmd-a.co: TRMD-A.CO
+  trmk: TRMK
+  trn.l: TRN.L
+  trn.mi: TRN.MI
+  trno: TRNO
+  trns: TRNS
+  tronox ho.: TROX
+  trow: TROW
+  trox: TROX
+  trp: TRP
+  trs: TRS
+  trst.l: TRST.L
+  trtx: TRTX
+  tru: TRU
+  tru.l: TRU.L
+  trubridge.: TBRG
+  trueblue,.: TBI
+  trufin: TRU.L
+  trufin plc: TRU.L
+  truist fi.: TFC
+  trump med.: DJT
+  trup: TRUP
+  trupanion.: TRUP
+  trustmark.: TRMK
+  trustpilo.: TRST.L
+  trv: TRV
+  trvg: TRVG
+  trvn: TRVN
+  tryg a/s: TRYG.CO
+  tryg.co: TRYG.CO
+  ts: TS
+  tscan the.: TCRX
+  tsco: TSCO
+  tsco.l: TSCO.L
+  tsem: TSEM
+  tsha: TSHA
+  tsla: TSLA
+  tslx: TSLX
+  tsm: TSM
+  tsn: TSN
+  tt: TT
+  tt electr.: TTG.L
+  ttc: TTC
+  ttd: TTD
+  tte: TTE
+  tte.pa: TTE.PA
+  ttec: TTEC
+  ttec hold.: TTEC
+  ttek: TTEK
+  ttg.l: TTG.L
+  ttk.de: TTK.DE
+  ttm techn.: TTMI
+  ttmi: TTMI
+  ttr1.de: TTR1.DE
+  ttst.l: TTST.L
+  ttwo: TTWO
+  tu: TU
+  tub.br: TUB.BR
+  tui: TUI1.DE
+  tui ag: TUI1.DE
+  tui1.de: TUI1.DE
+  tullow oi.: TLW.L
+  turkcell .: TKC
+  turning p.: TPB
+  turtle be.: TBCH
+  tutor per.: TPC
+  tv: TV
+  tvtx: TVTX
+  tw: TW
+  tw.l: TW.L
+  twilio in.: TWLO
+  twist bio.: TWST
+  twlo: TWLO
+  two: TWO
+  two harbo.: TWO
+  twst: TWST
+  tx: TX
+  txg: TXG
+  txn: TXN
+  txnm: TXNM
+  txnm ener.: TXNM
+  txrh: TXRH
+  txt: TXT
+  tyl: TYL
+  tyler tec.: TYL
+  tyra: TYRA
+  tyra bios.: TYRA
+  tyres.he: TYRES.HE
+  tyson foo.: TSN
+  tzoo: TZOO
+  técnicas .: TRE.MC
+  u: U
+  u-haul ho.: UHAL
+  u.s. banc.: USB
+  u.s. phys.: USPH
+  u10: ALU10.PA
+  u10 corp: ALU10.PA
+  ua: UA
+  uaa: UAA
+  ual: UAL
+  uber: UBER
+  uber tech.: UBER
+  ubi.pa: UBI.PA
+  ubiquiti .: UI
+  ubisoft e.: UBI.PA
+  ubk.de: UBK.DE
+  ubs: UBS
+  ubs group.: UBS
+  ubsi: UBSI
+  ucb: UCB
+  ucb sa: UCB.BR
+  ucb.br: UCB.BR
+  ucg.mi: UCG.MI
+  uctt: UCTT
+  udemy, in.: UDMY
+  udmy: UDMY
+  udr: UDR
+  udr,: UDR
+  udr, inc.: UDR
+  ue: UE
+  uec: UEC
+  ueic: UEIC
+  ufcs: UFCS
+  ufi: UFI
+  ufp indus.: UFPI
+  ufp techn.: UFPT
+  ufpi: UFPI
+  ufpt: UFPT
+  ugi: UGI
+  ugi corpo.: UGI
+  ugp: UGP
+  uhal: UHAL
+  uhs: UHS
+  ui: UI
+  uipath, i.: PATH
+  uis: UIS
+  ujo.l: UJO.L
+  ulbi: ULBI
+  ulc.de: ULC.DE
+  ulcc: ULCC
+  ulh: ULH
+  ulta: ULTA
+  ulta beau.: ULTA
+  ultimate .: ULTP.L
+  ultp.l: ULTP.L
+  ultra cle.: UCTT
+  ultralife.: ULBI
+  ultrapar .: UGP
+  ulvr.l: ULVR.L
+  umb finan.: UMBF
+  umbf: UMBF
+  umc: UMC
+  umh: UMH
+  umh prope.: UMH
+  umi.br: UMI.BR
+  umicore: UMI.BR
+  umicore sa: UMI.BR
+  umweltban.: UBK.DE
+  un0.de: UN0.DE
+  un9.de: UN9.DE
+  under arm.: UA
+  unf: UNF
+  unfi: UNFI
+  unh: UNH
+  uni.mc: UNI.MC
+  uni.mi: UNI.MI
+  unibail-r.: URW.PA
+  unicaja b.: UNI.MC
+  unicredit.: UCG.MI
+  unifi, in.: UFI
+  unifirst .: UNF
+  unilever .: ULVR.L
+  union jac.: UJO.L
+  union pac.: UNP
+  union pro.: UPP.AE
+  uniper se: UN0.DE
+  unipol as.: UNI.MI
+  uniqa ins.: UN9.DE
+  uniqure n.: QURE
+  unisys: UIS
+  unisys co.: UIS
+  unit: UNIT
+  unite gro.: UTG.L
+  united: UCB
+  united ai.: UAL
+  united ba.: UBSI
+  united co.: UCB
+  united fi.: UFCS
+  united in.: UTDI.DE
+  united ma.: USEA
+  united mi.: UMC
+  united na.: UNFI
+  united pa.: PRKS
+  united re.: URI
+  united st.: USLM
+  united th.: UTHR
+  united ut.: UU.L
+  unitedhea.: UNH
+  unitedlab.: ULC.DE
+  uniti gro.: UNIT
+  unitil: UTL
+  unitil co.: UTL
+  unity sof.: U
+  universal.: UEIC
+  univest f.: UVSP
+  unm: UNM
+  unp: UNP
+  unum: UNM
+  unum group: UNM
+  up fintec.: TIGR
+  upbd: UPBD
+  upbound g.: UPBD
+  upergy so.: ALUPG.PA
+  upland so.: UPLD
+  upld: UPLD
+  upm-kymme.: UPM.HE
+  upm.he: UPM.HE
+  upp.ae: UPP.AE
+  ups: UPS
+  upst: UPST
+  upstart h.: UPST
+  upwk: UPWK
+  upwork in.: UPWK
+  uranium e.: UEC
+  urban edg.: UE
+  urban out.: URBN
+  urbn: URBN
+  urgn: URGN
+  uri: URI
+  urogen ph.: URGN
+  urw.pa: URW.PA
+  us foods .: USFD
+  usb: USB
+  usea: USEA
+  usfd: USFD
+  uslm: USLM
+  usph: USPH
+  utdi.de: UTDI.DE
+  utg.l: UTG.L
+  uthr: UTHR
+  uti: UTI
+  utl: UTL
+  utz: UTZ
+  utz brand.: UTZ
+  uu.l: UU.L
+  uve: UVE
+  uvsp: UVSP
+  uwm holdi.: UWMC
+  uwmc: UWMC
+  uzin utz .: UZU.DE
+  uzu.de: UZU.DE
+  v: V
+  v.f.: VFC
+  v.f. corp.: VFC
+  v2x,: VVX
+  v2x, inc.: VVX
+  v3v.de: V3V.DE
+  v6c.de: V6C.DE
+  vaalco en.: EGY
+  vac: VAC
+  vac.pa: VAC.PA
+  vaf.ls: VAF.LS
+  vail reso.: MTN
+  val: VAL
+  valaris l.: VAL
+  valbiotis.: ALVAL.PA
+  vale: VALE
+  vale s.a.: VALE
+  valens se.: VLN
+  valeo se: FR.PA
+  valero en.: VLO
+  valley na.: VLY
+  vallourec.: VK.PA
+  valmet oyj: VALMT.HE
+  valmont i.: VMI
+  valmt.he: VALMT.HE
+  valneva se: VLA.PA
+  valvoline.: VVV
+  van de ve.: VAN.BR
+  van.br: VAN.BR
+  vanda pha.: VNDA
+  vanq.l: VANQ.L
+  vanquis b.: VANQ.L
+  vanti.pa: VANTI.PA
+  vantiva s.: VANTI.PA
+  var.ol: VAR.OL
+  varonis s.: VRNS
+  vaxart, i.: VXRT
+  vaxcyte, .: PCVX
+  vbk.de: VBK.DE
+  vc: VC
+  vcel: VCEL
+  vct.l: VCT.L
+  vct.pa: VCT.PA
+  vctr: VCTR
+  vcyt: VCYT
+  veco: VECO
+  veeco ins.: VECO
+  veev: VEEV
+  veeva sys.: VEEV
+  vei.ol: VEI.OL
+  veidekke .: VEI.OL
+  ventas, i.: VTR
+  vente-uni.: ALVU.PA
+  ventura o.: VTURA.OL
+  venture g.: VG
+  ventyx bi.: VTYX
+  veolia en.: VIE.PA
+  vera: VERA
+  vera ther.: VERA
+  veracyte,.: VCYT
+  veradigm .: MDRX
+  verallia .: VRLA.PA
+  veralto c.: VLTO
+  verbio se: VBK.DE
+  verbund: OEWA.DE
+  verbund ag: OEWA.DE
+  veri: VERI
+  vericel c.: VCEL
+  verimatri.: VMX.PA
+  verint sy.: VRNT
+  veris res.: VRE
+  verisign,.: VRSN
+  verisk an.: VRSK
+  veritone,.: VERI
+  verizon c.: VZ
+  verra mob.: VRRM
+  verrica p.: VRCA
+  vertex ph.: VRTX
+  vertex, i.: VERX
+  vertiv ho.: VRT
+  vertu mot.: VTU.L
+  veru: VERU
+  veru inc.: VERU
+  verx: VERX
+  vestas wi.: VWS.CO
+  vestis: VSTS
+  vestis co.: VSTS
+  vesuvius .: VSVS.L
+  veto.pa: VETO.PA
+  vetoquino.: VETO.PA
+  vfc: VFC
+  vfs: VFS
+  vg: VG
+  vgp: VGP.BR
+  vgp nv: VGP.BR
+  vgp.br: VGP.BR
+  vh2.de: VH2.DE
+  viant tec.: DSP
+  viasat, i.: VSAT
+  viatris i.: VTRS
+  viav: VIAV
+  viavi sol.: VIAV
+  vib vermö.: VIH1.DE
+  vib3.de: VIB3.DE
+  vic.l: VIC.L
+  vicat s.a.: VCT.PA
+  vici: VICI
+  vici prop.: VICI
+  vicor cor.: VICR
+  vicr: VICR
+  victoria'.: VSCO
+  victorian.: VIC.L
+  victory c.: VCTR
+  victrex p.: VCT.L
+  vid.l: VID.L
+  vid.mc: VID.MC
+  videndum .: VID.L
+  vidrala, .: VID.MC
+  vie.pa: VIE.PA
+  vih1.de: VIH1.DE
+  vik: VIK
+  viking ho.: VIK
+  villeroy .: VIB3.DE
+  vinacapit.: VOF.L
+  vinci: DG.PA
+  vinci com.: VINP
+  vinci sa: DG.PA
+  vinfast a.: VFS
+  vinp: VINP
+  vio.br: VIO.BR
+  viohalco .: VIO.BR
+  viper ene.: VNOM
+  vips: VIPS
+  vipshop h.: VIPS
+  vir: VIR
+  vir biote.: VIR
+  virbac: VIRP.PA
+  virbac sa: VIRP.PA
+  virc: VIRC
+  virco mfg.: VIRC
+  virgin ga.: SPCE
+  viri.pa: VIRI.PA
+  viridian .: VRDN
+  viridien .: VIRI.PA
+  virp.pa: VIRP.PA
+  virt: VIRT
+  virtu fin.: VIRT
+  virtus in.: VRTS
+  vis.mc: VIS.MC
+  visa: V
+  visa inc.: V
+  viscofan,.: VIS.MC
+  viscom se: V6C.DE
+  vishay in.: VSH
+  vishay pr.: VPG
+  vist: VIST
+  vista ale.: VAF.LS
+  vista ene.: VIST
+  vistagen .: VTGN
+  visteon c.: VC
+  vistra: VST
+  vistra co.: VST
+  vistry gr.: VTY.L
+  vital far.: VITL
+  vitesse e.: VTS
+  vitl: VITL
+  viv.pa: VIV.PA
+  viva biot.: 1873.HK
+  vivendi se: VIV.PA
+  vivid sea.: SEAT
+  vk.pa: VK.PA
+  vla.pa: VLA.PA
+  vln: VLN
+  vlo: VLO
+  vlto: VLTO
+  vltsa.pa: VLTSA.PA
+  vlx.l: VLX.L
+  vly: VLY
+  vmc: VMC
+  vmi: VMI
+  vmx.pa: VMX.PA
+  vna.de: VNA.DE
+  vnda: VNDA
+  vnet: VNET
+  vnet grou.: VNET
+  vno: VNO
+  vnom: VNOM
+  vnt: VNT
+  vod: VOD
+  vod.l: VOD.L
+  vodafone .: VOD.L
+  vof.l: VOF.L
+  vogo: ALVGO.PA
+  vogo sa: ALVGO.PA
+  volex: VLX.L
+  volex plc: VLX.L
+  volkswage.: VOW3.DE
+  voltalia .: VLTSA.PA
+  volution .: FAN.L
+  volv-a.st: VOLV-A.ST
+  volv-b.st: VOLV-B.ST
+  vonovia se: VNA.DE
+  vontier c.: VNT
+  vornado r.: VNO
+  vos.de: VOS.DE
+  voss veks.: VVL.OL
+  vossloh: VOS.DE
+  vossloh ag: VOS.DE
+  vow asa: VOW.OL
+  vow.de: VOW.DE
+  vow.ol: VOW.OL
+  vow3.de: VOW3.DE
+  voyageurs.: ALVDM.PA
+  vp: VP.L
+  vp plc: VP.L
+  vp.l: VP.L
+  vpg: VPG
+  vrca: VRCA
+  vrdn: VRDN
+  vre: VRE
+  vrla.pa: VRLA.PA
+  vrns: VRNS
+  vrnt: VRNT
+  vrrm: VRRM
+  vrsk: VRSK
+  vrsn: VRSN
+  vrt: VRT
+  vrts: VRTS
+  vrtx: VRTX
+  vsat: VSAT
+  vsco: VSCO
+  vse corpo.: VSEC
+  vsec: VSEC
+  vsh: VSH
+  vst: VST
+  vsts: VSTS
+  vsvs.l: VSVS.L
+  vtex: VTEX
+  vtgn: VTGN
+  vtmx: VTMX
+  vtol: VTOL
+  vtr: VTR
+  vtrs: VTRS
+  vts: VTS
+  vtu.l: VTU.L
+  vtura.ol: VTURA.OL
+  vty.l: VTY.L
+  vtyx: VTYX
+  vu.pa: VU.PA
+  vulcan ma.: VMC
+  vusion s..: VU.PA
+  vuzi: VUZI
+  vuzix cor.: VUZI
+  vvl.ol: VVL.OL
+  vvv: VVV
+  vvv3.de: VVV3.DE
+  vvx: VVX
+  vws.co: VWS.CO
+  vxrt: VXRT
+  vyx: VYX
+  vz: VZ
+  vår energ.: VAR.OL
+  w: W
+  w&t offsh.: WTI
+  w. p. car.: WPC
+  w.w. grai.: GWW
+  w7l.l: W7L.L
+  wab: WAB
+  wabash na.: WNC
+  wabc: WABC
+  wac.de: WAC.DE
+  wacker ch.: WCH.DE
+  wacker ne.: WAC.DE
+  waf.de: WAF.DE
+  wafd: WAFD
+  wafd,: WAFD
+  wafd, inc.: WAFD
+  waga ener.: WAGA.PA
+  waga.pa: WAGA.PA
+  wah.de: WAH.DE
+  wal: WAL
+  wald: WALD
+  waldencas.: WALD
+  walker & .: WD
+  wallbox n.: WBX
+  wallenius.: WAWI.OL
+  wallix gr.: ALLIX.PA
+  walmart i.: WMT
+  want want.: 0151.HK
+  warby par.: WRBY
+  warehouse.: WEB.BR
+  warner br.: WBD
+  warner mu.: WMG
+  warpaint .: W7L.L
+  warrior m.: HCC
+  wash: WASH
+  washingto.: WASH
+  washtec: WSU.DE
+  washtec ag: WSU.DE
+  waste con.: WCN
+  waste man.: WM
+  wat: WAT
+  watches o.: WOSG.L
+  watera: ALWTR.PA
+  waters: WAT
+  waters co.: WAT
+  watkin jo.: WJG.L
+  watsco, i.: WSO
+  watts wat.: WTS
+  wave life.: WVE
+  wave.pa: WAVE.PA
+  wavestone.: WAVE.PA
+  wawi.ol: WAWI.OL
+  way: WAY
+  wayfair i.: W
+  waystar h.: WAY
+  wb: WB
+  wbd: WBD
+  wbd.mi: WBD.MI
+  wbs: WBS
+  wbtn: WBTN
+  wbx: WBX
+  wcc: WCC
+  wch.de: WCH.DE
+  wcn: WCN
+  wd: WD
+  wd-40 com.: WDFC
+  wday: WDAY
+  wdc: WDC
+  wdfc: WDFC
+  wdp.br: WDP.BR
+  wds: WDS
+  weatherfo.: WFRD
+  weav: WEAV
+  weave com.: WEAV
+  web.br: WEB.BR
+  webstep a.: WSTEP.OL
+  webster f.: WBS
+  webtoon e.: WBTN
+  webuild s.: WBD.MI
+  wec: WEC
+  wec energ.: WEC
+  weibo cor.: WB
+  weichai p.: 2338.HK
+  weimob in.: 2013.HK
+  weir.l: WEIR.L
+  well: WELL
+  wells far.: WFC
+  welltower.: WELL
+  wen: WEN
+  wendel: MF.PA
+  werewolf .: HOWL
+  wern: WERN
+  werner en.: WERN
+  wes: WES
+  wesbanco,.: WSBC
+  wesco int.: WCC
+  west: WEST
+  west phar.: WST
+  west.ol: WEST.OL
+  westameri.: WABC
+  western a.: WAL
+  western b.: WEST.OL
+  western d.: WDC
+  western m.: WES
+  westingho.: WAB
+  westlake .: WLK
+  westrock .: WEST
+  westwing .: WEW.DE
+  wew.de: WEW.DE
+  wex: WEX
+  wex inc.: WEX
+  weyerhaeu.: WY
+  wf: WF
+  wfc: WFC
+  wfrd: WFRD
+  wg.l: WG.L
+  wgo: WGO
+  wh: WH
+  wh group .: 0288.HK
+  wh smith .: SMWH.L
+  wharf rea.: 1997.HK
+  what's: WHATS.BR
+  what's co.: WHATS.BR
+  whats.br: WHATS.BR
+  whd: WHD
+  wheaton p.: WPM
+  whf: WHF
+  whirlpool.: WHR
+  whitbread.: WTB.L
+  white mou.: WTM
+  whitehors.: WHF
+  whiteston.: WSR
+  whr: WHR
+  whr.l: WHR.L
+  wib.de: WIB.DE
+  wickes gr.: WIX.L
+  wienerber.: WIB.DE
+  wil.l: WIL.L
+  wilh. wil.: WWIB.OL
+  willdan g.: WLDN
+  williams-.: WSM
+  willis to.: WTW
+  willscot .: WSC
+  wilmingto.: WIL.L
+  wina: WINA
+  wine.l: WINE.L
+  winfarm s.: ALWF.PA
+  wing: WING
+  wingstop .: WING
+  winmark c.: WINA
+  winnebago.: WGO
+  wintrust .: WTFC
+  wipro lim.: WIT
+  wise: WISE.L
+  wise plc: WISE.L
+  wise.l: WISE.L
+  wit: WIT
+  wix: WIX
+  wix.com l.: WIX
+  wix.l: WIX.L
+  wizz air .: WIZZ.L
+  wizz.l: WIZZ.L
+  wjg.l: WJG.L
+  wk: WK
+  wkc: WKC
+  wkhs: WKHS
+  wkp.l: WKP.L
+  wldn: WLDN
+  wlk: WLK
+  wln.pa: WLN.PA
+  wly: WLY
+  wm: WM
+  wmb: WMB
+  wmg: WMG
+  wms: WMS
+  wmt: WMT
+  wnc: WNC
+  wolf: WOLF
+  wolfspeed.: WOLF
+  wolftank .: WAH.DE
+  wolverine.: WWW
+  woodside .: WDS
+  woodward,.: WWD
+  woof: WOOF
+  woori fin.: WF
+  wor: WOR
+  workday, .: WDAY
+  workhorse.: WKHS
+  workiva i.: WK
+  workspace.: WKP.L
+  world acc.: WRLD
+  world kin.: WKC
+  worldline.: WLN.PA
+  worthingt.: WOR
+  wosg.l: WOSG.L
+  wpc: WPC
+  wpm: WPM
+  wpp: WPP.L
+  wpp plc: WPP.L
+  wpp.l: WPP.L
+  wrby: WRBY
+  wrks.l: WRKS.L
+  wrld: WRLD
+  wrt1v.he: WRT1V.HE
+  wsbc: WSBC
+  wsc: WSC
+  wsfs: WSFS
+  wsfs fina.: WSFS
+  wsm: WSM
+  wso: WSO
+  wsr: WSR
+  wst: WST
+  wstep.ol: WSTEP.OL
+  wsu.de: WSU.DE
+  wtb.l: WTB.L
+  wtfc: WTFC
+  wti: WTI
+  wtm: WTM
+  wtrg: WTRG
+  wts: WTS
+  wttr: WTTR
+  wtw: WTW
+  wu: WU
+  wulf: WULF
+  wuw.de: WUW.DE
+  wuxi biol.: 2269.HK
+  wve: WVE
+  ww: WW
+  ww intern.: WW
+  wwd: WWD
+  wwi.ol: WWI.OL
+  wwib.ol: WWIB.OL
+  www: WWW
+  wy: WY
+  wyndham h.: WH
+  wynn: WYNN
+  wynn maca.: 1128.HK
+  wynn reso.: WYNN
+  wärtsilä .: WRT1V.HE
+  wüstenrot.: WUW.DE
+  x-fab sil.: XFAB.PA
+  xaar: XAR.L
+  xaar plc: XAR.L
+  xar.l: XAR.L
+  xcel ener.: XEL
+  xel: XEL
+  xencor, i.: XNCR
+  xene: XENE
+  xenia hot.: XHR
+  xenon pha.: XENE
+  xeris bio.: XERS
+  xerox hol.: XRX
+  xers: XERS
+  xfab.pa: XFAB.PA
+  xhr: XHR
+  xiaomi: 1810.HK
+  xiaomi co.: 1810.HK
+  xifr: XIFR
+  xinyi sol.: 0968.HK
+  xior stud.: XIOR.BR
+  xior.br: XIOR.BR
+  xmtr: XMTR
+  xncr: XNCR
+  xom: XOM
+  xometry, .: XMTR
+  xos: XOS
+  xos,: XOS
+  xos, inc.: XOS
+  xp: XP
+  xp inc.: XP
+  xp power .: XPP.L
+  xpel: XPEL
+  xpel,: XPEL
+  xpel, inc.: XPEL
+  xpeng: XPEV
+  xpeng inc.: XPEV
+  xper: XPER
+  xperi: XPER
+  xperi inc.: XPER
+  xpev: XPEV
+  xplora te.: XPLRA.OL
+  xplr infr.: XIFR
+  xplra.ol: XPLRA.OL
+  xpo: XPO
+  xpo,: XPO
+  xpo, inc.: XPO
+  xpof: XPOF
+  xponentia.: XPOF
+  xpp.l: XPP.L
+  xps pensi.: XPS.L
+  xps.l: XPS.L
+  xray: XRAY
+  xrx: XRX
+  xti aeros.: XTIA
+  xtia: XTIA
+  xtp.de: XTP.DE
+  xyl: XYL
+  xylem: XYL
+  xylem inc.: XYL
+  xyz: XYZ
+  yadea gro.: 1585.HK
+  yala: YALA
+  yalla gro.: YALA
+  yankuang .: 1171.HK
+  yar.ol: YAR.OL
+  yara inte.: YAR.OL
+  yelp: YELP
+  yelp inc.: YELP
+  yeti: YETI
+  yeti hold.: YETI
+  yext: YEXT
+  yext,: YEXT
+  yext, inc.: YEXT
+  ymm: YMM
+  ynga.l: YNGA.L
+  yoc: YOC.DE
+  yoc ag: YOC.DE
+  yoc.de: YOC.DE
+  you: YOU
+  young & c.: YNGA.L
+  ypf: YPF
+  ypf socie.: YPF
+  ysn.de: YSN.DE
+  yum: YUM
+  yum china.: YUMC
+  yum! bran.: YUM
+  yumc: YUMC
+  z: Z
+  zai lab l.: ZLAB
+  zal.de: ZAL.DE
+  zalando se: ZAL.DE
+  zap.ol: ZAP.OL
+  zapata qu.: ZPTA
+  zaptec asa: ZAP.OL
+  zbh: ZBH
+  zbra: ZBRA
+  zd: ZD
+  zeal netw.: TIMA.DE
+  zeal.co: ZEAL.CO
+  zealand p.: ZEAL.CO
+  zebra tec.: ZBRA
+  zeg.l: ZEG.L
+  zegona: ZEG.L
+  zegona co.: ZEG.L
+  zentalis .: ZNTL
+  zepp: ZEPP
+  zepp heal.: ZEPP
+  zeta: ZETA
+  zeta glob.: ZETA
+  zevra the.: ZVRA
+  zg: ZG
+  zgn: ZGN
+  zh: ZH
+  zhihu: ZH
+  zhihu inc.: ZH
+  zhongan o.: 6060.HK
+  ziff davi.: ZD
+  zig.l: ZIG.L
+  zignago v.: ZV.MI
+  zigup: ZIG.L
+  zigup plc: ZIG.L
+  zijin min.: 2899.HK
+  zil2.de: ZIL2.DE
+  zillow gr.: Z
+  zim: ZIM
+  zim integ.: ZIM
+  zimmer bi.: ZBH
+  zion: ZION
+  zions ban.: ZION
+  zip: ZIP
+  ziprecrui.: ZIP
+  zlab: ZLAB
+  zm: ZM
+  zntl: ZNTL
+  zoetis in.: ZTS
+  zoom comm.: ZM
+  zotefoams.: ZTF.L
+  zpta: ZPTA
+  zs: ZS
+  zscaler, .: ZS
+  zte corpo.: 0763.HK
+  ztf.l: ZTF.L
+  zto: ZTO
+  zto expre.: ZTO
+  zts: ZTS
+  zumiez in.: ZUMZ
+  zumz: ZUMZ
+  zura: ZURA
+  zura bio .: ZURA
+  zurn elka.: ZWS
+  zv.mi: ZV.MI
+  zvra: ZVRA
+  zws: ZWS
+  zyme: ZYME
+  zymeworks.: ZYME
+  écomiam: ALECO.PA
+  écomiam sa: ALECO.PA
+  ökoworld .: VVV3.DE
+  ørsted a/s: ORSTED.CO
