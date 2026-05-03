@@ -20,6 +20,7 @@ def search_articles(
     query: str,
     pipeline: str | None = None,
     category: str | None = None,
+    ticker: str | None = None,
     days: int = 30,
     limit: int = 20,
 ) -> list[dict]:
@@ -30,6 +31,7 @@ def search_articles(
         query: Search keyword (FTS5 syntax supported)
         pipeline: Optional filter: 'digest' or 'monitor'
         category: Optional category filter
+        ticker: Optional ticker symbol filter (case-insensitive)
         days: Lookback period in days (default: 30)
         limit: Maximum results (default: 20)
 
@@ -67,6 +69,10 @@ def search_articles(
     if pipeline:
         sql += " AND a.pipeline = ?"
         params.append(pipeline)
+
+    if ticker:
+        sql += " AND EXISTS (SELECT 1 FROM article_tickers at WHERE at.article_url = a.url AND at.ticker = ?)"
+        params.append(ticker.upper())
 
     sql += " ORDER BY a.fetched_at DESC LIMIT ?"
     params.append(limit)

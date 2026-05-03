@@ -39,6 +39,7 @@ def search_news(
     query: str,
     pipeline: str | None = None,
     category: str | None = None,
+    ticker: str | None = None,
     days: int = 30,
     limit: int = 20,
 ) -> list[dict]:
@@ -48,6 +49,7 @@ def search_news(
         query: Search keyword (case-insensitive)
         pipeline: Filter by pipeline — 'digest' or 'monitor' (default: both)
         category: Filter by category — banking, greece, ai, tech, etc.
+        ticker: Filter by stock ticker symbol (e.g., 'AAPL', 'MSFT')
         days: Lookback period in days (default: 30)
         limit: Maximum results (default: 20)
     """
@@ -60,6 +62,7 @@ def search_news(
             query=query,
             pipeline=pipeline,
             category=category,
+            ticker=ticker,
             days=days,
             limit=limit,
         )
