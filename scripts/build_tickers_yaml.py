@@ -12,7 +12,7 @@ from pathlib import Path
 import yaml
 
 SUFFIXES = re.compile(
-    r"\s+(inc\.?|corp\.?|corporation|co\.?|ltd\.?|llc|plc|sa|nv|ag|holdings?|group)$",
+    r"[\s.]+(inc\.?|corp\.?|corporation|co\.?|ltd\.?|llc|plc|sa|nv|ag|holdings?|group)$",
     re.IGNORECASE,
 )
 
@@ -32,7 +32,7 @@ def build_ticker_dict(csv_path: Path) -> dict[str, str]:
                 continue
             out[tkr.lower()] = tkr
             out[name.lower()] = tkr
-            stripped = SUFFIXES.sub("", name).strip().lower()
+            stripped = SUFFIXES.sub("", name).strip().rstrip(".,").strip().lower()
             if stripped and stripped != name.lower():
                 out[stripped] = tkr
     return out

@@ -25,3 +25,25 @@ def test_strips_corporate_suffixes(tmp_path):
     result = build_ticker_dict(csv_path)
     assert result["berkshire hathaway"] == "BRK.B"
     assert result["johnson & johnson"] == "JNJ"
+
+def test_strips_trailing_period(tmp_path):
+    """Source CSV has dirty names like 'MICROSOFT.' (no Corp suffix, just period)."""
+    csv_path = tmp_path / "etoro.csv"
+    with csv_path.open("w") as f:
+        w = csv.writer(f)
+        w.writerow(["TKR", "NAME"])
+        w.writerow(["MSFT", "MICROSOFT."])
+        w.writerow(["GOOG", "ALPHABET ."])
+    result = build_ticker_dict(csv_path)
+    assert result["microsoft"] == "MSFT"
+    assert result["alphabet"] == "GOOG"
+
+def test_handles_period_as_suffix_separator(tmp_path):
+    """Source CSV has 'AMAZON.CO.' with period instead of space before suffix."""
+    csv_path = tmp_path / "etoro.csv"
+    with csv_path.open("w") as f:
+        w = csv.writer(f)
+        w.writerow(["TKR", "NAME"])
+        w.writerow(["AMZN", "AMAZON.CO."])
+    result = build_ticker_dict(csv_path)
+    assert result["amazon"] == "AMZN"
