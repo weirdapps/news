@@ -32,24 +32,30 @@ def load_ticker_dict() -> dict[str, str]:
 def extract_tickers_rules(text: str, ticker_dict: dict[str, str]) -> list[str]:
     """Return sorted unique uppercase tickers found in text via rules.
 
-    Word-boundary regex per name to avoid substring matches (e.g. 'snapple' must
-    not match 'apple'). For the dict, longer keys are matched first to prefer
-    'apple inc.' over 'apple' when both could match.
+    Cashtags ($AAPL) — always captured.
+    Long names (≥4 chars): case-insensitive word-boundary match.
+    Short names (≤3 chars): require ALL-CAPS match to avoid common-word false
+    positives (e.g., "on" as preposition vs "ON" as ticker for ON Semiconductor).
     """
     found: set[str] = set()
 
-    # Cashtag matches
+    # Cashtag matches — always captured
     for m in CASHTAG_RE.finditer(text):
         found.add(m.group(1).upper())
 
-    # Name matches (case-insensitive, word boundary)
+    # Name matches — sort longest-first so longer names win
     text_lower = text.lower()
-    # Sort keys longest-first so longer names win and we don't double-count
     for name in sorted(ticker_dict.keys(), key=len, reverse=True):
-        # Build word-boundary regex; escape regex specials in name
-        pattern = r"\b" + re.escape(name) + r"\b"
-        if re.search(pattern, text_lower):
-            found.add(ticker_dict[name])
+        if len(name) <= 3:
+            # Short keys: require ALL-CAPS in ORIGINAL text (case-sensitive)
+            pattern = r"\b" + re.escape(name.upper()) + r"\b"
+            if re.search(pattern, text):
+                found.add(ticker_dict[name])
+        else:
+            # Long keys: case-insensitive
+            pattern = r"\b" + re.escape(name) + r"\b"
+            if re.search(pattern, text_lower):
+                found.add(ticker_dict[name])
 
     return sorted(found)
 
