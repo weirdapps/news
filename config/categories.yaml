@@ -95,6 +95,19 @@ categories:
       - AI safety
     priority: 4
 
+  claude_code:
+    display_name: "Claude Code"
+    keywords:
+      - claude code
+      - claude 4.7
+      - claude 4.6
+      - claude opus 4
+      - claude sonnet 4
+      - claude haiku 4
+      - anthropic skills
+      - claude agent sdk
+    priority: 5
+
   trading:
     display_name: "Trading & Investments"
     keywords:
@@ -109,7 +122,7 @@ categories:
       - ETF
       - mutual fund
       - dividend
-    priority: 5
+    priority: 6
 
   learning:
     display_name: "Learning & Tools"
@@ -135,7 +148,7 @@ categories:
       - GitHub trending
       - Product Hunt
       - Show HN
-    priority: 6
+    priority: 7
 
   tech:
     display_name: "Technology"
@@ -149,7 +162,7 @@ categories:
       - cloud
       - cybersecurity
       - semiconductor
-    priority: 7
+    priority: 8
 
   apple:
     display_name: "Apple Ecosystem"
@@ -164,7 +177,7 @@ categories:
       - App Store
       - WWDC
       - Apple Intelligence
-    priority: 8
+    priority: 9
 
 # Display order for email digest (highest priority first)
 display_order:
@@ -172,6 +185,7 @@ display_order:
   - greece
   - business
   - ai
+  - claude_code
   - trading
   - learning
   - tech
