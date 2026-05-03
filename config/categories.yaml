@@ -122,7 +122,7 @@ categories:
       - ETF
       - mutual fund
       - dividend
-    priority: 6
+    priority: 5
 
   learning:
     display_name: "Learning & Tools"
@@ -148,7 +148,7 @@ categories:
       - GitHub trending
       - Product Hunt
       - Show HN
-    priority: 7
+    priority: 6
 
   tech:
     display_name: "Technology"
@@ -162,7 +162,7 @@ categories:
       - cloud
       - cybersecurity
       - semiconductor
-    priority: 8
+    priority: 7
 
   apple:
     display_name: "Apple Ecosystem"
@@ -177,7 +177,7 @@ categories:
       - App Store
       - WWDC
       - Apple Intelligence
-    priority: 9
+    priority: 8
 
 # Display order for email digest (highest priority first)
 display_order:
