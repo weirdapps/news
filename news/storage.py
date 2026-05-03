@@ -182,6 +182,13 @@ def _row_to_article(conn: sqlite3.Connection, row: sqlite3.Row) -> Article:
     )
     categories = [cat_row["category"] for cat_row in cursor.fetchall()]
 
+    # Load tickers for this article
+    ticker_rows = conn.execute(
+        "SELECT ticker FROM article_tickers WHERE article_url = ? ORDER BY ticker",
+        (row["url"],),
+    ).fetchall()
+    tickers = [r["ticker"] for r in ticker_rows]
+
     # Parse also_reported_by JSON if present
     also_reported_by = None
     if row["also_reported_by"]:
@@ -206,6 +213,7 @@ def _row_to_article(conn: sqlite3.Connection, row: sqlite3.Row) -> Article:
         sentiment=row["sentiment"] or "",
         mention_type=row["mention_type"] or "",
         urgency=row["urgency"] or "",
+        tickers=tickers,
     )
 
 
@@ -259,6 +267,14 @@ def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
             """,
                 (article.url, category),
             )
+
+        # Insert tickers
+        if article.tickers:
+            for ticker in article.tickers:
+                conn.execute(
+                    "INSERT OR IGNORE INTO article_tickers (article_url, ticker) VALUES (?, ?)",
+                    (article.url, ticker.upper()),
+                )
 
         conn.commit()
         return True

@@ -11,6 +11,7 @@ class Article:
     content: str
     categories: list[str]
     language: str
+    tickers: list[str] = field(default_factory=list)
     author: str = ""
     published_at: datetime | None = None
     summary: str = ""
