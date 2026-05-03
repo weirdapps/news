@@ -70,6 +70,17 @@ synthesis:
   # Maximum retries on failure
   max_retries: 2
 
+tagger:
+  enabled: true
+  model: "sonnet"          # Sonnet by default (NBG-billed via Vertex)
+  timeout_seconds: 30
+  max_text_chars: 4000     # Truncate input to bound latency
+  fallback_categories:     # Only call LLM for articles in these categories
+    - business
+    - banking
+    - trading
+    - market
+
 newsapi:
   # NewsAPI base URL
   base_url: https://newsapi.org/v2/everything
