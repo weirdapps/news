@@ -107,5 +107,30 @@ def news_stats() -> dict:
         conn.close()
 
 
+@mcp.tool()
+def recent_for_tickers(
+    tickers: list[str],
+    hours: int = 24,
+    limit: int = 50,
+) -> list[dict]:
+    """Get recent news articles tagged with any of the given tickers.
+
+    Optimized for trading workflows — pass a portfolio + watchlist ticker list
+    and get back relevant news from the cached corpus, much faster than WebSearch.
+
+    Args:
+        tickers: List of ticker symbols (e.g. ['AAPL', 'MSFT']). Case-insensitive.
+        hours: Lookback window in hours (default: 24).
+        limit: Max articles to return (default: 50).
+    """
+    from news.query import recent_for_tickers as _query
+
+    conn = _get_conn()
+    try:
+        return _query(conn, tickers, hours=hours, limit=limit)
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     mcp.run()

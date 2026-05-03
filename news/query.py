@@ -208,3 +208,36 @@ def get_news_stats(conn: sqlite3.Connection) -> dict:
     stats["latest_article"] = row["latest"]
 
     return stats
+
+
+def recent_for_tickers(
+    conn: sqlite3.Connection,
+    tickers: list[str],
+    hours: int = 24,
+    limit: int = 50,
+) -> list[dict]:
+    """Return articles tagged with ANY of the given tickers, within the time window.
+
+    Args:
+        tickers: List of ticker symbols (case-insensitive). Empty list returns [].
+        hours: Lookback window from now.
+        limit: Max articles to return.
+    """
+    if not tickers:
+        return []
+    placeholders = ",".join("?" for _ in tickers)
+    sql = f"""
+        SELECT DISTINCT a.url, a.title, a.source, a.published_at,
+               a.summary, a.relevance_score,
+               GROUP_CONCAT(at.ticker) AS matched_tickers
+        FROM articles a
+        JOIN article_tickers at ON a.url = at.article_url
+        WHERE at.ticker IN ({placeholders})
+          AND a.fetched_at >= datetime('now', ? || ' hours')
+        GROUP BY a.url
+        ORDER BY a.relevance_score DESC, a.published_at DESC
+        LIMIT ?
+    """
+    params = [t.upper() for t in tickers] + [f"-{int(hours)}", limit]
+    rows = conn.execute(sql, params).fetchall()
+    return [dict(r) for r in rows]
