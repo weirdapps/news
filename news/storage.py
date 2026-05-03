@@ -73,6 +73,7 @@ def _backfill_fts(conn: sqlite3.Connection) -> None:
 
 def init_db(conn: sqlite3.Connection) -> None:
     """Initialize database schema with all required tables and indexes."""
+    conn.execute("PRAGMA foreign_keys=ON")
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS articles (
             url TEXT PRIMARY KEY,
