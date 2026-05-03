@@ -281,6 +281,8 @@ def process_articles(
         classify_article(article, categories_config)
         tier = source_tiers.get(article.source, 2)
         compute_relevance_score(article, scoring_config, tier)
+        from news.tagger import tag_article
+        tag_article(article)
 
     stats["output_count"] = len(unique)
     return unique, stats

@@ -103,3 +103,28 @@ def extract_tickers_llm(
         return sorted({t.upper() for t in tickers if isinstance(t, str)})
     except Exception:
         return []
+
+
+DEFAULT_LLM_FALLBACK_CATEGORIES = {"business", "banking", "trading", "market"}
+
+
+def tag_article(
+    article,
+    llm_fallback_categories: set[str] | None = None,
+) -> None:
+    """Populate article.tickers in place.
+
+    1. Run rules tagger over title + content.
+    2. If empty AND article belongs to a market-adjacent category, try LLM.
+    """
+    text = (article.title or "") + " " + (article.content or "")
+    rules_hits = extract_tickers_rules(text, load_ticker_dict())
+    if rules_hits:
+        article.tickers = rules_hits
+        return
+
+    fallback = llm_fallback_categories or DEFAULT_LLM_FALLBACK_CATEGORIES
+    if any(c in fallback for c in (article.categories or [])):
+        article.tickers = extract_tickers_llm(text)
+    else:
+        article.tickers = []
