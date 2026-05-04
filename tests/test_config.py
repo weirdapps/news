@@ -128,7 +128,7 @@ pipeline:
   max_articles_per_category: 15
 
 email:
-  recipient: plessas@nbg.gr
+  recipient: you@example.com
 
 schedule:
   timezone: "Europe/Athens"
@@ -149,7 +149,7 @@ schedule:
     assert result["pipeline"]["max_articles_per_category"] == 15
 
     # Verify email settings
-    assert result["email"]["recipient"] == "plessas@nbg.gr"
+    assert result["email"]["recipient"] == "you@example.com"
 
     # Verify schedule settings
     assert result["schedule"]["timezone"] == "Europe/Athens"

@@ -72,7 +72,7 @@ synthesis:
 
 tagger:
   enabled: true
-  model: "sonnet"          # Sonnet by default (NBG-billed via Vertex)
+  model: "sonnet"          # Sonnet by default (corporate-billed via Vertex)
   timeout_seconds: 30
   max_text_chars: 4000     # Truncate input to bound latency
   fallback_categories:     # Only call LLM for articles in these categories

@@ -34,7 +34,7 @@ Email delivery uses outlook-cli (or osascript fallback) — see `weirdapps/commu
 
 ## Synthesis prompt anchoring
 
-`news/roster.py` defines a canonical executive roster for Greek banking competitors. Both `synthesizer` and `monitor_synth` inject this into LLM prompts to prevent hallucinated names/transliterations (a recurring failure mode pre-2026-04-25).
+`news/roster.py` exposes `NAME_HANDLING_RULES` (brand-neutral guidance) and `build_roster(keywords_config)` (brand-aware roster builder). Both `synthesizer` (digest, no roster) and `monitor_synth` (monitor, full roster from keywords.yaml) inject this into LLM prompts to prevent hallucinated names/transliterations.
 
 ## Layout
 
