@@ -729,7 +729,7 @@ def main() -> None:
         "--profile",
         choices=VALID_PROFILES,
         default="digest",
-        help="Pipeline profile: 'digest' (default) or 'monitor' (NBG brand monitoring)",
+        help="Pipeline profile: 'digest' (default) or 'monitor' (brand monitoring)",
     )
     parser.set_defaults(run_type="scheduled")
 

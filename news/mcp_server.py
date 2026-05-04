@@ -18,11 +18,11 @@ _DB_PATH = str(Path(__file__).parent.parent / "data" / "news.db")
 mcp = FastMCP(
     "news-reader",
     instructions=(
-        "News intelligence platform — search articles from digest and NBG monitor "
+        "News intelligence platform — search articles from digest and brand monitor "
         "pipelines, retrieve AI-curated synthesis history, and query article database. "
         "Digest runs 5x daily (00:00, 09:00, 13:00, 17:00, 21:00 Athens). "
         "Monitor runs bi-hourly during business hours (08:00–22:00 Athens) "
-        "plus a 00:00 catch-up for NBG brand mentions."
+        "plus a 00:00 catch-up for brand mentions."
     ),
 )
 
@@ -82,7 +82,7 @@ def digest_history(
     Use this to track how news narratives evolve over days.
 
     Args:
-        pipeline: 'digest' for news digests, 'monitor' for NBG brand monitoring (default: digest)
+        pipeline: 'digest' for news digests, 'monitor' for brand monitoring (default: digest)
         days: Lookback period in days (default: 7)
         limit: Maximum digests to return (default: 10)
     """

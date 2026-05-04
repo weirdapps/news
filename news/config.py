@@ -1,7 +1,7 @@
 """Configuration file loader for news reader with profile support.
 
 Profiles allow different pipeline configurations (e.g., 'digest' for broad news,
-'monitor' for NBG brand monitoring). Each profile has its own config directory:
+'monitor' for brand monitoring). Each profile has its own config directory:
 - digest (default): loads from config/
 - monitor: loads from config/monitor/
 
@@ -142,7 +142,7 @@ def get_settings(path: Path | None = None, profile: str = "digest") -> dict:
 def get_keywords(path: Path | None = None, profile: str = "monitor") -> dict:
     """Load keyword definitions for entity monitoring.
 
-    Only used by the monitor profile. Contains NBG name variants,
+    Only used by the monitor profile. Contains brand name variants,
     competitor names, key people, etc.
 
     Args:
