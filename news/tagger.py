@@ -137,7 +137,7 @@ def extract_tickers_llm(
 ) -> list[str]:
     """Call the local `claude` CLI to extract tickers. Returns sorted unique uppercase list.
 
-    Routes via Vertex AI (NBG-billed) — never the anthropic SDK with personal API key.
+    Routes via Vertex AI (corporate-billed) — never the anthropic SDK with a personal API key.
     Returns [] on any error (CLI missing, non-zero exit, malformed JSON, timeout).
     """
     prompt = _TAGGER_PROMPT + text[:max_chars]
