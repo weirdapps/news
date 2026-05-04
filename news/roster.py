@@ -1,36 +1,66 @@
-"""Canonical executive roster and name-handling rules for LLM synthesis prompts.
+"""Name-handling rules and executive-roster builder for LLM synthesis prompts.
 
-Shared by `monitor_synth.py` and `synthesizer.py` so both pipelines anchor
-Greek surname-only references against the same source of truth, preventing
-hallucinated first names and inconsistent transliterations.
+`NAME_HANDLING_RULES` is the brand-neutral guidance that any synthesis pipeline
+can drop into a prompt verbatim. `build_roster(keywords_config)` returns the
+brand-aware roster section (canonical names + roles + competitor names) plus
+the generic rules — used by the monitor pipeline. Pass `None` (or omit) when
+no brand config is available; the function returns just `NAME_HANDLING_RULES`.
 """
 
-# Format per line: "Greek surname (gen./nom.) → English Name, Role (gender)"
-# Gender matters because Greek surname endings encode it (-η/-ου = f, -ης/-ος = m)
-# and the English transliteration must preserve it.
-EXECUTIVE_ROSTER = """NBG (Εθνική Τράπεζα / ΕΤΕ):
-- Μυλωνάς / Π. Μυλωνάς → Pavlos Mylonas, CEO (m)
-- Θεοφιλίδη → Christina Theofilidi, GM Retail Banking (f)
-- Μολυβιάτης → Stratos Molyviatis, NBG Group COO (m)
-- Καραμούζης / Β. Καραμούζης → Vasilis Karamouzis, GM Corporate Banking (m)
-- Πλέσσας → Dimitrios Plessas, AGM Cards & Digital Business (m)
+NAME_HANDLING_RULES = """**NAME HANDLING RULES (CRITICAL — past reports had hallucinated names):**
+1. NEVER invent first names. If the article references only a surname, write only the surname. If you have a roster, use it to verify *which* person the surname refers to, but only add the first name if the article itself includes it.
+2. Preserve the original-language surname suffix when transliterating. Suffix endings often encode gender; do not strip or change them.
+3. Do not add stress accents to English transliterations.
+4. NEVER attribute a quote or position to a person not actually named in the article. If unsure who said something, attribute to the institution.
+5. If a surname is not in any provided roster, transliterate it phonetically and prefix the mention with "[unverified name]" so the reader knows to double-check."""
 
-Greek banking competitors (CEOs and senior execs commonly quoted):
-- Μεγάλου → Christos Megalou, Piraeus Bank CEO (m)
-- Ψάλτης → Vasilis Psaltis, Alpha Bank CEO (m)
-- Καραβίας → Fokion Karavias, Eurobank CEO (m)
-"""
 
-NAME_HANDLING_PROMPT_BLOCK = (
-    """**EXECUTIVE NAME ROSTER (CANONICAL — use these spellings exactly):**
-"""
-    + EXECUTIVE_ROSTER
-    + """
-**NAME HANDLING RULES (CRITICAL — past reports had hallucinated names):**
-1. When a Greek surname matches the roster, use the canonical English transliteration EXACTLY as listed. Do NOT invent variants.
-2. NEVER invent first names. If the article references only a surname, write only the surname (e.g., "Theofilidi said..." NOT "Christina Theofilidi said..." unless the article itself includes the first name). Use the roster to verify *which* person the surname refers to, but only add the first name if the article does.
-3. Greek surname endings encode gender: -η / -ου are feminine, -ης / -ος are masculine. Preserve the ending in transliteration. Θεοφιλίδη → Theofilidi (NOT Theofilidis). Πολίτη → Politi (NOT Politis).
-4. If a Greek surname is NOT in the roster, transliterate it phonetically and prefix the mention with "[unverified name]" so the reader knows to double-check.
-5. Do NOT add stress accents to English transliterations (write "Georgopoulos" not "Georgópoulos", "Tzouros" not "Tzoúros").
-6. NEVER attribute a quote or position to a person not actually named in the article. If unsure who said something, attribute it to the institution ("an NBG executive said...")."""
-)
+def build_roster(keywords_config: dict | None = None) -> str:
+    """Return the executive-roster prompt section.
+
+    With keywords_config: returns the full brand-aware roster
+    (leadership + competitors) followed by NAME_HANDLING_RULES.
+
+    Without keywords_config: returns only NAME_HANDLING_RULES (brand-neutral).
+    """
+    if keywords_config is None:
+        return NAME_HANDLING_RULES
+
+    leadership = keywords_config.get("company", {}).get("leadership", [])
+    competitors = keywords_config.get("competitors", {})
+
+    if not leadership and not competitors:
+        return NAME_HANDLING_RULES
+
+    parts = ["**EXECUTIVE NAME ROSTER (CANONICAL — use these spellings exactly):**"]
+
+    if leadership:
+        leadership_lines = []
+        for person in leadership:
+            name_en = person.get("name_en") or person.get("name", "")
+            name_native = person.get("name") if person.get("name_en") else None
+            role = person.get("role", "")
+            if not name_en:
+                continue
+            if name_native and name_native != name_en:
+                leadership_lines.append(f"- {name_native} → {name_en}, {role}")
+            else:
+                leadership_lines.append(f"- {name_en}, {role}")
+        if leadership_lines:
+            parts.append("Leadership:")
+            parts.extend(leadership_lines)
+
+    if competitors:
+        comp_lines = []
+        for _, comp in competitors.items():
+            names = comp.get("names", [])
+            if names:
+                comp_lines.append(f"- {names[0]}")
+        if comp_lines:
+            parts.append("\nKey competitors:")
+            parts.extend(comp_lines)
+
+    parts.append("")  # blank line before rules
+    parts.append(NAME_HANDLING_RULES)
+
+    return "\n".join(parts)

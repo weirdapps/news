@@ -16,6 +16,7 @@ from news.monitor_synth import (
     build_monitor_fallback,
     build_monitor_prompt,
 )
+from news.roster import NAME_HANDLING_RULES, build_roster
 from news.storage import (
     get_articles_since,
     get_last_digest,
@@ -501,3 +502,108 @@ def test_monitor_synth_module_has_no_brand_specific_literals():
         "Eurobank",
     ]:
         assert forbidden not in src, f"Found brand-specific literal: {forbidden}"
+
+
+# --- build_roster tests (Task 3) ---
+
+
+def test_build_roster_no_config_returns_just_rules():
+    """With no keywords_config, build_roster returns only the generic name-handling rules."""
+    out = build_roster()
+    assert out == NAME_HANDLING_RULES
+    assert "EXECUTIVE NAME ROSTER" not in out
+
+
+def test_build_roster_with_empty_keywords_returns_just_rules():
+    """With keywords_config but empty leadership+competitors, returns just rules."""
+    keywords = {"company": {"leadership": []}, "competitors": {}}
+    out = build_roster(keywords)
+    assert out == NAME_HANDLING_RULES
+
+
+def test_build_roster_includes_leadership():
+    keywords = {
+        "company": {
+            "leadership": [
+                {"name_en": "Alice Smith", "role": "CEO"},
+                {"name_en": "Bob Jones", "role": "COO"},
+            ]
+        },
+        "competitors": {},
+    }
+    out = build_roster(keywords)
+    assert "Alice Smith" in out
+    assert "CEO" in out
+    assert "Bob Jones" in out
+    assert "EXECUTIVE NAME ROSTER" in out
+    # Generic rules must still be appended
+    assert "NAME HANDLING RULES" in out
+
+
+def test_build_roster_includes_competitor_first_names():
+    keywords = {
+        "company": {"leadership": []},
+        "competitors": {
+            "x": {"names": ["XCorp Bank"]},
+            "y": {"names": ["YBank"]},
+        },
+    }
+    out = build_roster(keywords)
+    assert "XCorp Bank" in out
+    assert "YBank" in out
+
+
+def test_build_roster_renders_native_then_english_when_both_present():
+    """When leadership entry has both `name` (native) and `name_en`, output shows both."""
+    keywords = {
+        "company": {
+            "leadership": [{"name": "Πλέσσας", "name_en": "Plessas", "role": "AGM"}],
+        },
+        "competitors": {},
+    }
+    out = build_roster(keywords)
+    assert "Πλέσσας → Plessas" in out  # arrow form for cross-language anchoring
+
+
+def test_roster_module_has_no_brand_specific_literals():
+    """The roster module itself contains no brand-specific examples."""
+    import news.roster as roster_mod
+
+    src = open(roster_mod.__file__).read()
+    forbidden = [
+        "Mylonas",
+        "Theofilidi",
+        "Plessas",
+        "Molyviatis",
+        "Karamouzis",
+        "Megalou",
+        "Psaltis",
+        "Karavias",
+        "NBG",
+        "Ethniki",
+        "Εθνική",
+        "Πολίτη",
+        "Πλέσσας",
+        "Θεοφιλίδη",
+        "Piraeus",
+        "Eurobank",
+        "Alpha Bank",
+    ]
+    for f in forbidden:
+        assert f not in src, f"Found brand-specific literal in roster.py: {f}"
+
+
+def test_build_monitor_prompt_includes_roster_when_leadership_present():
+    """build_monitor_prompt embeds the build_roster output for monitor pipeline."""
+    keywords = {
+        "display": {"full_name": "Acme Bank", "short_name": "ACME"},
+        "company": {
+            "false_positives": [],
+            "leadership": [{"name_en": "Alice", "role": "CEO"}],
+        },
+        "competitors": {},
+    }
+    prompt = build_monitor_prompt([], keywords, None, "last hour")
+    assert "Alice" in prompt
+    assert "CEO" in prompt
+    assert "EXECUTIVE NAME ROSTER" in prompt

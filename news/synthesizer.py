@@ -6,7 +6,7 @@ import re
 import subprocess
 from typing import Any
 
-from news.roster import NAME_HANDLING_PROMPT_BLOCK
+from news.roster import build_roster
 
 logger = logging.getLogger(__name__)
 
@@ -40,10 +40,10 @@ You will receive a large list of article titles and snippets. Your job is to:
 - General tech reviews, gadget roundups
 - GitHub repos with no clear practical value (star-farming, joke repos)
 - Product Hunt launches that are trivial or irrelevant to finance/AI/productivity
-- Note: "Εθνική" alone does NOT mean NBG — "Εθνική Οικονομία" (National Economy) or "Εθνική Ομάδα" (National Team) are NOT NBG news
+- Note: filter out false-positive matches where the brand name resembles a different entity
 
 """
-    + NAME_HANDLING_PROMPT_BLOCK
+    + build_roster()
     + """
 
 **RULES:**

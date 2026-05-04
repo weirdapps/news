@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from news.roster import build_roster
 from news.synthesizer import invoke_claude, parse_synthesis_output
 
 logger = logging.getLogger(__name__)
@@ -179,6 +180,7 @@ def build_monitor_prompt(
         _base_prompt(display),
         _disambiguation_section(company.get("false_positives", [])),
         _competitor_section(competitors),
+        build_roster(keywords_config),
         _output_format_section(short_name),
     ]
     system_prompt = "".join(s for s in sections if s)

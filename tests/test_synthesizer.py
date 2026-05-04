@@ -59,19 +59,19 @@ def test_build_prompt_includes_articles():
     assert "Previous highlight 2" in prompt
 
 
-def test_build_prompt_anchors_executive_names():
-    """Digest prompt must include canonical roster and anti-hallucination rules.
+def test_build_prompt_includes_name_handling_rules():
+    """Digest prompt must include the brand-neutral name-handling rules.
 
-    Same root cause as the monitor pipeline — surname-only Greek headlines
-    cause the LLM to invent first names and inconsistent transliterations.
+    The digest pipeline has no brand context (it's broad news, not brand
+    monitoring), so it gets the generic NAME_HANDLING_RULES only — no
+    EXECUTIVE NAME ROSTER section.
     """
     prompt = build_prompt(_make_articles(), [], "24h")
 
-    assert "Christina Theofilidi" in prompt
-    assert "Stratos Molyviatis" in prompt
-    assert "Vasilis Karamouzis" in prompt
     assert "NEVER invent first names" in prompt
     assert "NAME HANDLING RULES" in prompt
+    # Digest has no brand-specific roster
+    assert "EXECUTIVE NAME ROSTER" not in prompt
 
 
 def test_build_prompt_requests_json_output():
