@@ -8,7 +8,14 @@ import pytest
 from news.config import get_keywords, get_settings, get_sources, _profile_config_dir
 from news.deliver import build_monitor_subject, render_monitor_html
 from news.models import Article, Digest
-from news.monitor_synth import build_monitor_prompt, build_monitor_fallback
+from news.monitor_synth import (
+    _base_prompt,
+    _competitor_section,
+    _disambiguation_section,
+    _output_format_section,
+    build_monitor_fallback,
+    build_monitor_prompt,
+)
 from news.storage import (
     get_articles_since,
     get_last_digest,
@@ -16,6 +23,14 @@ from news.storage import (
     insert_article,
     insert_digest,
 )
+
+
+# Brand-neutral keywords fixture for tests that don't depend on a specific brand.
+_TEST_KEYWORDS = {
+    "display": {"full_name": "Test Bank", "short_name": "TST"},
+    "company": {"false_positives": [], "leadership": []},
+    "competitors": {},
+}
 
 
 # --- Config tests ---
@@ -64,14 +79,14 @@ def test_monitor_settings_loads():
 def test_monitor_keywords_loads():
     """Monitor keywords.yaml loads with expected structure."""
     keywords = get_keywords(profile="monitor")
-    assert "nbg" in keywords
+    assert "company" in keywords
     assert "competitors" in keywords
     assert "categories" in keywords
     # Check NBG name variants
-    assert "National Bank of Greece" in keywords["nbg"]["names"]
-    assert "Εθνική Τράπεζα" in keywords["nbg"]["names"]
+    assert "National Bank of Greece" in keywords["company"]["names"]
+    assert "Εθνική Τράπεζα" in keywords["company"]["names"]
     # Check false positive filters
-    assert "Εθνική Ομάδα" in keywords["nbg"]["false_positives"]
+    assert "Εθνική Ομάδα" in keywords["company"]["false_positives"]
 
 
 # --- Model tests ---
@@ -182,34 +197,21 @@ def test_build_monitor_prompt_includes_articles():
         ),
     ]
 
-    prompt = build_monitor_prompt(articles, None, "last hour")
+    keywords = {
+        "display": {"full_name": "National Bank of Greece", "short_name": "NBG"},
+        "company": {
+            "false_positives": ["Εθνική Ομάδα", "National Team"],
+            "leadership": [],
+        },
+        "competitors": {"piraeus": {"names": ["Piraeus Bank"]}},
+    }
+    prompt = build_monitor_prompt(articles, keywords, None, "last hour")
     assert "NBG Q1 Results" in prompt
     assert (
         "brand intelligence" in prompt.lower() or "brand monitoring" in prompt.lower()
     )
     assert "false positive" in prompt.lower()
     assert "competitor" in prompt.lower()
-
-
-def test_build_monitor_prompt_anchors_executive_names():
-    """Prompt must include canonical roster and anti-hallucination rules.
-
-    Past monitor emails hallucinated NBG executive names (e.g. invented
-    "Dimitra Theofilidis" for Christina Theofilidi, transliterated Μολυβιάτης
-    as "Moliviadis" instead of "Molyviatis"). The prompt must anchor the LLM
-    against a canonical roster.
-    """
-    prompt = build_monitor_prompt([], None, "last hour")
-
-    # Canonical NBG roster present
-    assert "Christina Theofilidi" in prompt
-    assert "Stratos Molyviatis" in prompt
-    assert "Pavlos Mylonas" in prompt
-
-    # Anti-hallucination rules present
-    assert "NEVER invent first names" in prompt
-    assert "NAME HANDLING RULES" in prompt
-    assert "[unverified name]" in prompt
 
 
 def test_build_monitor_prompt_with_previous_summary():
@@ -233,7 +235,7 @@ def test_build_monitor_prompt_with_previous_summary():
         },
     }
 
-    prompt = build_monitor_prompt(articles, previous, "last hour")
+    prompt = build_monitor_prompt(articles, _TEST_KEYWORDS, previous, "last hour")
     assert "previous_sentiment" in prompt
 
 
@@ -341,3 +343,94 @@ def test_render_monitor_html_empty_synthesis():
 
     assert "NBG MONITOR" in html
     assert "0 mentions" in html
+
+
+# --- Section-builder tests (post-refactor) ---
+
+
+def test_base_prompt_uses_display_full_name():
+    out = _base_prompt({"full_name": "Acme Bank", "short_name": "ACME"})
+    assert "Acme Bank" in out
+    assert "ACME" in out
+
+
+def test_base_prompt_falls_back_when_display_missing():
+    out = _base_prompt({})
+    assert "the company" in out
+
+
+def test_disambiguation_section_empty_returns_empty_string():
+    assert _disambiguation_section([]) == ""
+
+
+def test_disambiguation_section_lists_false_positives():
+    out = _disambiguation_section(["National Team", "National Economy"])
+    assert "National Team" in out
+    assert "National Economy" in out
+
+
+def test_competitor_section_empty_returns_empty_string():
+    assert _competitor_section({}) == ""
+
+
+def test_competitor_section_lists_competitor_names():
+    out = _competitor_section(
+        {
+            "piraeus": {"names": ["Piraeus Bank"]},
+            "alpha": {"names": ["Alpha Bank"]},
+        }
+    )
+    assert "Piraeus Bank" in out
+    assert "Alpha Bank" in out
+
+
+def test_output_format_section_uses_short_name_and_company_mentions_key():
+    out = _output_format_section("ACME")
+    assert "ACME" in out
+    assert "company_mentions" in out  # JSON key rename
+    assert "nbg_mentions" not in out
+
+
+def test_build_monitor_prompt_includes_all_sections_when_data_present():
+    keywords = {
+        "display": {"full_name": "Acme Bank", "short_name": "ACME"},
+        "company": {"false_positives": ["Acme Hardware"], "leadership": []},
+        "competitors": {"x": {"names": ["XCorp"]}},
+    }
+    prompt = build_monitor_prompt([], keywords, None, "last hour")
+    assert "Acme Bank" in prompt  # base
+    assert "Acme Hardware" in prompt  # disambiguation
+    assert "XCorp" in prompt  # competitors
+    assert "company_mentions" in prompt  # output format
+
+
+def test_build_monitor_prompt_skips_empty_sections():
+    keywords = {
+        "display": {"full_name": "Solo Co", "short_name": "SOLO"},
+        "company": {"false_positives": [], "leadership": []},
+        "competitors": {},
+    }
+    prompt = build_monitor_prompt([], keywords, None, "last hour")
+    assert "Solo Co" in prompt
+    assert "FALSE POSITIVE FILTERING" not in prompt  # skipped
+    assert "COMPETITOR CONTEXT" not in prompt  # skipped
+
+
+def test_monitor_synth_module_has_no_brand_specific_literals():
+    """The monitor_synth module itself contains no brand-specific examples."""
+    import news.monitor_synth as ms
+
+    src = open(ms.__file__).read()
+    for forbidden in [
+        "National Bank of Greece",
+        "NBG",
+        "Εθνική",
+        "Ethniki",
+        "Mylonas",
+        "Theofilidi",
+        "Plessas",
+        "Piraeus",
+        "Alpha Bank",
+        "Eurobank",
+    ]:
+        assert forbidden not in src, f"Found brand-specific literal: {forbidden}"

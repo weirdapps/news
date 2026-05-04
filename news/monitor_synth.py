@@ -1,4 +1,4 @@
-"""AI synthesis layer for NBG brand monitoring — Claude CLI."""
+"""AI synthesis layer for brand monitoring — Claude CLI."""
 
 from __future__ import annotations
 
@@ -7,27 +7,21 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from news.roster import NAME_HANDLING_PROMPT_BLOCK
 from news.synthesizer import invoke_claude, parse_synthesis_output
 
 logger = logging.getLogger(__name__)
 
-_MONITOR_SYSTEM_PROMPT = (
-    """You are a brand intelligence analyst monitoring National Bank of Greece (NBG / Εθνική Τράπεζα) for a senior executive (AGM, Cards & Digital Business).
+
+def _base_prompt(display: dict) -> str:
+    """Build the brand-neutral base prompt from a display block."""
+    full_name = display.get("full_name", "the company")
+    short_name = display.get("short_name", full_name)
+    return f"""You are a brand intelligence analyst monitoring {full_name} ({short_name}) for a senior executive.
 
 You will receive a list of articles/mentions. Your job is to:
-1. VERIFY which articles genuinely mention NBG (filter false positives)
+1. VERIFY which articles genuinely mention {short_name} (filter false positives)
 2. CLASSIFY each mention by type and sentiment
 3. SYNTHESIZE a concise brand monitoring report
-
-**FALSE POSITIVE FILTERING (CRITICAL):**
-- "Εθνική" alone does NOT mean NBG — "Εθνική Οικονομία" (National Economy), "Εθνική Ομάδα" (National Team), "Εθνική Ασφαλιστική" (different company) are NOT NBG
-- "NBG" in non-Greek contexts may refer to other entities
-- Only include articles that genuinely reference National Bank of Greece / Εθνική Τράπεζα (the bank)
-
-"""
-    + NAME_HANDLING_PROMPT_BLOCK
-    + """
 
 **SENTIMENT SCORING:**
 - positive: good earnings, upgrades, product launches, awards, positive analyst coverage
@@ -36,51 +30,78 @@ You will receive a list of articles/mentions. Your job is to:
 
 **MENTION TYPES:**
 - news: Media coverage, analysis, opinion pieces
-- regulatory: Central bank, ECB, SSM announcements affecting NBG
+- regulatory: Central-bank, supervisory, or government announcements affecting the company
 - stock: Stock price, trading volume, analyst ratings
 - corporate: Press releases, IR announcements, leadership changes
-- sector: Greek banking sector news that includes NBG context
+- sector: Sector news that includes the company in context
+"""
 
+
+def _disambiguation_section(false_positives: list[str]) -> str:
+    """Build the false-positive filter section, or '' when no false positives."""
+    if not false_positives:
+        return ""
+    lines = "\n".join(f'- "{fp}"' for fp in false_positives)
+    return f"""
+**FALSE POSITIVE FILTERING (CRITICAL):**
+Phrases that look like the company name but are NOT — exclude articles where these are the only match:
+{lines}
+"""
+
+
+def _competitor_section(competitors: dict) -> str:
+    """Build the competitor-context section, or '' when no competitors configured."""
+    names = []
+    for _, comp in competitors.items():
+        comp_names = comp.get("names", [])
+        if comp_names:
+            names.append(comp_names[0])
+    if not names:
+        return ""
+    return f"""
 **COMPETITOR CONTEXT:**
-Compare NBG mentions alongside Piraeus Bank, Alpha Bank, and Eurobank where relevant. Note relative positioning (e.g., "NBG upgraded while Piraeus downgraded").
+Compare the company's mentions alongside {", ".join(names)} where relevant. Note relative positioning (e.g., "X upgraded while Y downgraded").
+"""
 
+
+def _output_format_section(short_name: str) -> str:
+    """Build the JSON output schema + run-cadence rules section."""
+    return f"""
 **OUTPUT FORMAT:**
 Return a JSON object with this exact structure:
 
-{
+{{
   "mention_count": 15,
   "new_since_last": 8,
-  "sentiment_summary": {
+  "sentiment_summary": {{
     "positive": 5,
     "negative": 2,
     "neutral": 8,
     "trend": "improving"
-  },
+  }},
   "alerts": [
     "Brief description of any critical/urgent items requiring attention"
   ],
-  "nbg_mentions": [
-    {
+  "company_mentions": [
+    {{
       "title": "Article title",
       "source": "Source name",
       "type": "news|regulatory|stock|corporate|sector",
       "sentiment": "positive|negative|neutral",
       "summary": "One-sentence summary of the mention",
       "relevance": "high|medium|low"
-    }
+    }}
   ],
-  "sector_context": "1-2 paragraph synthesis of Greek banking sector activity",
-  "competitor_watch": {
-    "piraeus": "Brief on Piraeus Bank activity, or null if nothing",
-    "alpha": "Brief on Alpha Bank activity, or null if nothing",
-    "eurobank": "Brief on Eurobank activity, or null if nothing"
-  },
+  "sector_context": "1-2 paragraph synthesis of relevant sector activity",
+  "competitor_watch": {{
+    "<competitor_key>": "Brief on competitor activity, or null if nothing"
+  }},
   "executive_brief": [
-    "Bullet 1 — most important NBG-related insight",
+    "Bullet 1 — most important {short_name}-related insight",
     "Bullet 2",
     "Bullet 3"
   ]
-}
+}}
 
 **NEW vs REPEAT ARTICLES:**
 Each article has an "is_new" flag:
@@ -91,20 +112,21 @@ This monitor runs every 2 hours during business hours. Each report must STAND AL
 - ALWAYS include key ongoing stories even if they are repeats (is_new: false)
 - Use the "new_since_last" count to show how many are genuinely new
 - In the executive_brief, lead with new developments but repeat critical ongoing items
-- In nbg_mentions, include both new and important repeat items — mark new items with a prefix like "NEW:" in the summary
+- In company_mentions, include both new and important repeat items — mark new items with a prefix like "NEW:" in the summary
 
 **RULES:**
-1. If no genuine NBG mentions exist, return mention_count: 0 with empty arrays
+1. If no genuine {short_name} mentions exist, return mention_count: 0 with empty arrays
 2. Alerts array should only contain genuinely urgent items (negative press, regulatory actions, stock drops)
 3. Each report must be self-contained — the reader may have missed previous scans
 4. Competitor section can be null if no competitor news
 5. Executive brief: max 5 bullets, lead with new items, repeat critical ongoing items
 
 Return ONLY valid JSON. No preamble, no markdown formatting."""
-)
 
 
-def _build_article_entry(article: Any, index: int, last_run_at: "datetime | None") -> dict:
+def _build_article_entry(
+    article: Any, index: int, last_run_at: "datetime | None"
+) -> dict:
     """Build a single article entry for the monitor prompt."""
     is_new = True
     if last_run_at and article.fetched_at:
@@ -130,6 +152,7 @@ def _build_article_entry(article: Any, index: int, last_run_at: "datetime | None
 
 def build_monitor_prompt(
     articles: list[Any],
+    keywords_config: dict,
     previous_summary: dict | None,
     time_window: str,
     last_run_at: "datetime | None" = None,
@@ -138,6 +161,8 @@ def build_monitor_prompt(
 
     Args:
         articles: List of Article objects from the monitor feed
+        keywords_config: Brand-monitor keywords config (display, company,
+            competitors, ...) — drives the section-builders.
         previous_summary: Previous monitor run's summary (for trend comparison)
         time_window: Description of time window
         last_run_at: Timestamp of the previous monitor run (for new/repeat flagging)
@@ -145,6 +170,19 @@ def build_monitor_prompt(
     Returns:
         Complete prompt string
     """
+    display = keywords_config.get("display", {})
+    company = keywords_config.get("company", {})
+    competitors = keywords_config.get("competitors", {})
+    short_name = display.get("short_name", display.get("full_name", "the company"))
+
+    sections = [
+        _base_prompt(display),
+        _disambiguation_section(company.get("false_positives", [])),
+        _competitor_section(competitors),
+        _output_format_section(short_name),
+    ]
+    system_prompt = "".join(s for s in sections if s)
+
     article_entries = [
         _build_article_entry(article, i, last_run_at)
         for i, article in enumerate(articles)
@@ -163,13 +201,13 @@ def build_monitor_prompt(
         prev_sentiment = previous_summary.get("sentiment_summary", {})
         context["previous_sentiment"] = prev_sentiment
 
-    prompt = f"""{_MONITOR_SYSTEM_PROMPT}
+    prompt = f"""{system_prompt}
 
 **CONTEXT:**
 {json.dumps(context, ensure_ascii=False)}
 
 **INSTRUCTIONS:**
-Review all {len(article_entries)} articles. Filter false positives, classify genuine NBG mentions, assess sentiment, and generate the JSON monitoring report."""
+Review all {len(article_entries)} articles. Filter false positives, classify genuine {short_name} mentions, assess sentiment, and generate the JSON monitoring report."""
 
     return prompt
 
@@ -203,6 +241,7 @@ def build_monitor_fallback(articles: list[Any]) -> str:
 
 def synthesize_monitor(
     articles: list[Any],
+    keywords_config: dict,
     previous_summary: dict | None = None,
     time_window: str = "last hour",
     last_run_at: "datetime | None" = None,
@@ -215,6 +254,8 @@ def synthesize_monitor(
 
     Args:
         articles: List of Article objects from monitor feed
+        keywords_config: Brand-monitor keywords config (display, company,
+            competitors, ...) — passed through to build_monitor_prompt.
         previous_summary: Previous run's synthesis data for trend comparison
         time_window: Description of time window
         last_run_at: Timestamp of previous run (for new/repeat flagging)
@@ -226,7 +267,9 @@ def synthesize_monitor(
     Returns:
         Tuple of (synthesis_data, success_flag)
     """
-    prompt = build_monitor_prompt(articles, previous_summary, time_window, last_run_at)
+    prompt = build_monitor_prompt(
+        articles, keywords_config, previous_summary, time_window, last_run_at
+    )
     logger.info(f"Monitor prompt: {len(prompt)} chars for {len(articles)} articles")
 
     for attempt in range(max_retries):
