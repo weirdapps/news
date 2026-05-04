@@ -2,10 +2,22 @@
 
 import sqlite3
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
 from news.config import get_keywords, get_settings, get_sources, _profile_config_dir
+
+# config/monitor/sources.yaml and keywords.yaml are gitignored (personal NBG data
+# decoupled from the public repo). Skip tests that require them when absent.
+_MONITOR_DIR = Path(__file__).resolve().parent.parent / "config" / "monitor"
+_HAS_PERSONAL_MONITOR_CONFIG = (_MONITOR_DIR / "sources.yaml").exists() and (
+    _MONITOR_DIR / "keywords.yaml"
+).exists()
+requires_personal_monitor_config = pytest.mark.skipif(
+    not _HAS_PERSONAL_MONITOR_CONFIG,
+    reason="personal monitor config (sources.yaml + keywords.yaml) not present",
+)
 from news.deliver import build_monitor_subject, render_monitor_html
 from news.models import Article, Digest
 from news.monitor_synth import (
@@ -56,6 +68,7 @@ def test_invalid_profile_raises():
         _profile_config_dir("invalid")
 
 
+@requires_personal_monitor_config
 def test_monitor_sources_loads():
     """Monitor sources.yaml loads with expected structure."""
     sources = get_sources(profile="monitor")
@@ -77,6 +90,7 @@ def test_monitor_settings_loads():
     assert settings["scoring"]["company_mention"] >= 50
 
 
+@requires_personal_monitor_config
 def test_monitor_keywords_loads():
     """Monitor keywords.yaml loads with expected structure."""
     keywords = get_keywords(profile="monitor")
