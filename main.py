@@ -531,7 +531,10 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
         if get_article_by_hash(conn, article.content_hash):
             existing_hashes.add(article.content_hash)
 
-    # Use keywords config as categories for classification
+    # Use keywords config as categories for classification.
+    # keywords_config is also threaded into compute_relevance_score so the
+    # company/competitor bonuses match the configured names instead of a
+    # hardcoded brand list.
     processed_articles, process_stats = process_articles(
         articles=raw_articles,
         existing_hashes=existing_hashes,
@@ -540,6 +543,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
         source_tiers=config["source_tiers"],
         min_words=config["pipeline"]["min_article_length_words"],
         max_age_hours=config["pipeline"]["max_article_age_hours"],
+        keywords_config=keywords_config,
     )
 
     # Set pipeline on all processed articles

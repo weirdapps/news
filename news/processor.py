@@ -295,7 +295,9 @@ def process_articles(
     for article in unique:
         classify_article(article, categories_config)
         tier = source_tiers.get(article.source, 2)
-        compute_relevance_score(article, scoring_config, tier)
+        compute_relevance_score(
+            article, scoring_config, tier, keywords_config=keywords_config
+        )
         from news.tagger import tag_article
 
         tag_article(article)

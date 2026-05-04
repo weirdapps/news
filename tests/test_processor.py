@@ -113,8 +113,9 @@ def test_classify_article_adds_categories():
 
 
 def test_compute_relevance_score():
-    """Test relevance scoring with NBG mention, category, tier, and recency."""
-    # Article mentioning NBG, in banking category, tier 1, published 2h ago
+    """Test relevance scoring with company mention, category, tier, and recency."""
+    # Article mentioning the configured company name, in banking category,
+    # tier 1, published 2h ago.
     two_hours_ago = datetime.now(timezone.utc) - timedelta(hours=2)
     article = _make_article(
         title="NBG Quarterly Results",
@@ -135,12 +136,115 @@ def test_compute_relevance_score():
         "recency_12h": 10,
         "recency_24h": 5,
     }
+    keywords = {"company": {"names": ["NBG", "National Bank of Greece"]}}
 
-    score = compute_relevance_score(article, scoring_config, source_tier=1)
+    score = compute_relevance_score(
+        article, scoring_config, source_tier=1, keywords_config=keywords
+    )
 
     # Expected: company_mention(30) + category_match(10) + tier_1_bonus(15) + recency_4h(15) = 70
     assert score >= 70
     assert article.relevance_score >= 70
+
+
+def test_compute_relevance_score_uses_keywords_config_for_company_match():
+    """Company-mention bonus is awarded based on keywords_config patterns, not a hardcoded list."""
+    article = _make_article(
+        title="AcmeCorp Q1 results",
+        content="AcmeCorp posted strong results. " * 20,
+    )
+    scoring = {
+        "company_mention": 50,
+        "category_match": 0,
+        "tier_1_bonus": 0,
+        "tier_2_bonus": 0,
+        "tier_3_bonus": 0,
+        "recency_1h": 0,
+        "recency_4h": 0,
+        "recency_12h": 0,
+        "recency_24h": 0,
+        "claude_mention": 0,
+    }
+    keywords = {"company": {"names": ["AcmeCorp"]}}
+
+    score = compute_relevance_score(
+        article, scoring, source_tier=2, keywords_config=keywords
+    )
+    assert score >= 50
+
+
+def test_compute_relevance_score_no_keywords_config_skips_company_bonus():
+    """Without keywords_config (digest profile), the company_mention bonus does not apply."""
+    article = _make_article(
+        title="National Bank of Greece Q1",
+        content="NBG news. " * 20,
+    )
+    scoring = {
+        "company_mention": 50,
+        "category_match": 0,
+        "tier_1_bonus": 0,
+        "tier_2_bonus": 0,
+        "tier_3_bonus": 0,
+        "recency_1h": 0,
+        "recency_4h": 0,
+        "recency_12h": 0,
+        "recency_24h": 0,
+        "claude_mention": 0,
+        "greek_banking": 0,
+    }
+
+    score = compute_relevance_score(
+        article, scoring, source_tier=2
+    )  # no keywords_config
+    assert score == 0
+
+
+def test_compute_relevance_score_uses_competitors_for_greek_banking_bonus():
+    """Sector bonus comes from keywords_config.competitors, not hardcoded names."""
+    article = _make_article(
+        title="XYZ Bank reports strong results",
+        content="XYZ Bank had a great quarter. " * 20,
+    )
+    scoring = {
+        "company_mention": 0,
+        "greek_banking": 30,
+        "category_match": 0,
+        "tier_1_bonus": 0,
+        "tier_2_bonus": 0,
+        "tier_3_bonus": 0,
+        "recency_1h": 0,
+        "recency_4h": 0,
+        "recency_12h": 0,
+        "recency_24h": 0,
+        "claude_mention": 0,
+    }
+    keywords = {"competitors": {"xyz": {"names": ["XYZ Bank"]}}}
+
+    score = compute_relevance_score(
+        article, scoring, source_tier=2, keywords_config=keywords
+    )
+    assert score >= 30
+
+
+def test_processor_module_has_no_brand_specific_literals():
+    """processor.py source contains no brand-specific company or competitor literals."""
+    import news.processor as proc_mod
+
+    src = open(proc_mod.__file__).read()
+    forbidden = [
+        "national bank of greece",
+        "nbg",
+        "ethniki trapeza",
+        "piraeus",
+        "alpha bank",
+        "eurobank",
+        "hellenic bank",
+        "greek bank",  # phrase — was hardcoded in the old greek_banking_patterns
+    ]
+    for f in forbidden:
+        assert f.lower() not in src.lower(), (
+            f"Found brand-specific literal in processor.py: {f}"
+        )
 
 
 def test_filter_quality_drops_short_articles():
