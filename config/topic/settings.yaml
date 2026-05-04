@@ -8,8 +8,9 @@ pipeline:
   max_digest_articles: 100    # cap synthesis input
 
 email:
-  # Reuse the digest recipient by default; override per-profile if needed.
-  recipient: ${NEWS_TOPIC_RECIPIENT:-${NEWS_RECIPIENT:-user@example.com}}
+  # Set NEWS_TOPIC_RECIPIENT in .env (env-var interpolation does not support
+  # nested ${VAR:-${VAR2:-...}} fallback chains — keep the default flat).
+  recipient: ${NEWS_TOPIC_RECIPIENT:-user@example.com}
 
 storage:
   db_path: ~/SourceCode/news/data/news.db

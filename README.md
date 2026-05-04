@@ -1,15 +1,16 @@
 # news — personal news intelligence platform
 
-A forkable Python scaffold that fetches RSS feeds, runs LLM synthesis, and emails curated digests on a schedule. Two profiles ship in the box: a broad multi-topic **digest** and a brand-aware **monitor** with competitor tracking.
+A forkable Python scaffold that fetches RSS feeds, runs LLM synthesis, and emails curated digests on a schedule. Three profiles ship in the box: a broad multi-topic **digest**, a brand-aware **monitor** with competitor tracking, and an ad-hoc **topic** brief driven by a CLI query.
 
 ## Profiles
 
 | Profile | Cadence | Scope | Output | Config dir |
 |---------|---------|-------|--------|------------|
-| `digest` | 5x daily | Broad multi-topic news from your RSS list | Curated email briefing | `config/` |
-| `monitor` | Bi-hourly during business hours | Mentions of your brand + competitors | Mention-focused email with competitor watch | `config/monitor/` |
+| `digest` | 5x daily (scheduled) | Broad multi-topic news from your RSS list | Curated email briefing | `config/` |
+| `monitor` | Bi-hourly during business hours (scheduled) | Mentions of your brand + competitors | Mention-focused email with competitor watch | `config/monitor/` |
+| `topic` | Ad-hoc only (`--query`) | Single subject from a Google News RSS query | Focused brief (executive bullets + thematic sections) | `config/topic/` |
 
-Both profiles share the same five-stage pipeline and SQLite store. The `--profile` flag picks the config dir, synthesis prompt, and email template at runtime.
+All three profiles share the same five-stage pipeline and SQLite store. The `--profile` flag picks the config dir, synthesis prompt, and email template at runtime.
 
 ## Quickstart
 
@@ -21,7 +22,8 @@ pip install -e .
 
 # 2. Set up env vars
 cp .env.example .env
-# edit .env: set NEWS_RECIPIENT (digest) and NEWS_MONITOR_RECIPIENT (monitor)
+# edit .env: set NEWS_RECIPIENT (digest), NEWS_MONITOR_RECIPIENT (monitor),
+#           NEWS_TOPIC_RECIPIENT (topic — optional, defaults to user@example.com)
 
 # 3. (Monitor only) Set up brand identity
 cp config/monitor/keywords.example.yaml config/monitor/keywords.yaml
@@ -29,9 +31,10 @@ cp config/monitor/sources.example.yaml config/monitor/sources.yaml
 # edit both: replace placeholders with your brand identity + RSS feeds
 
 # 4. Verify
-pytest                                       # 158 tests should pass
-python3 main.py --adhoc                      # ad-hoc digest run
-python3 main.py --profile monitor --adhoc    # ad-hoc monitor run
+pytest                                                          # 173 tests should pass
+python3 main.py --adhoc                                         # ad-hoc digest run
+python3 main.py --profile monitor --adhoc                       # ad-hoc monitor run
+python3 main.py --profile topic --query 'ECB rates' --print     # ad-hoc topic brief to stdout
 
 # 5. (Optional, macOS) Schedule via launchd
 cp launchd/com.news.digest.example.plist  ~/Library/LaunchAgents/com.news.digest.plist
@@ -43,6 +46,21 @@ launchctl load ~/Library/LaunchAgents/com.news.monitor.plist
 
 `--scheduled` (the default when no flag is passed) silently skips if a recent run already happened and logs to file. `--adhoc` forces a run regardless of schedule — use it for first-run smoke tests.
 
+### Ad-hoc topic briefs
+
+```bash
+python3 main.py --profile topic --query 'M&A activity in European banking' --hours 48
+python3 main.py --profile topic --query '"Claude Code"' --hours 72 --print
+```
+
+| Flag | Default | Notes |
+|------|---------|-------|
+| `--query "string"` | required | Plain text passed to a Google News RSS query. Wrap multi-word brand names in `"..."` for an exact-phrase match. |
+| `--hours N` | `24` | Lookback window. Range 1-168 (1 week max). |
+| `--print` | off | Render to stdout instead of emailing. Use for quick terminal previews. |
+
+Topic runs persist to `news.db` with `pipeline='topic'`, so the MCP server's `search_news` tool finds them later. There is no scheduled cadence — topic briefs only fire when you ask.
+
 ## Configuration reference
 
 ### Environment variables (`.env`)
@@ -51,6 +69,7 @@ launchctl load ~/Library/LaunchAgents/com.news.monitor.plist
 |----------|----------|---------|
 | `NEWS_RECIPIENT` | Yes (digest) | Email address that receives digest runs |
 | `NEWS_MONITOR_RECIPIENT` | Yes (monitor) | Email address that receives monitor runs |
+| `NEWS_TOPIC_RECIPIENT` | Yes (topic, unless `--print`) | Email address that receives topic-brief runs |
 | `NEWS_CLAUDE_COMMAND` | No | Override the default `claude` CLI binary path |
 
 ### YAML files
@@ -68,6 +87,7 @@ launchctl load ~/Library/LaunchAgents/com.news.monitor.plist
 | `config/monitor/sources.yaml` | Your actual monitor feeds | No |
 | `config/monitor/keywords.example.yaml` | Brand identity schema (display, company, leadership, competitors) | Yes |
 | `config/monitor/keywords.yaml` | Your actual brand identity | No |
+| `config/topic/settings.yaml` | Topic-profile pipeline settings (recipient, scoring, synthesis) | Yes |
 | `launchd/com.news.{digest,monitor}.example.plist` | macOS LaunchAgent templates | Yes |
 | `launchd/com.news.{digest,monitor}.plist` | Your actual plists | No |
 
@@ -90,6 +110,7 @@ Each stage is a standalone module under `news/`:
 | `news/storage.py` | store | SQLite persistence (`data/news.db`) with FTS5 search |
 | `news/synthesizer.py` | synthesize (digest) | One-pass curation prompt for the broad digest |
 | `news/monitor_synth.py` | synthesize (monitor) | Brand-aware composition prompt with competitor watch |
+| `news/topic_synth.py` | synthesize (topic) | Topic-focused composition prompt + Google News RSS URL builder |
 | `news/deliver.py` | deliver | Renders Jinja2 HTML and sends via outlook-cli |
 
 The `--profile` flag selects which synth module + email template + config dir to use; everything else is shared.
@@ -114,7 +135,7 @@ If you'd rather use a different sender — Gmail API, SMTP, SendGrid, anything t
 ## Tests and development
 
 ```bash
-pytest                # 158 tests in <1s
+pytest                # 173 tests in <1s
 pre-commit install    # ruff format + mypy + gitleaks
 ```
 
