@@ -7,17 +7,6 @@ from pathlib import Path
 import pytest
 
 from news.config import get_keywords, get_settings, get_sources, _profile_config_dir
-
-# config/monitor/sources.yaml and keywords.yaml are gitignored (personal NBG data
-# decoupled from the public repo). Skip tests that require them when absent.
-_MONITOR_DIR = Path(__file__).resolve().parent.parent / "config" / "monitor"
-_HAS_PERSONAL_MONITOR_CONFIG = (_MONITOR_DIR / "sources.yaml").exists() and (
-    _MONITOR_DIR / "keywords.yaml"
-).exists()
-requires_personal_monitor_config = pytest.mark.skipif(
-    not _HAS_PERSONAL_MONITOR_CONFIG,
-    reason="personal monitor config (sources.yaml + keywords.yaml) not present",
-)
 from news.deliver import build_monitor_subject, render_monitor_html
 from news.models import Article, Digest
 from news.monitor_synth import (
@@ -35,6 +24,17 @@ from news.storage import (
     init_db,
     insert_article,
     insert_digest,
+)
+
+# config/monitor/sources.yaml and keywords.yaml are gitignored (personal NBG data
+# decoupled from the public repo). Skip tests that require them when absent.
+_MONITOR_DIR = Path(__file__).resolve().parent.parent / "config" / "monitor"
+_HAS_PERSONAL_MONITOR_CONFIG = (_MONITOR_DIR / "sources.yaml").exists() and (
+    _MONITOR_DIR / "keywords.yaml"
+).exists()
+requires_personal_monitor_config = pytest.mark.skipif(
+    not _HAS_PERSONAL_MONITOR_CONFIG,
+    reason="personal monitor config (sources.yaml + keywords.yaml) not present",
 )
 
 
@@ -493,7 +493,9 @@ def test_template_has_no_hardcoded_competitor_keys():
     with open("templates/monitor.html") as f:
         src = f.read()
     for forbidden in ["piraeus", "alpha", "eurobank", "greek banking"]:
-        assert forbidden.lower() not in src.lower(), f"Found hardcoded competitor: {forbidden}"
+        assert (
+            forbidden.lower() not in src.lower()
+        ), f"Found hardcoded competitor: {forbidden}"
 
 
 # --- Section-builder tests (post-refactor) ---
