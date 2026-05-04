@@ -1,5 +1,5 @@
-from pathlib import Path
 import csv
+
 from scripts.build_tickers_yaml import build_ticker_dict
 
 def test_build_dict_from_csv(tmp_path):

@@ -1,8 +1,8 @@
 import sqlite3
-import pytest
 from datetime import datetime
+
 from news.models import Article
-from news.storage import init_db, insert_article, get_article_by_url
+from news.storage import init_db, get_article_by_url, insert_article
 
 
 def _make_article(url="http://x/1", tickers=None):

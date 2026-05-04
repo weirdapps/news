@@ -1,8 +1,11 @@
 import sqlite3
-from unittest.mock import patch
-from news.storage import init_db, insert_article
-from news.models import Article
+import subprocess
+import sys
 from datetime import datetime
+from unittest.mock import patch
+
+from news.models import Article
+from news.storage import init_db, insert_article
 from scripts.backfill_tickers import backfill
 
 TICKER_DICT = {"apple": "AAPL", "aapl": "AAPL"}
@@ -44,11 +47,6 @@ def test_backfill_skips_already_tagged():
         n_processed, n_tagged = backfill(conn, batch_size=10, max_articles=None)
     assert n_processed == 0  # already tagged, skipped
     assert n_tagged == 0
-
-
-import subprocess
-import sys
-from pathlib import Path
 
 
 def test_db_path_arg_overrides_default(tmp_path):
