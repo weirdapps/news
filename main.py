@@ -450,7 +450,7 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
 
 
 async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
-    """Execute the NBG brand monitoring pipeline.
+    """Execute the brand monitoring pipeline.
 
     Args:
         run_type: "scheduled" or "adhoc"
@@ -665,7 +665,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
         logger.error("Monitor email send failed - saving fallback")
         fallback_path = save_fallback(html_output, label="monitor")
         notify_macos(
-            title="NBG Monitor Send Failed",
+            title="Monitor Send Failed",
             message=f"Saved to {fallback_path}",
         )
 

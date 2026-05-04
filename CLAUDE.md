@@ -2,7 +2,7 @@
 
 Personal news intelligence platform with two profiles:
 - **digest**: Broad news across business, AI, tech, Greece, banking (5x daily — 00, 09, 13, 17, 21 Athens)
-- **monitor**: NBG brand monitoring with competitor tracking (bi-hourly 08–22 Athens + 00:00 catch-up)
+- **monitor**: Brand monitoring with competitor tracking (bi-hourly 08–22 Athens + 00:00 catch-up)
 
 Both share the same pipeline: fetch → process → store → synthesize → deliver.
 
@@ -33,5 +33,5 @@ Run: `pytest -v`
 
 ## Email
 
-Sends via existing gmail-operations.js. Recipient: plessas@nbg.gr.
+Sends via existing gmail-operations.js. Recipient: configurable via settings.yaml.
 Outlook Mac compatible (table layout, inline CSS, no <p> tags).

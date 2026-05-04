@@ -268,11 +268,9 @@ newsapi_keywords:
   - category: "greece"
     query: "Greece economy OR Athens"
   - category: "banking"
-    query: "National Bank of Greece OR NBG OR Greek banks OR European banking OR ECB"
+    query: "Greek banks OR European banking OR ECB"
 
 websearch_queries:
-  - category: "banking"
-    template: "National Bank of Greece news {date}"
   - category: "banking"
     template: "Greek banking sector news {date}"
   - category: "ai"

@@ -1,6 +1,6 @@
 # news (newsreader)
 
-Personal news intelligence platform with AI synthesis. Pulls articles from configured RSS feeds, extracts full article text, runs LLM synthesis to produce a curated daily briefing scoped to the user's interests (NBG, Greek banking, AI, finance), and emails the digest.
+Personal news intelligence platform with AI synthesis. Pulls articles from configured RSS feeds, extracts full article text, runs LLM synthesis to produce a curated daily briefing scoped to the user's interests (banking, finance, AI), and emails the digest.
 
 ## Install
 
@@ -15,7 +15,7 @@ pip install -e .
 # One-off daily digest
 python -m news.synthesizer
 
-# Real-time monitor (NBG + competitor mentions)
+# Real-time monitor (brand monitoring + competitor mentions)
 python -m news.monitor_synth
 ```
 
@@ -34,7 +34,7 @@ Email delivery uses outlook-cli (or osascript fallback) — see `weirdapps/commu
 
 ## Synthesis prompt anchoring
 
-`news/roster.py` defines a canonical executive roster for NBG and Greek banking competitors. Both `synthesizer` and `monitor_synth` inject this into LLM prompts to prevent hallucinated names/transliterations (a recurring failure mode pre-2026-04-25).
+`news/roster.py` defines a canonical executive roster for Greek banking competitors. Both `synthesizer` and `monitor_synth` inject this into LLM prompts to prevent hallucinated names/transliterations (a recurring failure mode pre-2026-04-25).
 
 ## Layout
 

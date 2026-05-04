@@ -1,46 +1,18 @@
-# NBG Monitor — Keyword Definitions
+# Monitor — Keyword Definitions
 # Used for entity detection, relevance filtering, and classification
 
-# Primary entity — all variants of NBG's name
-nbg:
+# Primary entity — all variants of company name
+company:
   names:
-    - "National Bank of Greece"
-    - "NBG"
-    - "NBG Group"
-    - "Ethniki Trapeza"
-    - "Εθνική Τράπεζα"
-    - "Εθνική Τράπεζα της Ελλάδος"
-    - "ΕΤΕ"
+    - "Your Company Name"
   stock_symbols:
-    - "ETE.AT"
-    - "ETE"
-    - "NBG"
-  # Phrases that look like NBG but are NOT (false positive filters)
-  false_positives:
-    - "Εθνική Οικονομία"
-    - "Εθνική Ομάδα"
-    - "Εθνική Άμυνα"
-    - "Εθνική Αντίσταση"
-    - "Εθνική Ασφαλιστική"
-    - "National Guard"
-    - "National Economy"
-    - "National Team"
+    - "TICKER"
+  # Phrases that look like company name but are NOT (false positive filters)
+  false_positives: []
   # Key people
-  leadership:
-    - name: "Παύλος Μυλωνάς"
-      name_en: "Pavlos Mylonas"
-      role: "CEO"
-    - name: "Δημήτριος Πλέσσας"
-      name_en: "Dimitrios Plessas"
-      role: "AGM Cards & Digital Business"
+  leadership: []
   # Key products and business lines
-  products:
-    - "i-bank"
-    - "NBG Pay"
-    - "go4more"
-    - "Ethniki Insurance"
-    - "Εθνική Ασφαλιστική"
-    - "NBG Securities"
+  products: []
 
 # Competitors
 competitors:
@@ -85,11 +57,11 @@ regulators:
 
 # Monitor categories (different from digest categories)
 categories:
-  nbg_direct:
-    display_name: "NBG Direct Mentions"
+  company_direct:
+    display_name: "Company Direct Mentions"
     priority: 1
-  nbg_stock:
-    display_name: "NBG Stock & Market"
+  company_stock:
+    display_name: "Company Stock & Market"
     priority: 2
   regulatory:
     display_name: "Regulatory & Compliance"
@@ -102,8 +74,8 @@ categories:
     priority: 5
 
 display_order:
-  - nbg_direct
-  - nbg_stock
+  - company_direct
+  - company_stock
   - regulatory
   - sector
   - competitor

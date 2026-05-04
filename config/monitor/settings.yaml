@@ -1,4 +1,4 @@
-# NBG Monitor — Pipeline Settings
+# Monitor — Pipeline Settings
 
 pipeline:
   # Minimum relevance score to include a mention
@@ -26,7 +26,7 @@ pipeline:
   skip_empty: true
 
 email:
-  recipient: plessas@nbg.gr
+  recipient: user@example.com
 
 schedule:
   timezone: Europe/Athens
@@ -58,10 +58,10 @@ synthesis:
   timeout: 300
   max_retries: 2
 
-# Monitor-specific scoring (NBG focus)
+# Monitor-specific scoring
 scoring:
-  # NBG direct mention — highest priority
-  nbg_mention: 80
+  # Company direct mention — highest priority
+  company_mention: 80
 
   # Greek banking sector mention
   greek_banking: 40

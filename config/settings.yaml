@@ -27,7 +27,7 @@ pipeline:
 
 email:
   # Primary recipient
-  recipient: plessas@nbg.gr
+  recipient: user@example.com
 
 schedule:
   # Timezone for scheduling
@@ -79,8 +79,8 @@ newsapi:
 
 # Scoring weights and bonuses (flat keys matching processor.py)
 scoring:
-  # NBG mention bonus
-  nbg_mention: 50
+  # Company mention bonus
+  company_mention: 50
 
   # Greek banking keyword bonus
   greek_banking: 30
