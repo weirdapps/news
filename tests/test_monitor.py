@@ -260,9 +260,10 @@ def test_build_monitor_fallback():
 
 
 def test_build_monitor_subject():
-    """Monitor subject line includes NBG Monitor label."""
+    """Subject line uses display.monitor_label from keywords_config."""
     dt = datetime(2026, 4, 8, 15, 0, tzinfo=timezone.utc)
-    subject = build_monitor_subject(dt, mention_count=12, source_count=25)
+    keywords = {"display": {"monitor_label": "NBG Monitor"}}
+    subject = build_monitor_subject(dt, keywords, mention_count=12, source_count=25)
     assert "NBG Monitor" in subject
     assert "12 mentions" in subject
 
@@ -270,7 +271,8 @@ def test_build_monitor_subject():
 def test_build_monitor_subject_with_alert():
     """Monitor subject includes ALERT when has_alerts is True."""
     dt = datetime(2026, 4, 8, 15, 0, tzinfo=timezone.utc)
-    subject = build_monitor_subject(dt, has_alerts=True)
+    keywords = {"display": {"monitor_label": "NBG Monitor"}}
+    subject = build_monitor_subject(dt, keywords, has_alerts=True)
     assert "ALERT" in subject
 
 
@@ -286,7 +288,7 @@ def test_render_monitor_html_produces_valid_html():
         },
         "alerts": ["Negative press about NBG lending practices"],
         "executive_brief": ["Key insight about NBG"],
-        "nbg_mentions": [
+        "company_mentions": [
             {
                 "title": "NBG Q1 Results",
                 "source": "Reuters",
@@ -303,6 +305,13 @@ def test_render_monitor_html_produces_valid_html():
             "eurobank": "Eurobank expanded digital services",
         },
     }
+    keywords = {
+        "display": {
+            "full_name": "NBG",
+            "short_name": "NBG",
+            "monitor_label": "NBG MONITOR",
+        }
+    }
 
     html = render_monitor_html(
         synthesis=synthesis,
@@ -310,6 +319,7 @@ def test_render_monitor_html_produces_valid_html():
         source_count=25,
         time_display="15:00",
         date_display="tue 8 apr",
+        keywords_config=keywords,
         next_scan="16:00",
         subject="NBG Monitor | Tue 8 APR 15:00",
     )
@@ -329,8 +339,15 @@ def test_render_monitor_html_empty_synthesis():
     """Monitor template handles no-mention case gracefully."""
     synthesis = {
         "mention_count": 0,
-        "nbg_mentions": [],
+        "company_mentions": [],
         "sentiment_summary": {"positive": 0, "negative": 0, "neutral": 0},
+    }
+    keywords = {
+        "display": {
+            "full_name": "NBG",
+            "short_name": "NBG",
+            "monitor_label": "NBG MONITOR",
+        }
     }
 
     html = render_monitor_html(
@@ -339,10 +356,60 @@ def test_render_monitor_html_empty_synthesis():
         source_count=25,
         time_display="10:00",
         date_display="wed 9 apr",
+        keywords_config=keywords,
     )
 
     assert "NBG MONITOR" in html
     assert "0 mentions" in html
+
+
+def test_render_monitor_html_uses_display_label_from_config():
+    """Display label comes from keywords.display.monitor_label, not hardcoded."""
+    synthesis = {"company_mentions": [], "executive_brief": [], "mention_count": 0}
+    keywords = {"display": {"monitor_label": "ACME WATCH", "short_name": "ACME"}}
+    html = render_monitor_html(
+        synthesis=synthesis,
+        mention_count=0,
+        source_count=0,
+        time_display="15:00",
+        date_display="tue 8 apr",
+        keywords_config=keywords,
+    )
+    assert "ACME WATCH" in html
+    assert "NBG MONITOR" not in html  # confirms no leak
+
+
+def test_render_monitor_html_falls_back_when_display_missing():
+    """When display block is missing, render uses '' (Jinja silently)."""
+    synthesis = {"company_mentions": [], "executive_brief": [], "mention_count": 0}
+    keywords = {}  # forker with no display block
+    html = render_monitor_html(
+        synthesis=synthesis,
+        mention_count=0,
+        source_count=0,
+        time_display="15:00",
+        date_display="tue 8 apr",
+        keywords_config=keywords,
+    )
+    # No assertion that "BRAND MONITOR" appears — Jinja renders missing vars as empty.
+    # Just verify no crash and no NBG leak.
+    assert "NBG MONITOR" not in html
+
+
+def test_build_monitor_subject_falls_back_when_display_missing():
+    """Subject defaults to BRAND MONITOR when keywords.display.monitor_label missing."""
+    dt = datetime(2026, 4, 8, 15, 0, tzinfo=timezone.utc)
+    subject = build_monitor_subject(dt, {}, mention_count=0)
+    assert "BRAND MONITOR" in subject
+
+
+def test_template_has_no_brand_specific_literals():
+    """The monitor.html template contains no brand-specific labels in source."""
+    template_path = "templates/monitor.html"
+    with open(template_path) as f:
+        src = f.read()
+    for forbidden in ["NBG MONITOR", "NBG MENTIONS", "nbg_mentions"]:
+        assert forbidden not in src, f"Found brand literal in template: {forbidden}"
 
 
 # --- Section-builder tests (post-refactor) ---

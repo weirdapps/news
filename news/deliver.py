@@ -228,6 +228,7 @@ def render_monitor_html(
     source_count: int,
     time_display: str,
     date_display: str,
+    keywords_config: dict,
     next_scan: str | None = None,
     subject: str = "",
 ) -> str:
@@ -239,6 +240,7 @@ def render_monitor_html(
         source_count: Total number of sources
         time_display: Time string (e.g. "15:00")
         date_display: Date string (e.g. "tue 8 apr")
+        keywords_config: Brand keywords config (provides display block for labels)
         next_scan: Optional next scan time string
         subject: Email subject line
 
@@ -254,7 +256,7 @@ def render_monitor_html(
     alerts = synthesis.get("alerts", [])
     executive_brief = synthesis.get("executive_brief", [])
     sentiment = synthesis.get("sentiment_summary")
-    nbg_mentions = synthesis.get("nbg_mentions", [])
+    company_mentions = synthesis.get("company_mentions", [])
     sector_context = synthesis.get("sector_context", "")
     competitor_watch = synthesis.get("competitor_watch")
     fallback_text = synthesis.get("fallback_text", "")
@@ -288,7 +290,8 @@ def render_monitor_html(
         alerts=alerts,
         executive_brief=executive_brief,
         sentiment=sentiment,
-        nbg_mentions=nbg_mentions,
+        company_mentions=company_mentions,
+        display=keywords_config.get("display", {}),
         sector_context=sector_context,
         competitor_watch=competitor_watch,
         fallback_text=fallback_text,
@@ -298,6 +301,7 @@ def render_monitor_html(
 
 def build_monitor_subject(
     dt: datetime,
+    keywords_config: dict,
     is_adhoc: bool = False,
     mention_count: int = 0,
     source_count: int = 0,
@@ -308,6 +312,7 @@ def build_monitor_subject(
 
     Args:
         dt: Datetime object (should have Athens timezone)
+        keywords_config: Brand keywords config (provides display.monitor_label)
         is_adhoc: Whether this is an ad-hoc run
         mention_count: Number of mentions
         source_count: Number of sources
@@ -327,7 +332,7 @@ def build_monitor_subject(
     day_num = dt.strftime("%-d")
     month_name = dt.strftime("%b").upper()
 
-    label = "NBG Monitor"
+    label = keywords_config.get("display", {}).get("monitor_label", "BRAND MONITOR")
     base = f"{label} | {day_name} {day_num} {month_name} {time_str}"
 
     if mention_count:

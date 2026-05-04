@@ -634,6 +634,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
 
     subject = build_monitor_subject(
         dt=now_athens,
+        keywords_config=keywords_config,
         is_adhoc=(run_type == "adhoc"),
         mention_count=mention_count,
         source_count=source_count,
@@ -647,6 +648,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
         source_count=source_count,
         time_display=time_display,
         date_display=date_display,
+        keywords_config=keywords_config,
         next_scan=next_scan,
         subject=subject,
     )
