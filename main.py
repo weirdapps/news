@@ -589,6 +589,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     if auth_ok:
         synthesis_result, synthesis_ok = synthesize_monitor(
             articles=capped_articles,
+            keywords_config=keywords_config,
             previous_summary=previous_summary,
             time_window=time_window,
             last_run_at=last_digest_at,
