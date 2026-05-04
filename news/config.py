@@ -1,9 +1,9 @@
 """Configuration file loader for news reader with profile support.
 
-Profiles allow different pipeline configurations (e.g., 'digest' for broad news,
-'monitor' for brand monitoring). Each profile has its own config directory:
-- digest (default): loads from config/
-- monitor: loads from config/monitor/
+Profiles allow different pipeline configurations:
+- digest (default): broad news (config/)
+- monitor: brand monitoring (config/monitor/)
+- topic: ad-hoc topical briefs from a CLI --query (config/topic/)
 
 YAML values support shell-style env var interpolation: ${VAR} and ${VAR:-default}.
 A `.env` file at the project root (gitignored) is loaded into os.environ at import
@@ -20,7 +20,7 @@ import yaml
 _PROJECT_ROOT = Path(__file__).parent.parent
 _CONFIG_DIR = _PROJECT_ROOT / "config"
 
-VALID_PROFILES = ("digest", "monitor")
+VALID_PROFILES = ("digest", "monitor", "topic")
 
 # Matches ${VAR} or ${VAR:-default}
 _ENV_VAR_PATTERN = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)(?::-([^}]*))?\}")
@@ -65,10 +65,13 @@ def _profile_config_dir(profile: str = "digest") -> Path:
     """Return the config directory for a given profile.
 
     Args:
-        profile: Profile name ('digest' or 'monitor')
+        profile: Profile name (one of VALID_PROFILES)
 
     Returns:
-        Path to the profile's config directory
+        Path to the profile's config directory.
+        - digest: config/
+        - monitor: config/monitor/
+        - topic: config/topic/
     """
     if profile not in VALID_PROFILES:
         raise ValueError(f"Unknown profile '{profile}'. Valid: {VALID_PROFILES}")

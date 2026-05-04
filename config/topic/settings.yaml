@@ -1,0 +1,35 @@
+# Topic profile — ad-hoc topical news briefs
+# Driven by --query CLI arg; settings here are minimal defaults.
+
+pipeline:
+  # Quality filter (same as digest)
+  min_article_length_words: 10
+  max_article_age_hours: 168  # 1 week max — overridden by --hours CLI flag
+  max_digest_articles: 100    # cap synthesis input
+
+email:
+  # Reuse the digest recipient by default; override per-profile if needed.
+  recipient: ${NEWS_TOPIC_RECIPIENT:-${NEWS_RECIPIENT:-user@example.com}}
+
+storage:
+  db_path: ~/SourceCode/news/data/news.db
+  run_log_path: ~/SourceCode/news/data/run.log
+
+synthesis:
+  claude_command: ${NEWS_CLAUDE_COMMAND:-claude}
+  claude_args:
+    - "--print"
+    - "--model"
+    - "sonnet"
+  timeout: 300
+  max_retries: 2
+
+scoring:
+  # Topic queries: recency matters most, no brand/category bonuses
+  recency_1h: 20
+  recency_4h: 15
+  recency_12h: 10
+  recency_24h: 5
+  tier_1_bonus: 5
+  tier_2_bonus: 3
+  tier_3_bonus: 1

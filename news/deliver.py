@@ -352,6 +352,119 @@ def build_monitor_subject(
     return base
 
 
+def render_topic_html(
+    synthesis: dict,
+    query: str,
+    hours: int,
+    source_count: int,
+    time_display: str,
+    date_display: str,
+    subject: str = "",
+) -> str:
+    """Render the topic HTML using Jinja2 template.
+
+    Args:
+        synthesis: Parsed topic synthesis dict (executive_brief + sections)
+        query: User's free-text topic query
+        hours: Time window in hours
+        source_count: Total number of source articles fetched
+        time_display: Time string (e.g. "15:00")
+        date_display: Date string (e.g. "sun 4 may")
+        subject: Email subject line
+
+    Returns:
+        Rendered HTML string
+    """
+    env = Environment(  # nosemgrep
+        loader=FileSystemLoader(_TEMPLATES_DIR),
+        autoescape=select_autoescape(default_for_string=True, default=True),
+    )
+    template = env.get_template("topic.html")
+
+    executive_brief = synthesis.get("executive_brief", [])
+    sections = synthesis.get("sections", [])
+    fallback_text = synthesis.get("fallback_text", "")
+
+    # Pre-convert newlines to <br> in synthesis text and mark as safe HTML
+    for section in sections:
+        if "synthesis" in section and section["synthesis"]:
+            text = (
+                section["synthesis"]
+                .replace("&", _HTML_AMP)
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+            )
+            section["synthesis"] = Markup(  # nosemgrep
+                text.replace("\n\n", _HTML_BR_DOUBLE).replace("\n", "<br>")
+            )
+    if fallback_text:
+        text = (
+            fallback_text.replace("&", _HTML_AMP)
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+        )
+        fallback_text = Markup(
+            text.replace("\n\n", _HTML_BR_DOUBLE).replace("\n", "<br>")
+        )  # nosemgrep
+
+    return template.render(  # nosemgrep
+        subject=subject,
+        query=query,
+        hours=hours,
+        date_display=date_display,
+        time_display=time_display,
+        source_count=source_count,
+        executive_brief=executive_brief,
+        sections=sections,
+        fallback_text=fallback_text,
+    )
+
+
+def build_topic_subject(
+    dt: datetime,
+    query: str,
+    is_adhoc: bool = True,
+    synthesis_failed: bool = False,
+) -> str:
+    """Build topic email subject line.
+
+    Format: "Topic Brief | {query[:50]}[…] | {Day} {DD} {MON} {HH:MM}"
+
+    Args:
+        dt: Datetime object (should have Athens timezone)
+        query: User's free-text query (truncated to 50 chars in subject)
+        is_adhoc: Whether this is an ad-hoc run (always True for topic; accepted for symmetry)
+        synthesis_failed: Whether synthesis failed
+
+    Returns:
+        Formatted subject line
+    """
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=_ATHENS_TZ)
+    else:
+        dt = dt.astimezone(_ATHENS_TZ)
+
+    time_str = dt.strftime("%H:%M")
+    day_name = dt.strftime("%a").capitalize()
+    day_num = dt.strftime("%-d")
+    month_name = dt.strftime("%b").upper()
+
+    # Truncate query to 50 chars; append … when truncated
+    if len(query) > 50:
+        query_display = query[:50] + "…"
+    else:
+        query_display = query
+
+    base = (
+        f"Topic Brief | {query_display} | {day_name} {day_num} {month_name} {time_str}"
+    )
+
+    if synthesis_failed:
+        base += " | headlines only"
+
+    return base
+
+
 def save_fallback(
     html: str, output_dir: str = "~/Downloads", label: str = "digest"
 ) -> str:

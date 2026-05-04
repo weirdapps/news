@@ -8,6 +8,7 @@ import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo
 
 # Ensure imports work when called from cron
@@ -24,9 +25,11 @@ from news.config import (
 from news.deliver import (
     build_monitor_subject,
     build_subject,
+    build_topic_subject,
     notify_macos,
     render_digest_html,
     render_monitor_html,
+    render_topic_html,
     save_fallback,
     send_email,
 )
@@ -45,6 +48,11 @@ from news.storage import (
     update_digest_sent,
 )
 from news.synthesizer import synthesize
+from news.topic_synth import (
+    build_google_news_url,
+    build_topic_fallback,
+    synthesize_topic,
+)
 
 # Constants
 _ATHENS_TZ = ZoneInfo("Europe/Athens")
@@ -206,15 +214,29 @@ def log_run(
         f.write(line)
 
 
-async def run_pipeline(run_type: str = "scheduled", profile: str = "digest") -> None:
+async def run_pipeline(
+    run_type: str = "scheduled",
+    profile: str = "digest",
+    query: str | None = None,
+    hours: int = 24,
+    print_only: bool = False,
+) -> None:
     """Execute the appropriate pipeline based on profile.
 
     Args:
         run_type: "scheduled" or "adhoc"
-        profile: "digest" or "monitor"
+        profile: "digest", "monitor", or "topic"
+        query: Free-text query (required for topic profile)
+        hours: Time window in hours (topic profile only)
+        print_only: If True, print HTML to stdout instead of emailing (topic only)
     """
     if profile == "monitor":
         await run_monitor_pipeline(run_type=run_type)
+        return
+    if profile == "topic":
+        # Argparse-level validation already guarantees query is present.
+        assert query is not None, "topic profile requires --query"
+        await run_topic_pipeline(query=query, hours=hours, print_only=print_only)
         return
     await run_digest_pipeline(run_type=run_type)
 
@@ -712,6 +734,195 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     logger.info(f"Monitor pipeline complete in {duration:.1f}s")
 
 
+async def run_topic_pipeline(
+    query: str,
+    hours: int = 24,
+    print_only: bool = False,
+) -> None:
+    """Execute the ad-hoc topic-brief pipeline.
+
+    Args:
+        query: User's free-text topic query
+        hours: Time window in hours (1–168)
+        print_only: If True, print rendered HTML to stdout instead of emailing
+    """
+    start_time = datetime.now(timezone.utc)
+    logger = logging.getLogger(__name__)
+    logger.info(f"Starting topic pipeline run | query={query!r} hours={hours}")
+
+    # Load topic-specific configuration
+    settings = get_settings(profile="topic")
+    pipeline_config = settings["pipeline"]
+    email_config = settings["email"]
+    storage_config = settings["storage"]
+    synthesis_config = settings.get("synthesis", {})
+    scoring_config = settings.get("scoring", {})
+
+    db_path = Path(storage_config["db_path"]).expanduser()
+    run_log_path = Path(storage_config["run_log_path"]).expanduser()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Connect to database (shared with digest/monitor)
+    conn = get_connection(db_path)
+    init_db(conn)
+
+    # FETCH: build a single Google News RSS source dict and fetch via existing helper
+    google_url = build_google_news_url(query, hours=hours)
+    source_name = f"Google News: {query[:60]}"
+    source_tier = 2
+    source_config: dict[str, Any] = {
+        "url": google_url,
+        "name": source_name,
+        "category": "topic",
+        "tier": source_tier,
+        "language": "en",
+    }
+    logger.info(f"Fetching Google News RSS for topic | url={google_url}")
+    raw_articles, fetch_errors = await fetch_rss_feeds([source_config])
+    logger.info(f"Fetched {len(raw_articles)} articles")
+    if fetch_errors:
+        for error in fetch_errors:
+            logger.warning(f"  fetch error: {error}")
+
+    # PROCESS: dedup + quality filter only — no categorization (no relevant categories)
+    existing_hashes: set[str] = set()
+    for article in raw_articles:
+        article.pipeline = "topic"
+        article.compute_hash()
+        if get_article_by_hash(conn, article.content_hash):
+            existing_hashes.add(article.content_hash)
+
+    processed_articles, process_stats = process_articles(
+        articles=raw_articles,
+        existing_hashes=existing_hashes,
+        categories_config={"categories": {}},  # no categories for ad-hoc topic
+        scoring_config=scoring_config,
+        source_tiers={source_name: source_tier},
+        min_words=pipeline_config["min_article_length_words"],
+        max_age_hours=pipeline_config["max_article_age_hours"],
+    )
+
+    for article in processed_articles:
+        article.pipeline = "topic"
+
+    logger.info(
+        f"Processing complete: {process_stats['output_count']} new "
+        f"({process_stats['duplicates']} duplicates, "
+        f"{process_stats['quality_dropped']} quality drops)"
+    )
+
+    # STORE: insert new articles
+    for article in processed_articles:
+        insert_article(conn, article)
+
+    # SELECT: top N by score for synthesis input
+    max_articles = pipeline_config.get("max_digest_articles", 100)
+    candidates = sorted(
+        processed_articles, key=lambda a: a.relevance_score, reverse=True
+    )[:max_articles]
+
+    # SYNTHESIZE
+    auth_ok = check_gcloud_auth()
+    if auth_ok and candidates:
+        synthesis_result, synthesis_ok = synthesize_topic(
+            articles=candidates,
+            query=query,
+            hours=hours,
+            max_retries=synthesis_config.get("max_retries", 2),
+            timeout=synthesis_config.get("timeout", 300),
+            claude_command=synthesis_config.get("claude_command", "claude"),
+            claude_args=synthesis_config.get("claude_args", []),
+        )
+    else:
+        if not auth_ok:
+            logger.warning("gcloud auth expired — skipping synthesis, using fallback")
+        elif not candidates:
+            logger.warning("No articles fetched — using fallback")
+        synthesis_result = build_topic_fallback(candidates)
+        synthesis_ok = False
+
+    synthesis_data: dict
+    if synthesis_ok:
+        assert isinstance(synthesis_result, dict)
+        synthesis_data = synthesis_result
+        synthesis_text = json.dumps(synthesis_result)
+    else:
+        assert isinstance(synthesis_result, str)
+        synthesis_data = {"fallback_text": synthesis_result}
+        synthesis_text = synthesis_result
+
+    # DELIVER: render HTML; either print or email
+    now_athens = start_time.astimezone(_ATHENS_TZ)
+    time_display = now_athens.strftime("%H:%M")
+    date_display = now_athens.strftime("%a %-d %b").lower()
+    source_count = len(candidates)
+
+    subject = build_topic_subject(
+        dt=now_athens,
+        query=query,
+        is_adhoc=True,
+        synthesis_failed=(not synthesis_ok),
+    )
+
+    html_output = render_topic_html(
+        synthesis=synthesis_data,
+        query=query,
+        hours=hours,
+        source_count=source_count,
+        time_display=time_display,
+        date_display=date_display,
+        subject=subject,
+    )
+
+    email_sent = False
+    if print_only:
+        print(html_output)
+        logger.info("Printed topic brief to stdout (--print)")
+    else:
+        email_sent = send_email(
+            subject=subject,
+            html_body=html_output,
+            recipient=email_config["recipient"],
+        )
+        if not email_sent:
+            logger.error("Topic email send failed - saving fallback")
+            fallback_path = save_fallback(html_output, label="topic")
+            notify_macos(
+                title="Topic Brief Send Failed",
+                message=f"Saved to {fallback_path}",
+            )
+
+    # Record topic digest in database
+    digest = Digest(
+        digest_type="adhoc",
+        created_at=start_time,
+        article_count=source_count,
+        synthesis_text=synthesis_text,
+        html_output=html_output,
+        sent_at=None,
+        pipeline="topic",
+    )
+    digest_id = insert_digest(conn, digest)
+
+    if email_sent:
+        update_digest_sent(conn, digest_id)
+
+    conn.close()
+
+    duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+    log_run(
+        log_path=str(run_log_path),
+        run_type="topic-adhoc",
+        article_count=len(processed_articles),
+        new_count=process_stats["output_count"],
+        synthesis_ok=synthesis_ok,
+        sent_ok=(email_sent or print_only),
+        duration_seconds=duration,
+    )
+
+    logger.info(f"Topic pipeline complete in {duration:.1f}s")
+
+
 def main() -> None:
     """Main entry point with CLI parsing and lock management."""
     setup_logging()
@@ -737,11 +948,41 @@ def main() -> None:
         "--profile",
         choices=VALID_PROFILES,
         default="digest",
-        help="Pipeline profile: 'digest' (default) or 'monitor' (brand monitoring)",
+        help=(
+            "Pipeline profile: 'digest' (default), 'monitor' (brand monitoring), "
+            "or 'topic' (ad-hoc topical brief — requires --query)"
+        ),
+    )
+    parser.add_argument(
+        "--query",
+        type=str,
+        default=None,
+        help="Free-text topic query (REQUIRED with --profile topic)",
+    )
+    parser.add_argument(
+        "--hours",
+        type=int,
+        default=24,
+        help="Time window in hours for --profile topic (1–168, default 24)",
+    )
+    parser.add_argument(
+        "--print",
+        action="store_true",
+        dest="print_only",
+        help="Print rendered HTML to stdout instead of emailing (topic profile)",
     )
     parser.set_defaults(run_type="scheduled")
 
     args = parser.parse_args()
+
+    # Validation: --query and --profile topic are mutually required.
+    # These errors must be raised BEFORE lock acquisition so they exit cleanly.
+    if args.profile == "topic" and not args.query:
+        parser.error("--profile topic requires --query 'your topic'")
+    if args.query is not None and args.profile != "topic":
+        parser.error("--query is only valid with --profile topic")
+    if args.profile == "topic" and not (1 <= args.hours <= 168):
+        parser.error("--hours must be between 1 and 168 (1 week max)")
 
     # Use profile-specific lock to allow digest and monitor to run concurrently
     lock_path = _PROJECT_ROOT / "data" / f"pipeline-{args.profile}.lock"
@@ -755,7 +996,15 @@ def main() -> None:
 
     try:
         # Run pipeline
-        asyncio.run(run_pipeline(run_type=args.run_type, profile=args.profile))
+        asyncio.run(
+            run_pipeline(
+                run_type=args.run_type,
+                profile=args.profile,
+                query=args.query,
+                hours=args.hours,
+                print_only=args.print_only,
+            )
+        )
     except Exception as e:
         logger.error(f"Pipeline failed with exception: {e}", exc_info=True)
         sys.exit(1)
