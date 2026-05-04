@@ -45,7 +45,9 @@ def _expand_env(value):
     """Recursively expand ${VAR} / ${VAR:-default} in strings, dicts, and lists."""
     if isinstance(value, str):
         return _ENV_VAR_PATTERN.sub(
-            lambda m: os.environ.get(m.group(1), m.group(2) if m.group(2) is not None else ""),
+            lambda m: os.environ.get(
+                m.group(1), m.group(2) if m.group(2) is not None else ""
+            ),
             value,
         )
     if isinstance(value, dict):

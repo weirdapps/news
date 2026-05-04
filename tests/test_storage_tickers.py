@@ -7,11 +7,19 @@ from news.storage import init_db, get_article_by_url, insert_article
 
 def _make_article(url="http://x/1", tickers=None):
     return Article(
-        url=url, title="t", source="s", author=None,
-        published_at=datetime(2026, 5, 3), content="c",
-        summary=None, content_hash="h", language="en",
-        relevance_score=10, fetched_at=datetime(2026, 5, 3),
-        categories=["business"], tickers=tickers or [],
+        url=url,
+        title="t",
+        source="s",
+        author=None,
+        published_at=datetime(2026, 5, 3),
+        content="c",
+        summary=None,
+        content_hash="h",
+        language="en",
+        relevance_score=10,
+        fetched_at=datetime(2026, 5, 3),
+        categories=["business"],
+        tickers=tickers or [],
     )
 
 
@@ -58,7 +66,7 @@ def test_insert_article_persists_tickers():
     insert_article(conn, art)
     rows = conn.execute(
         "SELECT ticker FROM article_tickers WHERE article_url=? ORDER BY ticker",
-        (art.url,)
+        (art.url,),
     ).fetchall()
     assert [r[0] for r in rows] == ["AAPL", "MSFT"]
 

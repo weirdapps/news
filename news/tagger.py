@@ -8,6 +8,7 @@ The Haiku fallback (separate function) is invoked only for articles in
 market-adjacent categories where the rules layer found nothing — to keep
 cost low while improving recall on names not in the dictionary.
 """
+
 from __future__ import annotations
 import json
 import re
@@ -38,8 +39,12 @@ def _compile_dict_patterns(dict_id: int, dict_keys_tuple: tuple) -> tuple:
 
     The dict_id arg is just for cache-key uniqueness; the actual regex is built from keys_tuple.
     """
-    short_keys = sorted([k for k in dict_keys_tuple if len(k) <= 3], key=len, reverse=True)
-    long_keys = sorted([k for k in dict_keys_tuple if len(k) > 3], key=len, reverse=True)
+    short_keys = sorted(
+        [k for k in dict_keys_tuple if len(k) <= 3], key=len, reverse=True
+    )
+    long_keys = sorted(
+        [k for k in dict_keys_tuple if len(k) > 3], key=len, reverse=True
+    )
 
     short_pattern = None
     if short_keys:
@@ -99,7 +104,9 @@ def extract_tickers_rules(text: str, ticker_dict: dict[str, str]) -> list[str]:
     if not ticker_dict:
         return sorted(found)
 
-    short_pat, long_pat = _compile_dict_patterns(id(ticker_dict), tuple(ticker_dict.keys()))
+    short_pat, long_pat = _compile_dict_patterns(
+        id(ticker_dict), tuple(ticker_dict.keys())
+    )
 
     found.update(_extract_short_keys(text, short_pat, ticker_dict))
     found.update(_extract_long_keys(text, long_pat, ticker_dict))

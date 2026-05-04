@@ -78,7 +78,10 @@ def classify_article(article: Article, categories_config: dict) -> None:
 
 
 def compute_relevance_score(
-    article: Article, scoring: dict, source_tier: int = 2
+    article: Article,
+    scoring: dict,
+    source_tier: int = 2,
+    keywords_config: dict | None = None,
 ) -> int:
     """
     Compute relevance score for an article.
@@ -89,6 +92,10 @@ def compute_relevance_score(
         article: Article to score
         scoring: Scoring configuration dict
         source_tier: Tier of the source (1=premium, 2=standard, 3=supplementary)
+        keywords_config: Optional brand-monitoring config. When provided, the
+            company-mention bonus uses ``company.names`` and the sector bonus
+            uses ``competitors.*.names``. When None (digest profile), neither
+            bonus applies.
 
     Returns:
         Computed relevance score
@@ -96,22 +103,26 @@ def compute_relevance_score(
     score = 0
     text = (article.title + " " + article.content).lower()
 
-    # Check for company mentions (NBG patterns are local to the personal config;
-    # the YAML scoring key uses the generic name `company_mention`).
-    company_patterns = ["national bank of greece", "nbg", "ethniki trapeza"]
-    if any(pattern in text for pattern in company_patterns):
-        score += scoring.get("company_mention", 0)
+    # Company-mention bonus — patterns come from keywords_config.company.names.
+    # When keywords_config is None (digest profile), no company bonus applies.
+    if keywords_config:
+        company_names = [
+            n.lower() for n in keywords_config.get("company", {}).get("names", [])
+        ]
+        if any(name in text for name in company_names):
+            score += scoring.get("company_mention", 0)
 
-    # Check for Greek banking patterns
-    greek_banking_patterns = [
-        "greek bank",
-        "hellenic bank",
-        "piraeus bank",
-        "alpha bank",
-        "eurobank",
-    ]
-    if any(pattern in text for pattern in greek_banking_patterns):
-        score += scoring.get("greek_banking", 0)
+    # Sector / competitor-mention bonus — patterns derived from
+    # keywords_config.competitors. The scoring YAML key is still named
+    # ``greek_banking`` (legacy; it is just an internal label for the bonus
+    # and does not need to be brand-specific).
+    if keywords_config:
+        competitor_patterns: list[str] = []
+        for _, comp in keywords_config.get("competitors", {}).items():
+            for name in comp.get("names", []):
+                competitor_patterns.append(name.lower())
+        if competitor_patterns and any(p in text for p in competitor_patterns):
+            score += scoring.get("greek_banking", 0)
 
     # Check for Claude/AI tools mentions
     claude_patterns = [
@@ -240,6 +251,7 @@ def process_articles(
     source_tiers: dict[str, int],
     min_words: int = 100,
     max_age_hours: int = 36,
+    keywords_config: dict | None = None,
 ) -> tuple[list[Article], dict]:
     """
     Process articles through the full pipeline.
@@ -258,6 +270,8 @@ def process_articles(
         source_tiers: Mapping of source name to tier
         min_words: Minimum word count for quality filter
         max_age_hours: Maximum age in hours for quality filter
+        keywords_config: Optional brand-monitoring config; threaded to
+            ``compute_relevance_score`` for company/competitor bonuses.
 
     Returns:
         Tuple of (processed_articles, stats_dict)
@@ -283,6 +297,7 @@ def process_articles(
         tier = source_tiers.get(article.source, 2)
         compute_relevance_score(article, scoring_config, tier)
         from news.tagger import tag_article
+
         tag_article(article)
 
     stats["output_count"] = len(unique)

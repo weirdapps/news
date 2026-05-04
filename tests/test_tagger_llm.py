@@ -45,7 +45,9 @@ def test_llm_handles_markdown_fenced_json(mock_run):
 
 @patch("news.tagger.subprocess.run")
 def test_llm_uppercases_and_dedups(mock_run):
-    mock_run.return_value = _mock_proc(json.dumps({"tickers": ["aapl", "AAPL", "msft"]}))
+    mock_run.return_value = _mock_proc(
+        json.dumps({"tickers": ["aapl", "AAPL", "msft"]})
+    )
     out = extract_tickers_llm("text")
     assert out == ["AAPL", "MSFT"]
 

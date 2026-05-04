@@ -8,6 +8,7 @@ Usage:
     python scripts/backfill_tickers.py --max 100  # process up to 100 (smoke test)
     python scripts/backfill_tickers.py --batch 500 --commit-every 100
 """
+
 from __future__ import annotations
 import argparse
 import sqlite3
@@ -27,12 +28,19 @@ from datetime import datetime
 def _row_to_minimal_article(row) -> Article:
     """Build minimal Article for the tagger — only needs title, content, categories."""
     return Article(
-        url=row["url"], title=row["title"] or "", source=row["source"],
-        author=None, published_at=datetime.fromisoformat(row["published_at"]),
-        content=row["content"] or "", summary=None,
-        content_hash=row["content_hash"], language=None,
-        relevance_score=0, fetched_at=datetime.fromisoformat(row["fetched_at"]),
-        categories=[], tickers=[],
+        url=row["url"],
+        title=row["title"] or "",
+        source=row["source"],
+        author=None,
+        published_at=datetime.fromisoformat(row["published_at"]),
+        content=row["content"] or "",
+        summary=None,
+        content_hash=row["content_hash"],
+        language=None,
+        relevance_score=0,
+        fetched_at=datetime.fromisoformat(row["fetched_at"]),
+        categories=[],
+        tickers=[],
     )
 
 
@@ -50,7 +58,9 @@ def backfill(
     that HAVE tickers. Articles with no tickers don't need junction rows.
     """
     # Load category map per article in one query
-    cat_rows = conn.execute("SELECT article_url, category FROM article_categories").fetchall()
+    cat_rows = conn.execute(
+        "SELECT article_url, category FROM article_categories"
+    ).fetchall()
     cat_map: dict[str, list[str]] = {}
     for r in cat_rows:
         cat_map.setdefault(r["article_url"], []).append(r["category"])
@@ -113,7 +123,9 @@ def main() -> int:
     start = time.time()
     n_processed, n_tagged = backfill(conn, args.batch, args.max, args.commit_every)
     elapsed = time.time() - start
-    print(f"Done. Processed {n_processed} in {elapsed:.0f}s, tagged {n_tagged} ({100*n_tagged/max(n_processed,1):.0f}%).")
+    print(
+        f"Done. Processed {n_processed} in {elapsed:.0f}s, tagged {n_tagged} ({100 * n_tagged / max(n_processed, 1):.0f}%)."
+    )
     return 0
 
 

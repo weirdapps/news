@@ -7,11 +7,19 @@ from news.query import search_articles
 
 def _art(url, title, tickers):
     return Article(
-        url=url, title=title, source="s", author=None,
-        published_at=datetime(2026, 5, 3), content=title,
-        summary=None, content_hash=url, language="en",
-        relevance_score=10, fetched_at=datetime(2026, 5, 3),
-        categories=["business"], tickers=tickers,
+        url=url,
+        title=title,
+        source="s",
+        author=None,
+        published_at=datetime(2026, 5, 3),
+        content=title,
+        summary=None,
+        content_hash=url,
+        language="en",
+        relevance_score=10,
+        fetched_at=datetime(2026, 5, 3),
+        categories=["business"],
+        tickers=tickers,
     )
 
 
@@ -21,7 +29,10 @@ def test_search_filters_by_ticker():
     init_db(conn)
     insert_article(conn, _art("http://x/1", "Apple earnings cloud report", ["AAPL"]))
     insert_article(conn, _art("http://x/2", "Microsoft cloud earnings", ["MSFT"]))
-    insert_article(conn, _art("http://x/3", "Cloud earnings both Apple and Microsoft", ["AAPL", "MSFT"]))
+    insert_article(
+        conn,
+        _art("http://x/3", "Cloud earnings both Apple and Microsoft", ["AAPL", "MSFT"]),
+    )
     results = search_articles(conn, "earnings cloud", ticker="AAPL", days=30, limit=10)
     urls = [r["url"] for r in results]
     assert "http://x/1" in urls
@@ -50,6 +61,7 @@ def test_search_ticker_filter_with_no_matches():
 
 def test_recent_for_tickers_returns_articles_for_any_ticker_in_list():
     from news.query import recent_for_tickers
+
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
     init_db(conn)
@@ -63,6 +75,7 @@ def test_recent_for_tickers_returns_articles_for_any_ticker_in_list():
 
 def test_recent_for_tickers_respects_hours_window():
     from news.query import recent_for_tickers
+
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
     init_db(conn)
@@ -79,6 +92,7 @@ def test_recent_for_tickers_respects_hours_window():
 
 def test_recent_for_tickers_empty_list():
     from news.query import recent_for_tickers
+
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
     init_db(conn)

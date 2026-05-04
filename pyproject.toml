@@ -29,3 +29,18 @@ packages = ["news"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+# Mypy is not in GitHub CI — runs locally via pre-commit only. Lenient defaults
+# with ignore_errors for modules carrying pre-existing type baseline issues.
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+warn_unused_ignores = false
+
+[[tool.mypy.overrides]]
+module = ["news.storage", "news.processor", "news.fetcher", "main"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["scripts.*"]
+ignore_errors = true
