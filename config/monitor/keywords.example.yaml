@@ -1,6 +1,12 @@
 # Monitor — Keyword Definitions
 # Used for entity detection, relevance filtering, and classification
 
+display:
+  full_name: "Your Company Full Name"
+  short_name: "YourCo"
+  monitor_label: "BRAND MONITOR"
+  ticker_primary: "TICKER"
+
 # Primary entity — all variants of company name
 company:
   names:
