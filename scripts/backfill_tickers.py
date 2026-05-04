@@ -95,9 +95,19 @@ def main() -> int:
     parser.add_argument("--max", type=int, default=None)
     parser.add_argument("--batch", type=int, default=500)
     parser.add_argument("--commit-every", type=int, default=100)
+    parser.add_argument(
+        "--db-path",
+        type=str,
+        default=None,
+        help="Path to news.db (default: <repo_root>/data/news.db)",
+    )
     args = parser.parse_args()
 
-    db_path = Path(__file__).parent.parent / "data" / "news.db"
+    if args.db_path:
+        db_path = Path(args.db_path).expanduser()
+    else:
+        db_path = Path(__file__).parent.parent / "data" / "news.db"
+    print(f"Using DB: {db_path}", flush=True)
     conn = get_connection(db_path)
     init_db(conn)
     start = time.time()

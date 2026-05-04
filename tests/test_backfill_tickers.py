@@ -44,3 +44,24 @@ def test_backfill_skips_already_tagged():
         n_processed, n_tagged = backfill(conn, batch_size=10, max_articles=None)
     assert n_processed == 0  # already tagged, skipped
     assert n_tagged == 0
+
+
+import subprocess
+import sys
+from pathlib import Path
+
+
+def test_db_path_arg_overrides_default(tmp_path):
+    """The --db-path arg lets the script point at any DB."""
+    # Create an empty DB at a custom path
+    custom_db = tmp_path / "custom.db"
+    # Run the script with --db-path and --max 0 (no work, just exercise the path resolution)
+    result = subprocess.run(
+        [sys.executable, "scripts/backfill_tickers.py",
+         "--db-path", str(custom_db), "--max", "1"],
+        capture_output=True, text=True, timeout=30,
+    )
+    # Should print the custom path it's using (or a reasonable error if DB is empty)
+    # Either way, the path string should appear in stdout/stderr
+    combined = result.stdout + result.stderr
+    assert str(custom_db) in combined, f"Expected DB path in output, got: {combined}"
