@@ -24,12 +24,18 @@ build/
 # Secrets & credentials
 .env
 .env.*
+!.env.example
 *.key
 *.pem
 *.p12
 credentials.json
 token.json
 secrets/
+
+# Personal monitor config (NBG-specific brand keywords + RSS feeds).
+# Tracked .example.yaml templates show forkers the structure to follow.
+config/monitor/sources.yaml
+config/monitor/keywords.yaml
 
 # IDE
 .vscode/

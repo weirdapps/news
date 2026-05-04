@@ -124,7 +124,7 @@ def test_compute_relevance_score():
     )
 
     scoring_config = {
-        "nbg_mention": 30,
+        "company_mention": 30,
         "greek_banking": 20,
         "category_match": 10,
         "tier_1_bonus": 15,
@@ -138,7 +138,7 @@ def test_compute_relevance_score():
 
     score = compute_relevance_score(article, scoring_config, source_tier=1)
 
-    # Expected: nbg_mention(30) + category_match(10) + tier_1_bonus(15) + recency_4h(15) = 70
+    # Expected: company_mention(30) + category_match(10) + tier_1_bonus(15) + recency_4h(15) = 70
     assert score >= 70
     assert article.relevance_score >= 70
 

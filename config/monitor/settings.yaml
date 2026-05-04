@@ -26,7 +26,8 @@ pipeline:
   skip_empty: true
 
 email:
-  recipient: user@example.com
+  # Override via NEWS_MONITOR_RECIPIENT env var (or .env file).
+  recipient: ${NEWS_MONITOR_RECIPIENT:-user@example.com}
 
 schedule:
   timezone: Europe/Athens

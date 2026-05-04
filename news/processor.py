@@ -96,10 +96,11 @@ def compute_relevance_score(
     score = 0
     text = (article.title + " " + article.content).lower()
 
-    # Check for NBG mentions
-    nbg_patterns = ["national bank of greece", "nbg", "ethniki trapeza"]
-    if any(pattern in text for pattern in nbg_patterns):
-        score += scoring.get("nbg_mention", 0)
+    # Check for company mentions (NBG patterns are local to the personal config;
+    # the YAML scoring key uses the generic name `company_mention`).
+    company_patterns = ["national bank of greece", "nbg", "ethniki trapeza"]
+    if any(pattern in text for pattern in company_patterns):
+        score += scoring.get("company_mention", 0)
 
     # Check for Greek banking patterns
     greek_banking_patterns = [

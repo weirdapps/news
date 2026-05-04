@@ -26,8 +26,8 @@ pipeline:
   dedup_hash_chars: 200
 
 email:
-  # Primary recipient
-  recipient: user@example.com
+  # Primary recipient. Override via NEWS_RECIPIENT env var (or .env file).
+  recipient: ${NEWS_RECIPIENT:-user@example.com}
 
 schedule:
   # Timezone for scheduling

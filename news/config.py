@@ -4,8 +4,14 @@ Profiles allow different pipeline configurations (e.g., 'digest' for broad news,
 'monitor' for NBG brand monitoring). Each profile has its own config directory:
 - digest (default): loads from config/
 - monitor: loads from config/monitor/
+
+YAML values support shell-style env var interpolation: ${VAR} and ${VAR:-default}.
+A `.env` file at the project root (gitignored) is loaded into os.environ at import
+time. Real environment variables take precedence over .env values.
 """
 
+import os
+import re
 from pathlib import Path
 import yaml
 
@@ -15,6 +21,42 @@ _PROJECT_ROOT = Path(__file__).parent.parent
 _CONFIG_DIR = _PROJECT_ROOT / "config"
 
 VALID_PROFILES = ("digest", "monitor")
+
+# Matches ${VAR} or ${VAR:-default}
+_ENV_VAR_PATTERN = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)(?::-([^}]*))?\}")
+
+
+def _load_dotenv(path: Path) -> None:
+    """Populate os.environ from a .env file. Real env vars are NOT overridden."""
+    if not path.exists():
+        return
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+def _expand_env(value):
+    """Recursively expand ${VAR} / ${VAR:-default} in strings, dicts, and lists."""
+    if isinstance(value, str):
+        return _ENV_VAR_PATTERN.sub(
+            lambda m: os.environ.get(m.group(1), m.group(2) if m.group(2) is not None else ""),
+            value,
+        )
+    if isinstance(value, dict):
+        return {k: _expand_env(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_expand_env(item) for item in value]
+    return value
+
+
+# Load .env once at import (no-op if file missing).
+_load_dotenv(_PROJECT_ROOT / ".env")
 
 
 def _profile_config_dir(profile: str = "digest") -> Path:
@@ -47,7 +89,7 @@ def load_config(path: Path) -> dict:
         yaml.YAMLError: If the file contains invalid YAML
     """
     with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        return _expand_env(yaml.safe_load(f))
 
 
 def get_sources(path: Path | None = None, profile: str = "digest") -> dict:

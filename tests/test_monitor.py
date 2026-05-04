@@ -57,8 +57,8 @@ def test_monitor_settings_loads():
     assert "pipeline" in settings
     assert "email" in settings
     assert "scoring" in settings
-    # Monitor-specific scoring should have higher NBG bonus
-    assert settings["scoring"]["nbg_mention"] >= 50
+    # Monitor-specific scoring should have higher company-mention bonus
+    assert settings["scoring"]["company_mention"] >= 50
 
 
 def test_monitor_keywords_loads():
