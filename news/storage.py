@@ -190,9 +190,12 @@ def _row_to_article(conn: sqlite3.Connection, row: sqlite3.Row) -> Article:
     tickers = [r["ticker"] for r in ticker_rows]
 
     # Parse also_reported_by JSON if present
-    also_reported_by = None
+    also_reported_by: list[str] = []
     if row["also_reported_by"]:
         also_reported_by = json.loads(row["also_reported_by"])
+
+    # fetched_at column is NOT NULL in schema; default just in case
+    fetched_at = _str_to_dt(row["fetched_at"]) or datetime.now(timezone.utc)
 
     return Article(
         url=row["url"],
@@ -206,7 +209,7 @@ def _row_to_article(conn: sqlite3.Connection, row: sqlite3.Row) -> Article:
         categories=categories,
         language=row["language"],
         relevance_score=row["relevance_score"],
-        fetched_at=_str_to_dt(row["fetched_at"]),
+        fetched_at=fetched_at,
         included_in_digest_id=row["included_in_digest_id"],
         also_reported_by=also_reported_by,
         pipeline=row["pipeline"] or "digest",
@@ -363,7 +366,9 @@ def insert_digest(conn: sqlite3.Connection, digest: Digest) -> int:
         ),
     )
     conn.commit()
-    return cursor.lastrowid
+    # lastrowid is None only if no row was inserted; right after a successful
+    # INSERT with AUTOINCREMENT it is always populated.
+    return cursor.lastrowid or 0
 
 
 def get_last_digest(
@@ -383,10 +388,13 @@ def get_last_digest(
     if row is None:
         return None
 
+    # created_at column is NOT NULL in schema; default just in case
+    created_at = _str_to_dt(row["created_at"]) or datetime.now(timezone.utc)
+
     return Digest(
         id=row["id"],
         digest_type=row["digest_type"],
-        created_at=_str_to_dt(row["created_at"]),
+        created_at=created_at,
         article_count=row["article_count"],
         synthesis_text=row["synthesis_text"],
         html_output=row["html_output"],

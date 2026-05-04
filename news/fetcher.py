@@ -51,9 +51,27 @@ def normalize_rss_entry(
     # Extract published date (optional)
     published_at = None
     if "published_parsed" in entry and entry["published_parsed"]:
-        published_at = datetime(*entry["published_parsed"][:6], tzinfo=timezone.utc)
+        parsed = entry["published_parsed"]
+        published_at = datetime(
+            parsed[0],
+            parsed[1],
+            parsed[2],
+            parsed[3],
+            parsed[4],
+            parsed[5],
+            tzinfo=timezone.utc,
+        )
     elif "updated_parsed" in entry and entry["updated_parsed"]:
-        published_at = datetime(*entry["updated_parsed"][:6], tzinfo=timezone.utc)
+        parsed = entry["updated_parsed"]
+        published_at = datetime(
+            parsed[0],
+            parsed[1],
+            parsed[2],
+            parsed[3],
+            parsed[4],
+            parsed[5],
+            tzinfo=timezone.utc,
+        )
     elif "published" in entry:
         try:
             published_at = parsedate_to_datetime(entry["published"])

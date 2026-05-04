@@ -306,9 +306,9 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     previous_highlights = []
     if last_digest and last_digest.synthesis_text:
         try:
-            synthesis_data = json.loads(last_digest.synthesis_text)
-            if isinstance(synthesis_data, dict):
-                previous_highlights = synthesis_data.get("executive_brief", [])
+            previous_synthesis = json.loads(last_digest.synthesis_text)
+            if isinstance(previous_synthesis, dict):
+                previous_highlights = previous_synthesis.get("executive_brief", [])
         except json.JSONDecodeError:
             pass
 
@@ -385,11 +385,15 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     relevant_articles = all_recent
 
     # Prepare synthesis data for rendering
+    synthesis_data: dict
     if synthesis_ok:
+        # Contract: synthesize() returns dict on success, str on failure.
+        assert isinstance(synthesis_result, dict)
         synthesis_data = synthesis_result
         synthesis_text = json.dumps(synthesis_result)
     else:
         # Fallback case - plain text
+        assert isinstance(synthesis_result, str)
         synthesis_data = {"fallback_text": synthesis_result}
         synthesis_text = synthesis_result
 
@@ -612,10 +616,14 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
         synthesis_ok = False
 
     # Prepare synthesis data
+    synthesis_data: dict
     if synthesis_ok:
+        # Contract: synthesize_monitor() returns dict on success, str on failure.
+        assert isinstance(synthesis_result, dict)
         synthesis_data = synthesis_result
         synthesis_text = json.dumps(synthesis_result)
     else:
+        assert isinstance(synthesis_result, str)
         synthesis_data = {"fallback_text": synthesis_result}
         synthesis_text = synthesis_result
 

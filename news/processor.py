@@ -20,7 +20,7 @@ def deduplicate(
     """
     unique = []
     dupes = []
-    seen = {}  # hash -> first article with that hash
+    seen: dict[str, Article] = {}  # hash -> first article with that hash
 
     for article in articles:
         # Ensure hash is computed
