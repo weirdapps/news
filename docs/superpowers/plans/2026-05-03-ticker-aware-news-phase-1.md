@@ -18,13 +18,13 @@
 ## Task 1: Add `article_tickers` junction table + migration
 
 **Files:**
-- Modify: `/Users/plessas/SourceCode/news/news/storage.py:75-101` (CREATE TABLE block in `init_db()`)
-- Modify: `/Users/plessas/SourceCode/news/news/storage.py:35-54` (`_migrate_db()`)
-- Test: `/Users/plessas/SourceCode/news/tests/test_storage_tickers.py` (new)
+- Modify: `~/news/news/storage.py:75-101` (CREATE TABLE block in `init_db()`)
+- Modify: `~/news/news/storage.py:35-54` (`_migrate_db()`)
+- Test: `~/news/tests/test_storage_tickers.py` (new)
 
 - [ ] **Step 1: Write the failing test**
 
-Create `/Users/plessas/SourceCode/news/tests/test_storage_tickers.py`:
+Create `~/news/tests/test_storage_tickers.py`:
 
 ```python
 import sqlite3
@@ -63,12 +63,12 @@ def test_article_tickers_cascade_delete():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_storage_tickers.py -v`
+Run: `cd ~/news && pytest tests/test_storage_tickers.py -v`
 Expected: 3 failures (`article_tickers` table does not exist).
 
 - [ ] **Step 3: Add CREATE TABLE in `init_db()`**
 
-In `/Users/plessas/SourceCode/news/news/storage.py`, after the `article_categories` CREATE block (around line 101), add:
+In `~/news/news/storage.py`, after the `article_categories` CREATE block (around line 101), add:
 
 ```python
         conn.execute(
@@ -88,7 +88,7 @@ In `/Users/plessas/SourceCode/news/news/storage.py`, after the `article_categori
 
 - [ ] **Step 4: Add `_migrate_db()` entry for existing databases**
 
-In `/Users/plessas/SourceCode/news/news/storage.py:35-54`, add to the `stmts` list:
+In `~/news/news/storage.py:35-54`, add to the `stmts` list:
 
 ```python
         "CREATE TABLE IF NOT EXISTS article_tickers (article_url TEXT NOT NULL, ticker TEXT NOT NULL, PRIMARY KEY (article_url, ticker), FOREIGN KEY (article_url) REFERENCES articles(url) ON DELETE CASCADE)",
@@ -97,12 +97,12 @@ In `/Users/plessas/SourceCode/news/news/storage.py:35-54`, add to the `stmts` li
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_storage_tickers.py -v`
+Run: `cd ~/news && pytest tests/test_storage_tickers.py -v`
 Expected: 3 PASSED.
 
 - [ ] **Step 6: Confirm migration runs cleanly against the live 251 MB DB (read-only safety check)**
 
-Run: `cd /Users/plessas/SourceCode/news && python -c "import sqlite3; from news.storage import init_db; conn = sqlite3.connect('data/news.db'); init_db(conn); print(conn.execute(\"SELECT COUNT(*) FROM article_tickers\").fetchone())"`
+Run: `cd ~/news && python -c "import sqlite3; from news.storage import init_db; conn = sqlite3.connect('data/news.db'); init_db(conn); print(conn.execute(\"SELECT COUNT(*) FROM article_tickers\").fetchone())"`
 Expected: `(0,)` — table exists, empty.
 
 - [ ] **Step 7: Commit**
@@ -117,14 +117,14 @@ git commit -m "feat(storage): add article_tickers junction table"
 ## Task 2: Extend `Article` model and storage helpers with tickers
 
 **Files:**
-- Modify: `/Users/plessas/SourceCode/news/news/models.py:6-31` (Article dataclass)
-- Modify: `/Users/plessas/SourceCode/news/news/storage.py:201-258` (`insert_article()`)
-- Modify: `/Users/plessas/SourceCode/news/news/storage.py:179-198` (`_row_to_article()`)
-- Test: `/Users/plessas/SourceCode/news/tests/test_storage_tickers.py` (extend)
+- Modify: `~/news/news/models.py:6-31` (Article dataclass)
+- Modify: `~/news/news/storage.py:201-258` (`insert_article()`)
+- Modify: `~/news/news/storage.py:179-198` (`_row_to_article()`)
+- Test: `~/news/tests/test_storage_tickers.py` (extend)
 
 - [ ] **Step 1: Write the failing test**
 
-Append to `/Users/plessas/SourceCode/news/tests/test_storage_tickers.py`:
+Append to `~/news/tests/test_storage_tickers.py`:
 
 ```python
 from news.models import Article
@@ -170,12 +170,12 @@ def test_insert_article_with_no_tickers():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_storage_tickers.py::test_insert_article_persists_tickers -v`
+Run: `cd ~/news && pytest tests/test_storage_tickers.py::test_insert_article_persists_tickers -v`
 Expected: FAIL with `TypeError: __init__() got an unexpected keyword argument 'tickers'`.
 
 - [ ] **Step 3: Add `tickers` field to `Article` dataclass**
 
-In `/Users/plessas/SourceCode/news/news/models.py`, add after the `categories` field (around line 28):
+In `~/news/news/models.py`, add after the `categories` field (around line 28):
 
 ```python
     tickers: list[str] = field(default_factory=list)
@@ -185,7 +185,7 @@ In `/Users/plessas/SourceCode/news/news/models.py`, add after the `categories` f
 
 - [ ] **Step 4: Update `insert_article()` to write tickers**
 
-In `/Users/plessas/SourceCode/news/news/storage.py:201-258`, after the categories insert loop, add:
+In `~/news/news/storage.py:201-258`, after the categories insert loop, add:
 
 ```python
     if article.tickers:
@@ -198,7 +198,7 @@ In `/Users/plessas/SourceCode/news/news/storage.py:201-258`, after the categorie
 
 - [ ] **Step 5: Update `_row_to_article()` to load tickers**
 
-In `/Users/plessas/SourceCode/news/news/storage.py:179-198`, before the final `return Article(...)`, add:
+In `~/news/news/storage.py:179-198`, before the final `return Article(...)`, add:
 
 ```python
     ticker_rows = conn.execute(
@@ -212,12 +212,12 @@ Then add `tickers=tickers,` to the `Article(...)` constructor.
 
 - [ ] **Step 6: Run tests to verify they pass**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_storage_tickers.py -v`
+Run: `cd ~/news && pytest tests/test_storage_tickers.py -v`
 Expected: 6 PASSED.
 
 - [ ] **Step 7: Run the full test suite to catch regressions**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest -v`
+Run: `cd ~/news && pytest -v`
 Expected: All previously passing tests still pass. If any test breaks because `Article(...)` now needs a `tickers` arg, the default factory should handle it; investigate any failure.
 
 - [ ] **Step 8: Commit**
@@ -234,12 +234,12 @@ git commit -m "feat(storage): persist and load tickers on Article model"
 **Why:** User flagged Claude Code as personal-interest news that should not bleed into market-relevant queries. Today it falls under `ai` or `tech` and is implicitly excluded from the committee's `('trading','business','banking')` filter — but giving it its own category makes the personal/professional split explicit and queryable.
 
 **Files:**
-- Modify: `/Users/plessas/SourceCode/news/config/categories.yaml`
-- Test: `/Users/plessas/SourceCode/news/tests/test_categories.py` (new)
+- Modify: `~/news/config/categories.yaml`
+- Test: `~/news/tests/test_categories.py` (new)
 
 - [ ] **Step 1: Write the failing test**
 
-Create `/Users/plessas/SourceCode/news/tests/test_categories.py`:
+Create `~/news/tests/test_categories.py`:
 
 ```python
 from news.config import load_categories
@@ -272,12 +272,12 @@ def test_general_ai_news_not_in_claude_code():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_categories.py -v`
+Run: `cd ~/news && pytest tests/test_categories.py -v`
 Expected: FAIL — `claude_code` category not in YAML.
 
 - [ ] **Step 3: Add `claude_code` to `categories.yaml`**
 
-In `/Users/plessas/SourceCode/news/config/categories.yaml`, add a new entry:
+In `~/news/config/categories.yaml`, add a new entry:
 
 ```yaml
   claude_code:
@@ -296,7 +296,7 @@ In `/Users/plessas/SourceCode/news/config/categories.yaml`, add a new entry:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_categories.py -v`
+Run: `cd ~/news && pytest tests/test_categories.py -v`
 Expected: 2 PASSED.
 
 - [ ] **Step 5: Commit**
@@ -311,13 +311,13 @@ git commit -m "feat(categories): split claude_code from general ai/tech"
 ## Task 4: Build `config/tickers.yaml` from etoro.csv
 
 **Files:**
-- Create: `/Users/plessas/SourceCode/news/scripts/build_tickers_yaml.py`
-- Create: `/Users/plessas/SourceCode/news/config/tickers.yaml` (generated)
-- Test: `/Users/plessas/SourceCode/news/tests/test_build_tickers_yaml.py`
+- Create: `~/news/scripts/build_tickers_yaml.py`
+- Create: `~/news/config/tickers.yaml` (generated)
+- Test: `~/news/tests/test_build_tickers_yaml.py`
 
 - [ ] **Step 1: Write the failing test**
 
-Create `/Users/plessas/SourceCode/news/tests/test_build_tickers_yaml.py`:
+Create `~/news/tests/test_build_tickers_yaml.py`:
 
 ```python
 from pathlib import Path
@@ -351,7 +351,7 @@ def test_strips_corporate_suffixes(tmp_path):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_build_tickers_yaml.py -v`
+Run: `cd ~/news && pytest tests/test_build_tickers_yaml.py -v`
 Expected: FAIL — module not found.
 
 - [ ] **Step 3: Implement `scripts/build_tickers_yaml.py`**
@@ -418,12 +418,12 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_build_tickers_yaml.py -v`
+Run: `cd ~/news && pytest tests/test_build_tickers_yaml.py -v`
 Expected: 2 PASSED.
 
 - [ ] **Step 5: Generate the actual `config/tickers.yaml`**
 
-Run: `cd /Users/plessas/SourceCode/news && python scripts/build_tickers_yaml.py`
+Run: `cd ~/news && python scripts/build_tickers_yaml.py`
 Expected: `Wrote ~10000-15000 entries to .../config/tickers.yaml`
 
 Inspect the file: `head -30 config/tickers.yaml`. Confirm sane mappings (e.g. `apple: AAPL`, `microsoft: MSFT`).
@@ -440,12 +440,12 @@ git commit -m "feat(config): generate tickers.yaml from etoro.csv (~5K mappings)
 ## Task 5: Rules-based ticker tagger
 
 **Files:**
-- Create: `/Users/plessas/SourceCode/news/news/tagger.py`
-- Test: `/Users/plessas/SourceCode/news/tests/test_tagger.py`
+- Create: `~/news/news/tagger.py`
+- Test: `~/news/tests/test_tagger.py`
 
 - [ ] **Step 1: Write the failing test**
 
-Create `/Users/plessas/SourceCode/news/tests/test_tagger.py`:
+Create `~/news/tests/test_tagger.py`:
 
 ```python
 from news.tagger import extract_tickers_rules
@@ -488,7 +488,7 @@ def test_returns_sorted_unique():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_tagger.py -v`
+Run: `cd ~/news && pytest tests/test_tagger.py -v`
 Expected: FAIL — module not found.
 
 - [ ] **Step 3: Implement `news/tagger.py`**
@@ -550,7 +550,7 @@ def extract_tickers_rules(text: str, ticker_dict: dict[str, str]) -> list[str]:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_tagger.py -v`
+Run: `cd ~/news && pytest tests/test_tagger.py -v`
 Expected: 7 PASSED.
 
 - [ ] **Step 5: Quick smoke test against a real article from the DB**
@@ -558,7 +558,7 @@ Expected: 7 PASSED.
 Run:
 
 ```bash
-cd /Users/plessas/SourceCode/news && python -c "
+cd ~/news && python -c "
 import sqlite3
 from news.tagger import load_ticker_dict, extract_tickers_rules
 conn = sqlite3.connect('data/news.db')
@@ -583,9 +583,9 @@ git commit -m "feat(tagger): rules-based ticker extraction (cashtag + name dict)
 ## Task 6: LLM fallback tagger via `claude` CLI (Vertex-routed, NBG-billed)
 
 **Files:**
-- Modify: `/Users/plessas/SourceCode/news/news/tagger.py`
-- Modify: `/Users/plessas/SourceCode/news/config/settings.yaml` (add `tagger` block)
-- Test: `/Users/plessas/SourceCode/news/tests/test_tagger_llm.py`
+- Modify: `~/news/news/tagger.py`
+- Modify: `~/news/config/settings.yaml` (add `tagger` block)
+- Test: `~/news/tests/test_tagger_llm.py`
 
 **Critical: NO `anthropic` SDK dependency.** All LLM calls in this codebase MUST go through the local `claude` CLI via subprocess — which on this machine is configured to route via Vertex AI and is billed to National Bank of Greece. Adding the SDK would route through the user's personal API key billing, which is wrong. Reuse the existing `invoke_claude()` helper in `news/synthesizer.py:143-203`.
 
@@ -593,7 +593,7 @@ git commit -m "feat(tagger): rules-based ticker extraction (cashtag + name dict)
 
 - [ ] **Step 1: Add `tagger` config block to `settings.yaml`**
 
-In `/Users/plessas/SourceCode/news/config/settings.yaml`, after the existing `synthesis:` block (around line 71), add:
+In `~/news/config/settings.yaml`, after the existing `synthesis:` block (around line 71), add:
 
 ```yaml
 tagger:
@@ -610,7 +610,7 @@ tagger:
 
 - [ ] **Step 2: Write the failing test (mocking subprocess.run)**
 
-Create `/Users/plessas/SourceCode/news/tests/test_tagger_llm.py`:
+Create `~/news/tests/test_tagger_llm.py`:
 
 ```python
 from unittest.mock import patch, MagicMock
@@ -693,12 +693,12 @@ def test_llm_passes_custom_model(mock_run):
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_tagger_llm.py -v`
+Run: `cd ~/news && pytest tests/test_tagger_llm.py -v`
 Expected: FAIL — `extract_tickers_llm` not defined.
 
 - [ ] **Step 4: Implement `extract_tickers_llm()` in `news/tagger.py` using the Claude CLI**
 
-Append to `/Users/plessas/SourceCode/news/news/tagger.py`:
+Append to `~/news/news/tagger.py`:
 
 ```python
 import json
@@ -757,12 +757,12 @@ def extract_tickers_llm(
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_tagger_llm.py -v`
+Run: `cd ~/news && pytest tests/test_tagger_llm.py -v`
 Expected: 8 PASSED.
 
 - [ ] **Step 6: Run the full test suite**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest -v`
+Run: `cd ~/news && pytest -v`
 Expected: All previously passing tests still pass.
 
 - [ ] **Step 7: Smoke-test the live CLI invocation against one real article**
@@ -770,7 +770,7 @@ Expected: All previously passing tests still pass.
 Run:
 
 ```bash
-cd /Users/plessas/SourceCode/news && python -c "
+cd ~/news && python -c "
 from news.tagger import extract_tickers_llm
 print(extract_tickers_llm('Apple Inc. beat earnings expectations on iPhone sales, while Microsoft Azure grew 30%.'))
 "
@@ -790,13 +790,13 @@ git commit -m "feat(tagger): LLM fallback via claude CLI (Vertex/NBG-billed, Son
 ## Task 7: Combined `tag_article()` and wire into processor
 
 **Files:**
-- Modify: `/Users/plessas/SourceCode/news/news/tagger.py` (add orchestrator)
-- Modify: `/Users/plessas/SourceCode/news/news/processor.py:234-286`
-- Test: `/Users/plessas/SourceCode/news/tests/test_processor_tagging.py`
+- Modify: `~/news/news/tagger.py` (add orchestrator)
+- Modify: `~/news/news/processor.py:234-286`
+- Test: `~/news/tests/test_processor_tagging.py`
 
 - [ ] **Step 1: Write the failing test**
 
-Create `/Users/plessas/SourceCode/news/tests/test_processor_tagging.py`:
+Create `~/news/tests/test_processor_tagging.py`:
 
 ```python
 from unittest.mock import patch
@@ -852,12 +852,12 @@ def test_processor_invokes_tagger():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_processor_tagging.py -v`
+Run: `cd ~/news && pytest tests/test_processor_tagging.py -v`
 Expected: FAIL — `tag_article` not defined.
 
 - [ ] **Step 3: Implement `tag_article()` orchestrator in `news/tagger.py`**
 
-Append to `/Users/plessas/SourceCode/news/news/tagger.py`:
+Append to `~/news/news/tagger.py`:
 
 ```python
 DEFAULT_LLM_FALLBACK_CATEGORIES = {"business", "banking", "trading", "market"}
@@ -887,7 +887,7 @@ def tag_article(
 
 - [ ] **Step 4: Wire `tag_article()` into `process_articles()`**
 
-In `/Users/plessas/SourceCode/news/news/processor.py:234-286`, after the `compute_relevance_score(...)` line (around line 283) inside the `for article in unique:` loop, add:
+In `~/news/news/processor.py:234-286`, after the `compute_relevance_score(...)` line (around line 283) inside the `for article in unique:` loop, add:
 
 ```python
         from news.tagger import tag_article
@@ -898,12 +898,12 @@ In `/Users/plessas/SourceCode/news/news/processor.py:234-286`, after the `comput
 
 - [ ] **Step 5: Run all tagger tests**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_processor_tagging.py tests/test_tagger.py tests/test_tagger_llm.py -v`
+Run: `cd ~/news && pytest tests/test_processor_tagging.py tests/test_tagger.py tests/test_tagger_llm.py -v`
 Expected: all PASS.
 
 - [ ] **Step 6: Run full suite**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest -v`
+Run: `cd ~/news && pytest -v`
 Expected: all green.
 
 - [ ] **Step 7: Commit**
@@ -918,14 +918,14 @@ git commit -m "feat(processor): tag tickers at ingest (rules + Haiku fallback)"
 ## Task 8: Backfill existing 49K articles
 
 **Files:**
-- Create: `/Users/plessas/SourceCode/news/scripts/backfill_tickers.py`
-- Test: `/Users/plessas/SourceCode/news/tests/test_backfill_tickers.py`
+- Create: `~/news/scripts/backfill_tickers.py`
+- Test: `~/news/tests/test_backfill_tickers.py`
 
 **Why a script and not a one-time SQL migration:** the tagger uses Python regex + optional LLM, not pure SQL. Script is resumable (skips articles already in `article_tickers`) so it can be run incrementally and interrupted safely.
 
 - [ ] **Step 1: Write the failing test**
 
-Create `/Users/plessas/SourceCode/news/tests/test_backfill_tickers.py`:
+Create `~/news/tests/test_backfill_tickers.py`:
 
 ```python
 import sqlite3
@@ -974,7 +974,7 @@ def test_backfill_skips_already_tagged():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_backfill_tickers.py -v`
+Run: `cd ~/news && pytest tests/test_backfill_tickers.py -v`
 Expected: FAIL — module not found.
 
 - [ ] **Step 3: Implement `scripts/backfill_tickers.py`**
@@ -1095,12 +1095,12 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_backfill_tickers.py -v`
+Run: `cd ~/news && pytest tests/test_backfill_tickers.py -v`
 Expected: 2 PASSED.
 
 - [ ] **Step 5: Smoke-test against the live DB with `--max 100`**
 
-Run: `cd /Users/plessas/SourceCode/news && python scripts/backfill_tickers.py --max 100`
+Run: `cd ~/news && python scripts/backfill_tickers.py --max 100`
 Expected: ~30-60s, output like `Processed 100 in 45s, tagged ~30 (30%)`. Verify with:
 
 ```bash
@@ -1115,7 +1115,7 @@ Expected: a few hundred ticker assignments, top tickers like AAPL, MSFT, GOOG.
 Run in foreground in a screen/tmux pane (estimated 30-60 min for 49K articles):
 
 ```bash
-cd /Users/plessas/SourceCode/news && python scripts/backfill_tickers.py 2>&1 | tee /tmp/backfill.log
+cd ~/news && python scripts/backfill_tickers.py 2>&1 | tee /tmp/backfill.log
 ```
 
 If interrupted, re-run — script is resumable.
@@ -1123,7 +1123,7 @@ If interrupted, re-run — script is resumable.
 - [ ] **Step 7: Verify backfill completion**
 
 ```bash
-sqlite3 /Users/plessas/SourceCode/news/data/news.db "SELECT COUNT(*) FROM articles WHERE NOT EXISTS (SELECT 1 FROM article_tickers WHERE article_url=articles.url)"
+sqlite3 ~/news/data/news.db "SELECT COUNT(*) FROM articles WHERE NOT EXISTS (SELECT 1 FROM article_tickers WHERE article_url=articles.url)"
 ```
 
 Some articles will have 0 tickers (correctly so — no companies mentioned). The query returns count of articles that have not yet been processed by backfill OR have no tickers. Cross-check by running `head /tmp/backfill.log` to confirm script exited normally.
@@ -1140,13 +1140,13 @@ git commit -m "feat(scripts): backfill ticker tags for existing articles"
 ## Task 9: Extend MCP `search_news` with ticker filter
 
 **Files:**
-- Modify: `/Users/plessas/SourceCode/news/news/query.py:18-97` (`search_articles()`)
-- Modify: `/Users/plessas/SourceCode/news/news/mcp_server.py:37-67` (`search_news` tool)
-- Test: `/Users/plessas/SourceCode/news/tests/test_query_ticker.py`
+- Modify: `~/news/news/query.py:18-97` (`search_articles()`)
+- Modify: `~/news/news/mcp_server.py:37-67` (`search_news` tool)
+- Test: `~/news/tests/test_query_ticker.py`
 
 - [ ] **Step 1: Write the failing test**
 
-Create `/Users/plessas/SourceCode/news/tests/test_query_ticker.py`:
+Create `~/news/tests/test_query_ticker.py`:
 
 ```python
 import sqlite3
@@ -1198,12 +1198,12 @@ def test_search_ticker_filter_with_no_matches():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_query_ticker.py -v`
+Run: `cd ~/news && pytest tests/test_query_ticker.py -v`
 Expected: FAIL — `search_articles()` doesn't accept `ticker`.
 
 - [ ] **Step 3: Add `ticker` parameter to `search_articles()`**
 
-In `/Users/plessas/SourceCode/news/news/query.py:18-97`, modify the function signature to accept `ticker: str | None = None`. After the existing `category` filter logic in the SQL builder, add:
+In `~/news/news/query.py:18-97`, modify the function signature to accept `ticker: str | None = None`. After the existing `category` filter logic in the SQL builder, add:
 
 ```python
     if ticker:
@@ -1217,12 +1217,12 @@ In `/Users/plessas/SourceCode/news/news/query.py:18-97`, modify the function sig
 
 - [ ] **Step 4: Run query tests to verify they pass**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_query_ticker.py -v`
+Run: `cd ~/news && pytest tests/test_query_ticker.py -v`
 Expected: 3 PASSED.
 
 - [ ] **Step 5: Expose `ticker` param in MCP `search_news` tool**
 
-In `/Users/plessas/SourceCode/news/news/mcp_server.py:37-67`, modify the tool signature:
+In `~/news/news/mcp_server.py:37-67`, modify the tool signature:
 
 ```python
 @mcp.tool()
@@ -1261,7 +1261,7 @@ Expected: returns 1+ results, all about Apple. (Requires Task 8 backfill to have
 
 - [ ] **Step 7: Run full suite**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest -v`
+Run: `cd ~/news && pytest -v`
 Expected: all green.
 
 - [ ] **Step 8: Commit**
@@ -1276,13 +1276,13 @@ git commit -m "feat(mcp): add ticker filter to search_news"
 ## Task 10: Add new MCP tool `recent_for_tickers`
 
 **Files:**
-- Modify: `/Users/plessas/SourceCode/news/news/query.py` (add helper)
-- Modify: `/Users/plessas/SourceCode/news/news/mcp_server.py` (add tool)
-- Test: `/Users/plessas/SourceCode/news/tests/test_query_ticker.py` (extend)
+- Modify: `~/news/news/query.py` (add helper)
+- Modify: `~/news/news/mcp_server.py` (add tool)
+- Test: `~/news/tests/test_query_ticker.py` (extend)
 
 - [ ] **Step 1: Write the failing test**
 
-Append to `/Users/plessas/SourceCode/news/tests/test_query_ticker.py`:
+Append to `~/news/tests/test_query_ticker.py`:
 
 ```python
 from news.query import recent_for_tickers
@@ -1322,12 +1322,12 @@ def test_recent_for_tickers_empty_list():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_query_ticker.py::test_recent_for_tickers_returns_articles_for_any_ticker_in_list -v`
+Run: `cd ~/news && pytest tests/test_query_ticker.py::test_recent_for_tickers_returns_articles_for_any_ticker_in_list -v`
 Expected: FAIL — function not defined.
 
 - [ ] **Step 3: Implement `recent_for_tickers()` in `news/query.py`**
 
-Append to `/Users/plessas/SourceCode/news/news/query.py`:
+Append to `~/news/news/query.py`:
 
 ```python
 def recent_for_tickers(
@@ -1365,7 +1365,7 @@ def recent_for_tickers(
 
 - [ ] **Step 4: Add MCP tool `recent_for_tickers`**
 
-In `/Users/plessas/SourceCode/news/news/mcp_server.py`, after the existing `search_news` tool (around line 67), add:
+In `~/news/news/mcp_server.py`, after the existing `search_news` tool (around line 67), add:
 
 ```python
 @mcp.tool()
@@ -1396,7 +1396,7 @@ def recent_for_tickers(
 
 - [ ] **Step 5: Run tests**
 
-Run: `cd /Users/plessas/SourceCode/news && pytest tests/test_query_ticker.py -v`
+Run: `cd ~/news && pytest tests/test_query_ticker.py -v`
 Expected: all PASS.
 
 - [ ] **Step 6: Smoke-test from a Claude session**
@@ -1421,13 +1421,13 @@ git commit -m "feat(mcp): add recent_for_tickers tool for portfolio-aware querie
 ## Task 11: Migrate trading committee `load_news_feed()` to ticker-aware query
 
 **Files (in trading-marketplace, NOT news repo):**
-- Modify: `/Users/plessas/SourceCode/trading-marketplace/scripts/run_committee.py:249-291`
+- Modify: `~/trading-marketplace/scripts/run_committee.py:249-291`
 
 **Decision point:** The committee already queries `news.db` directly via SQL with category filter `('trading', 'business', 'banking')`. We extend the query to ALSO surface ticker-tagged articles for portfolio tickers, even if their category is broader.
 
 - [ ] **Step 1: Read the existing function**
 
-Run: `cd /Users/plessas/SourceCode/trading-marketplace && sed -n '244,295p' scripts/run_committee.py`
+Run: `cd ~/trading-marketplace && sed -n '244,295p' scripts/run_committee.py`
 
 Confirm:
 - The function signature accepts (or has access to) the portfolio tickers list (per recon: `data["tickers"]` at line 244 calls `load_news_feed()` with implicit ticker context — verify by reading).
@@ -1435,7 +1435,7 @@ Confirm:
 
 - [ ] **Step 2: Write a regression test if a `tests/` dir exists for this script**
 
-If `/Users/plessas/SourceCode/trading-marketplace/scripts/tests/` exists, add a test asserting that articles tagged with a portfolio ticker but in a different category (e.g. `tech`) are now included. If no test infra exists, skip and rely on smoke testing.
+If `~/trading-marketplace/scripts/tests/` exists, add a test asserting that articles tagged with a portfolio ticker but in a different category (e.g. `tech`) are now included. If no test infra exists, skip and rely on smoke testing.
 
 - [ ] **Step 3: Update SQL to union category filter with ticker filter**
 
@@ -1481,14 +1481,14 @@ The recon report says `data["tickers"]` is already populated upstream and the fu
 
 - [ ] **Step 5: Smoke-test by running a one-off committee invocation**
 
-Run: `cd /Users/plessas/SourceCode/trading-marketplace && python scripts/run_committee.py --dry-run` (or whatever the existing dry-run mode is — check `--help`).
+Run: `cd ~/trading-marketplace && python scripts/run_committee.py --dry-run` (or whatever the existing dry-run mode is — check `--help`).
 
 Inspect the news.json output to confirm: (a) baseline category-filtered articles still appear, (b) at least one new article is included that was tagged with a portfolio ticker but had a non-business category.
 
 - [ ] **Step 6: Commit (in trading-marketplace repo)**
 
 ```bash
-cd /Users/plessas/SourceCode/trading-marketplace
+cd ~/trading-marketplace
 git add scripts/run_committee.py
 git commit -m "feat(committee): include ticker-tagged news for portfolio names"
 ```

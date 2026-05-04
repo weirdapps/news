@@ -6,8 +6,8 @@
     <string>com.news.digest</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/plessas/.venvs/news/bin/python3</string>
-        <string>/Users/plessas/SourceCode/news/main.py</string>
+        <string>/PATH/TO/YOUR/VENV/bin/python3</string>
+        <string>/PATH/TO/news/main.py</string>
         <string>--scheduled</string>
     </array>
     <key>StartCalendarInterval</key>
@@ -44,21 +44,21 @@
         </dict>
     </array>
     <key>WorkingDirectory</key>
-    <string>/Users/plessas/SourceCode/news</string>
+    <string>/PATH/TO/news</string>
     <key>StandardOutPath</key>
-    <string>/Users/plessas/Library/Logs/news/digest.log</string>
+    <string>/PATH/TO/Library/Logs/news/digest.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/plessas/Library/Logs/news/digest.err</string>
+    <string>/PATH/TO/Library/Logs/news/digest.err</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:/Users/plessas/.local/bin</string>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:/PATH/TO/.local/bin</string>
         <key>HOME</key>
-        <string>/Users/plessas</string>
+        <string>/PATH/TO/HOME</string>
         <key>CLAUDE_CODE_USE_VERTEX</key>
         <string>1</string>
         <key>ANTHROPIC_VERTEX_PROJECT_ID</key>
-        <string>nbg-ae739221-53d9-4fe0-bac0</string>
+        <string>your-org-uuid-placeholder</string>
         <key>CLOUD_ML_REGION</key>
         <string>global</string>
         <key>ANTHROPIC_MODEL</key>

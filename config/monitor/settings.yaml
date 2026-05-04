@@ -51,7 +51,9 @@ storage:
   archive_after_days: 90
 
 synthesis:
-  claude_command: /Users/plessas/.local/bin/claude
+  # Path to claude CLI. Default 'claude' resolves via $PATH.
+  # Override with NEWS_CLAUDE_COMMAND env var if you need an absolute path.
+  claude_command: ${NEWS_CLAUDE_COMMAND:-claude}
   claude_args:
     - "--print"
     - "--model"

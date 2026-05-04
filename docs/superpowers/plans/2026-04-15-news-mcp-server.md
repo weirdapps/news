@@ -52,7 +52,7 @@ dependencies = [
 
 - [ ] **Step 2: Install into venv**
 
-Run: `cd /Users/plessas/SourceCode/news && .venv/bin/pip install -e .`
+Run: `cd ~/news && .venv/bin/pip install -e .`
 Expected: mcp package installs successfully
 
 - [ ] **Step 3: Verify import works**
@@ -263,7 +263,7 @@ class TestGetNewsStats:
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/plessas/SourceCode/news && .venv/bin/python -m pytest tests/test_query.py -v`
+Run: `cd ~/news && .venv/bin/python -m pytest tests/test_query.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'news.query'`
 
 - [ ] **Step 3: Write the query module**
@@ -470,7 +470,7 @@ def get_news_stats(conn: sqlite3.Connection) -> dict:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/plessas/SourceCode/news && .venv/bin/python -m pytest tests/test_query.py -v`
+Run: `cd ~/news && .venv/bin/python -m pytest tests/test_query.py -v`
 Expected: All tests PASS
 
 - [ ] **Step 5: Commit**
@@ -576,7 +576,7 @@ class TestMcpTools:
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/plessas/SourceCode/news && .venv/bin/python -m pytest tests/test_mcp_server.py -v`
+Run: `cd ~/news && .venv/bin/python -m pytest tests/test_mcp_server.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'news.mcp_server'`
 
 - [ ] **Step 3: Write the MCP server**
@@ -691,12 +691,12 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/plessas/SourceCode/news && .venv/bin/python -m pytest tests/test_mcp_server.py -v`
+Run: `cd ~/news && .venv/bin/python -m pytest tests/test_mcp_server.py -v`
 Expected: All tests PASS
 
 - [ ] **Step 5: Run all tests to check for regressions**
 
-Run: `cd /Users/plessas/SourceCode/news && .venv/bin/python -m pytest -v`
+Run: `cd ~/news && .venv/bin/python -m pytest -v`
 Expected: All existing tests still PASS
 
 - [ ] **Step 6: Commit**
@@ -719,17 +719,17 @@ Create `run_mcp.sh`:
 
 ```bash
 #!/bin/bash
-cd /Users/plessas/SourceCode/news
-exec /Users/plessas/SourceCode/news/.venv/bin/python -m news.mcp_server
+cd ~/news
+exec ~/news/.venv/bin/python -m news.mcp_server
 ```
 
 - [ ] **Step 2: Make it executable**
 
-Run: `chmod +x /Users/plessas/SourceCode/news/run_mcp.sh`
+Run: `chmod +x ~/news/run_mcp.sh`
 
 - [ ] **Step 3: Test the server starts**
 
-Run: `cd /Users/plessas/SourceCode/news && echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.1"}}}' | timeout 5 .venv/bin/python -m news.mcp_server 2>/dev/null | head -1`
+Run: `cd ~/news && echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.1"}}}' | timeout 5 .venv/bin/python -m news.mcp_server 2>/dev/null | head -1`
 Expected: JSON response with server capabilities (confirms the server boots and responds to MCP protocol)
 
 - [ ] **Step 4: Register in Claude Code settings**
@@ -741,7 +741,7 @@ The user needs to add the MCP server to their global settings. The registration 
   "mcpServers": {
     "news-reader": {
       "type": "stdio",
-      "command": "/Users/plessas/SourceCode/news/run_mcp.sh",
+      "command": "~/news/run_mcp.sh",
       "args": [],
       "env": {}
     }
@@ -783,7 +783,7 @@ Add to `tests/test_query.py` in `TestSearchArticles`:
 
 - [ ] **Step 2: Run test to verify it passes with LIKE (baseline)**
 
-Run: `cd /Users/plessas/SourceCode/news && .venv/bin/python -m pytest tests/test_query.py::TestSearchArticles::test_search_finds_content_match -v`
+Run: `cd ~/news && .venv/bin/python -m pytest tests/test_query.py::TestSearchArticles::test_search_finds_content_match -v`
 Expected: PASS (LIKE already searches content)
 
 - [ ] **Step 3: Add FTS5 table to storage.py**
@@ -919,12 +919,12 @@ def search_articles(
 
 - [ ] **Step 5: Run all tests**
 
-Run: `cd /Users/plessas/SourceCode/news && .venv/bin/python -m pytest -v`
+Run: `cd ~/news && .venv/bin/python -m pytest -v`
 Expected: All tests PASS
 
 - [ ] **Step 6: Backfill existing database**
 
-Run: `cd /Users/plessas/SourceCode/news && .venv/bin/python -c "from news.storage import get_connection, init_db; conn = get_connection('data/news.db'); init_db(conn); print('FTS backfill complete'); conn.close()"`
+Run: `cd ~/news && .venv/bin/python -c "from news.storage import get_connection, init_db; conn = get_connection('data/news.db'); init_db(conn); print('FTS backfill complete'); conn.close()"`
 Expected: `FTS backfill complete`
 
 - [ ] **Step 7: Commit**

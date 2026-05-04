@@ -168,7 +168,7 @@ Run: `pytest -v`
 
 ## Email
 
-Sends via existing gmail-operations.js. Recipient: plessas@nbg.gr.
+Sends via existing gmail-operations.js. Recipient: ${NEWS_RECIPIENT}.
 Outlook Mac compatible (table layout, inline CSS, no <p> tags).
 ```
 
@@ -270,7 +270,7 @@ def test_get_settings_returns_defaults(tmp_path):
     settings_yaml.write_text(yaml.dump({
         "relevance_threshold": 20,
         "max_articles_per_category": 15,
-        "email": {"recipient": "plessas@nbg.gr"},
+        "email": {"recipient": "${NEWS_RECIPIENT}"},
     }))
     settings = get_settings(settings_yaml)
     assert settings["relevance_threshold"] == 20
@@ -654,7 +654,7 @@ pipeline:
   dedup_hash_chars: 200
 
 email:
-  recipient: "plessas@nbg.gr"
+  recipient: "${NEWS_RECIPIENT}"
   subject_prefix: "news digest"
   gmail_script: "~/.claude/plugins/cache/marketplace-utility/manage-gmail/1.0.0/skills/manage-gmail/scripts/dist/gmail-operations.js"
 
@@ -3128,8 +3128,8 @@ git commit -m "feat: add orchestrator with pre-flight checks, pipeline coordinat
     <string>com.news.digest.0900</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/plessas/SourceCode/news/.venv/bin/python3</string>
-        <string>/Users/plessas/SourceCode/news/main.py</string>
+        <string>/PATH/TO/news/.venv/bin/python3</string>
+        <string>/PATH/TO/news/main.py</string>
         <string>--scheduled</string>
     </array>
     <key>StartCalendarInterval</key>
@@ -3140,11 +3140,11 @@ git commit -m "feat: add orchestrator with pre-flight checks, pipeline coordinat
         <integer>0</integer>
     </dict>
     <key>WorkingDirectory</key>
-    <string>/Users/plessas/SourceCode/news</string>
+    <string>/PATH/TO/news</string>
     <key>StandardOutPath</key>
-    <string>/Users/plessas/SourceCode/news/data/launchd-0900.log</string>
+    <string>/PATH/TO/news/data/launchd-0900.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/plessas/SourceCode/news/data/launchd-0900.err</string>
+    <string>/PATH/TO/news/data/launchd-0900.err</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
@@ -3338,7 +3338,7 @@ Create as a new skill in the trading hub plugin (or a standalone plugin — adju
 ```markdown
 ---
 name: newsfeed
-description: Run the news intelligence digest pipeline on demand. Fetches latest news from RSS/API/WebSearch, deduplicates, synthesizes via Claude AI, and delivers an HTML email digest to plessas@nbg.gr
+description: Run the news intelligence digest pipeline on demand. Fetches latest news from RSS/API/WebSearch, deduplicates, synthesizes via Claude AI, and delivers an HTML email digest to ${NEWS_RECIPIENT}
 user_invocable: true
 ---
 
@@ -3423,7 +3423,7 @@ python3 main.py --adhoc
 ```
 
 Check:
-- Email arrives at plessas@nbg.gr
+- Email arrives at ${NEWS_RECIPIENT}
 - HTML renders properly in Outlook Mac
 - No errors in `data/runs.log`
 

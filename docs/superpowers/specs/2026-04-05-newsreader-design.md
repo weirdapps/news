@@ -2,11 +2,11 @@
 
 **Date:** 2026-04-05
 **Status:** Approved
-**Author:** Dimitrios Plessas + Claude
+**Author:** weirdapps + Claude
 
 ## Overview
 
-A personal news intelligence platform that fetches news from reputable sources across multiple interest areas, processes and deduplicates articles, synthesizes them using Claude (via NBG's Vertex AI), and delivers formatted HTML digests via email on a fixed schedule and on demand.
+A personal news intelligence platform that fetches news from reputable sources across multiple interest areas, processes and deduplicates articles, synthesizes them using Claude (via Vertex AI), and delivers formatted HTML digests via email on a fixed schedule and on demand.
 
 ## Relationship to Existing Systems
 
@@ -23,7 +23,7 @@ This system **complements** the trading hub's `/news` and `/briefing` commands. 
 cron (launchd) ──→ main.py ──→ fetch ──→ process ──→ store ──→ synthesize ──→ deliver
                                                        │           │             │
                                                     SQLite    Claude CLI    Gmail API
-                                                              (Vertex)   plessas@nbg.gr
+                                                              (Vertex)   recipient@example.com
 ```
 
 1. **Fetch** — pulls from RSS feeds, NewsAPI, and WebSearch in parallel
@@ -138,7 +138,7 @@ Claude produces:
 
 ### Invocation
 
-Via Claude Code CLI: `claude --print` with structured prompt piped as input. Uses NBG's Vertex AI authentication (gcloud auth).
+Via Claude Code CLI: `claude --print` with structured prompt piped as input. Uses Vertex AI authentication (gcloud auth).
 
 ### Fallback
 
@@ -150,7 +150,7 @@ If Claude CLI fails (auth expired, timeout): retry once, then fall back to raw d
 
 - Gmail API via existing `gmail-operations.js` script
 - Credentials: `~/.google-skills/gmail/GMailSkill-Credentials.json`
-- Recipient: `plessas@nbg.gr`
+- Recipient: `${NEWS_RECIPIENT}` (env var)
 - Subject format: `news digest — 09:00 sat 5 apr` (always lowercase)
 - Ad-hoc subject: `news digest — ad hoc 15:42 sat 5 apr`
 

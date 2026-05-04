@@ -37,6 +37,11 @@ secrets/
 config/monitor/sources.yaml
 config/monitor/keywords.yaml
 
+# Personal launchd plists (per-machine deployment artifacts).
+# Tracked .example.plist templates show forkers the schema.
+launchd/com.news.digest.plist
+launchd/com.news.monitor.plist
+
 # IDE
 .vscode/
 .idea/
