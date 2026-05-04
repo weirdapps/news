@@ -1,11 +1,11 @@
-# Monitor — Keyword Definitions
-# Used for entity detection, relevance filtering, and classification
+# Monitor — Keyword Definitions and Display Labels
+# Used for brand identity, entity detection, relevance filtering, and classification
 
 display:
-  full_name: "Your Company Full Name"
-  short_name: "YourCo"
-  monitor_label: "BRAND MONITOR"
-  ticker_primary: "TICKER"
+  full_name: "Your Company Full Name"   # used in prompt opening, e.g. "monitoring <full_name>"
+  short_name: "YourCo"                  # used in repeated prompt references and "<short_name> MENTIONS" header
+  monitor_label: "BRAND MONITOR"        # email banner badge text — convention is ALL CAPS
+  ticker_primary: "TICKER"              # primary stock symbol with exchange suffix, e.g. "AAPL", "ETE.AT"
 
 # Primary entity — all variants of company name
 company:
