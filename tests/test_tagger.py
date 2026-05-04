@@ -55,7 +55,26 @@ def test_short_key_cashtag_still_works():
     assert extract_tickers_rules(text, short_dict) == ["A"]
 
 def test_long_key_still_case_insensitive():
-    """Names ≥4 chars still match case-insensitively."""
+    """Names ≥4 chars still match case-insensitively when capitalized."""
     long_dict = {"apple": "AAPL", "microsoft": "MSFT"}
-    text = "apple beat estimates while Microsoft fell."
+    text = "Apple beat estimates while Microsoft fell."
     assert sorted(extract_tickers_rules(text, long_dict)) == ["AAPL", "MSFT"]
+
+def test_long_key_requires_capitalized_in_original():
+    """Common English words like 'target'/'news' must NOT match when lowercase."""
+    long_dict = {"target": "TGT", "news": "NWSA", "apple": "AAPL"}
+    text = "We need to target a news article about apple farming"
+    # All matched words are lowercase common words — none should tag as ticker
+    assert extract_tickers_rules(text, long_dict) == []
+
+def test_long_key_matches_when_capitalized():
+    """Same words DO match when capitalized in text (proper-noun position)."""
+    long_dict = {"target": "TGT", "news": "NWSA", "apple": "AAPL"}
+    text = "Target announced earnings while Apple closed higher and News Corp filed."
+    assert sorted(extract_tickers_rules(text, long_dict)) == ["AAPL", "NWSA", "TGT"]
+
+def test_long_key_uppercase_match():
+    """ALL CAPS still matches (e.g., headlines)."""
+    long_dict = {"target": "TGT"}
+    text = "TARGET CORP REPORTS Q3 EARNINGS"
+    assert extract_tickers_rules(text, long_dict) == ["TGT"]

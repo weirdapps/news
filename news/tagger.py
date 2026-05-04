@@ -52,10 +52,12 @@ def extract_tickers_rules(text: str, ticker_dict: dict[str, str]) -> list[str]:
             if re.search(pattern, text):
                 found.add(ticker_dict[name])
         else:
-            # Long keys: case-insensitive
-            pattern = r"\b" + re.escape(name) + r"\b"
-            if re.search(pattern, text_lower):
-                found.add(ticker_dict[name])
+            # Long keys: case-insensitive search, but require capital first letter in original text
+            pattern = re.compile(r"\b" + re.escape(name) + r"\b", re.IGNORECASE)
+            for m in pattern.finditer(text):
+                if text[m.start()].isupper():
+                    found.add(ticker_dict[name])
+                    break  # one match is sufficient
 
     return sorted(found)
 

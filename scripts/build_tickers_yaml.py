@@ -16,6 +16,26 @@ SUFFIXES = re.compile(
     re.IGNORECASE,
 )
 
+STOPLIST = {
+    # Common English words also used as company names (false positive risk)
+    "a", "ai", "an", "and", "as", "at", "be", "by", "do", "for", "go", "if",
+    "in", "is", "it", "no", "of", "on", "or", "so", "to", "up", "us", "we",
+    "the", "this", "that", "with", "from", "into", "have", "has", "had",
+    "are", "was", "were", "been", "being", "all", "one", "two", "three",
+    "any", "many", "more", "most", "some", "few", "new", "old", "now",
+    # Common business/finance words
+    "news", "target", "api", "fast", "next", "open", "real", "tech",
+    "well", "group", "holdings", "growth", "value", "market", "stock",
+    "price", "share", "fund", "cash", "gold", "silver", "copper", "oil",
+    "gas", "water", "food", "home", "life", "time", "work", "save",
+    "code", "light", "heavy", "smart", "simple", "easy", "hard", "slow",
+    "key", "lock", "play", "buy", "sell", "trade", "deal", "team",
+    "form", "core", "peak", "edge", "flex", "pure", "free", "live",
+    "best", "good", "great", "high", "low", "max", "min", "top",
+    # Articles/prepositions in other languages
+    "el", "la", "le", "il", "der", "die", "das",
+}
+
 
 def build_ticker_dict(csv_path: Path) -> dict[str, str]:
     """Return lowercase-name -> uppercase-ticker map.
@@ -23,6 +43,12 @@ def build_ticker_dict(csv_path: Path) -> dict[str, str]:
     For each row, register: ticker (lower), full name (lower), name with corporate suffix stripped.
     """
     out: dict[str, str] = {}
+
+    def _register(key: str, ticker: str) -> None:
+        """Register key -> ticker mapping if key not in stoplist."""
+        if key and key not in STOPLIST:
+            out[key] = ticker
+
     with csv_path.open(newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -30,11 +56,11 @@ def build_ticker_dict(csv_path: Path) -> dict[str, str]:
             name = (row.get("NAME") or "").strip()
             if not tkr or not name:
                 continue
-            out[tkr.lower()] = tkr
-            out[name.lower()] = tkr
+            _register(tkr.lower(), tkr)
+            _register(name.lower(), tkr)
             stripped = SUFFIXES.sub("", name).strip().rstrip(".,").strip().lower()
             if stripped and stripped != name.lower():
-                out[stripped] = tkr
+                _register(stripped, tkr)
     return out
 
 

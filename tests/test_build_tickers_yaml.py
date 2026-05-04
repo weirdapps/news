@@ -47,3 +47,22 @@ def test_handles_period_as_suffix_separator(tmp_path):
         w.writerow(["AMZN", "AMAZON.CO."])
     result = build_ticker_dict(csv_path)
     assert result["amazon"] == "AMZN"
+
+def test_stoplist_drops_common_words(tmp_path):
+    """Common English words should not appear as dict keys even if they're tickers."""
+    csv_path = tmp_path / "etoro.csv"
+    with csv_path.open("w") as f:
+        w = csv.writer(f)
+        w.writerow(["TKR", "NAME"])
+        w.writerow(["NWSA", "News Corp"])  # 'news' should be filtered
+        w.writerow(["TGT", "Target Corp"])  # 'target' should be filtered
+        w.writerow(["AAPL", "Apple Inc."])  # 'apple' is fine — proper noun
+    result = build_ticker_dict(csv_path)
+    # Stoplist drops common-word keys
+    assert "news" not in result
+    assert "target" not in result
+    # But the tickers themselves are still registered
+    assert result.get("nwsa") == "NWSA"
+    assert result.get("tgt") == "TGT"
+    # And legitimate names are intact
+    assert result.get("apple") == "AAPL"

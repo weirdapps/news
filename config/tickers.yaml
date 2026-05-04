@@ -173,7 +173,6 @@ tickers:
   9866.hk: 9866.HK
   9926.hk: 9926.HK
   9988.hk: 9988.HK
-  a: A
   a. o. smi: AOS
   a. o. smi.: AOS
   a.g. barr: BAG.L
@@ -528,7 +527,6 @@ tickers:
   agys: AGYS
   ahco: AHCO
   ahr: AHR
-  ai: AI
   ai.pa: AI.PA
   aia group: 1299.HK
   aia group.: 1299.HK
@@ -720,7 +718,6 @@ tickers:
   alkermes .: ALKS
   alks: ALKS
   alkt: ALKT
-  all: ALL
   all for o: A1OS.DE
   all for o.: A1OS.DE
   all.l: ALL.L
@@ -967,7 +964,6 @@ tickers:
   amzn: AMZN
   américa m: AMX
   américa m.: AMX
-  an: AN
   an2 thera: ANTX
   an2 thera.: ANTX
   ana.mc: ANA.MC
@@ -1050,7 +1046,6 @@ tickers:
   apg: APG
   apge: APGE
   aph: APH
-  api: API
   api group: APG
   api group.: APG
   apld: APLD
@@ -1157,7 +1152,6 @@ tickers:
   ardmore s: ASC
   ardmore s.: ASC
   ardx: ARDX
-  are: ARE
   arendals: AFK.OL
   arendals .: AFK.OL
   ares: ARES
@@ -1244,7 +1238,6 @@ tickers:
   arvn: ARVN
   arw: ARW
   arwr: ARWR
-  as: AS
   asa inter: ASAI.L
   asa inter.: ASAI.L
   asai.l: ASAI.L
@@ -1735,7 +1728,6 @@ tickers:
   bdt.de: BDT.DE
   bdtx: BDTX
   bdx: BDX
-  be: BE
   beam: BEAM
   beam glob: BEEM
   beam glob.: BEEM
@@ -2256,7 +2248,6 @@ tickers:
   bxp: BXP
   bxp, inc.: BXP
   bxsl: BXSL
-  by: BY
   byd: BYD
   byd compa: 1211.HK
   byd compa.: 1211.HK
@@ -2477,7 +2468,6 @@ tickers:
   casella w.: CWST
   casey's g: CASY
   casey's g.: CASY
-  cash: CASH
   casino, g: CO.PA
   casino, g.: CO.PA
   cass: CASS
@@ -4058,7 +4048,6 @@ tickers:
   ekopak: EKOP.BR
   ekopak nv: EKOP.BR
   ekt.de: EKT.DE
-  el: EL
   el pollo: LOCO
   el pollo .: LOCO
   el.pa: EL.PA
@@ -4580,7 +4569,6 @@ tickers:
   farn.l: FARN.L
   faron pha: FARN.L
   faron pha.: FARN.L
-  fast: FAST
   fastenal: FAST
   fastenal .: FAST
   fastly, i: FSLY
@@ -4761,7 +4749,6 @@ tickers:
   flekkefjo.: FFSB.OL
   fleury mi: ALFLE.PA
   fleury mi.: ALFLE.PA
-  flex: FLEX
   flex ltd.: FLEX
   flg: FLG
   flgt: FLGT
@@ -4821,14 +4808,12 @@ tickers:
   fomento e.: FMX
   fonciere: INEA.PA
   fonciere .: INEA.PA
-  for: FOR
   ford moto: F
   ford moto.: F
   foresight: FSG.L
   foresight.: FSG.L
   forestar: FOR
   forestar .: FOR
-  form: FORM
   formfacto: FORM
   formfacto.: FORM
   formula o: FWONA
@@ -5284,7 +5269,6 @@ tickers:
   gns.l: GNS.L
   gntx: GNTX
   gnw: GNW
-  go: GO
   goco: GOCO
   god.ol: GOD.OL
   godaddy i: GDDY
@@ -5599,7 +5583,6 @@ tickers:
   harrow, i.: HROW
   harworth: HWG.L
   harworth .: HWG.L
-  has: HAS
   has.l: HAS.L
   hasbro, i: HAS
   hasbro, i.: HAS
@@ -6507,7 +6490,6 @@ tickers:
   isrg: ISRG
   iss a/s: ISS.CO
   iss.co: ISS.CO
-  it: IT
   it link: ALITL.PA
   it link sa: ALITL.PA
   italgas s: IG.MI
@@ -6782,7 +6764,6 @@ tickers:
   keurig dr: KDP
   keurig dr.: KDP
   kex: KEX
-  key: KEY
   keycorp: KEY
   keys: KEYS
   keys.l: KEYS.L
@@ -7110,7 +7091,6 @@ tickers:
   ldi: LDI
   ldo.mi: LDO.MI
   ldos: LDOS
-  le: LE
   lea: LEA
   lear: LEA
   lear corp.: LEA
@@ -7365,7 +7345,6 @@ tickers:
   louisiana: LPX
   louisiana.: LPX
   love: LOVE
-  low: LOW
   lowe's: LOW
   lowe's co.: LOW
   lpe.pa: LPE.PA
@@ -7652,7 +7631,6 @@ tickers:
   matw: MATW
   matx: MATX
   mau.pa: MAU.PA
-  max: MAX
   max autom: MXHN.DE
   max autom.: MXHN.DE
   maxeon so: MAXN
@@ -8365,7 +8343,6 @@ tickers:
   newmont c.: NEM
   newriver: NRR.L
   newriver .: NRR.L
-  news: NWSA
   news corp.: NWSA
   newt: NEWT
   newtekone: NEWT
@@ -8385,7 +8362,6 @@ tickers:
   nexpoint .: NXRT
   nexstar m: NXST
   nexstar m.: NXST
-  next: NEXT
   next plc: NXT.L
   nexta.br: NEXTA.BR
   nextdecad: NEXT
@@ -8572,7 +8548,6 @@ tickers:
   novozymes: NSIS-B.CO
   novozymes.: NSIS-B.CO
   novt: NOVT
-  now: NOW
   npce: NPCE
   npk inter: NPKI
   npk inter.: NPKI
@@ -8833,7 +8808,6 @@ tickers:
   omnicom g: OMC
   omnicom g.: OMC
   omu.l: OMU.L
-  'on': 'ON'
   on holdin: ONON
   on holdin.: ONON
   on semico: 'ON'
@@ -8885,7 +8859,6 @@ tickers:
   opal fuel: OPAL
   opal fuel.: OPAL
   opch: OPCH
-  open: OPEN
   open lend: LPRO
   open lend.: LPRO
   opendoor: OPEN
@@ -9403,7 +9376,6 @@ tickers:
   planisware: PLNW.PA
   plastique: PVL.PA
   plastique.: PVL.PA
-  play: PLAY
   playstudi: MYPS
   playstudi.: MYPS
   playtech: PTEC.L
@@ -9914,7 +9886,6 @@ tickers:
   reach.ol: REACH.OL
   ready cap: RC
   ready cap.: RC
-  real: REAL
   realty in: O
   realty in.: O
   rec.l: REC.L
@@ -10968,7 +10939,6 @@ tickers:
   snps: SNPS
   snr.l: SNR.L
   snws.l: SNWS.L
-  so: SO
   soag.ol: SOAG.OL
   sobi.st: SOBI.ST
   sobo: SOBO
@@ -11504,7 +11474,6 @@ tickers:
   tapestry,.: TPR
   targa res: TRGP
   targa res.: TRGP
-  target: TGT
   target co.: TGT
   target he: THRL.L
   target he.: THRL.L
@@ -11554,12 +11523,10 @@ tickers:
   tdw: TDW
   tdy: TDY
   te.pa: TE.PA
-  team: TEAM
   team inte: TIG.L
   team inte.: TIG.L
   teamviewe: TMV.DE
   teamviewe.: TMV.DE
-  tech: TECH
   technip e: TE.PA
   technip e.: TE.PA
   technipfm: FTI
@@ -12218,7 +12185,6 @@ tickers:
   twist bio: TWST
   twist bio.: TWST
   twlo: TWLO
-  two: TWO
   two harbo: TWO
   two harbo.: TWO
   twst: TWST
@@ -12959,7 +12925,6 @@ tickers:
   weimob in: 2013.HK
   weimob in.: 2013.HK
   weir.l: WEIR.L
-  well: WELL
   wells far: WFC
   wells far.: WFC
   welltower: WELL
