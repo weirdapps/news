@@ -17,6 +17,10 @@ logger = logging.getLogger(__name__)
 _TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 _ATHENS_TZ = ZoneInfo("Europe/Athens")
 
+# HTML entity constants for escaping
+_HTML_AMP = "&amp;"
+_HTML_BR_DOUBLE = "<br><br>"
+
 
 def render_digest_html(
     synthesis: dict,
@@ -64,21 +68,21 @@ def render_digest_html(
         if "synthesis" in section and section["synthesis"]:
             text = (
                 section["synthesis"]
-                .replace("&", "&amp;")
+                .replace("&", _HTML_AMP)
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
             )
             section["synthesis"] = Markup(  # nosemgrep
-                text.replace("\n\n", "<br><br>").replace("\n", "<br>")
+                text.replace("\n\n", _HTML_BR_DOUBLE).replace("\n", "<br>")
             )
     if fallback_text:
         text = (
-            fallback_text.replace("&", "&amp;")
+            fallback_text.replace("&", _HTML_AMP)
             .replace("<", "&lt;")
             .replace(">", "&gt;")
         )
         fallback_text = Markup(
-            text.replace("\n\n", "<br><br>").replace("\n", "<br>")
+            text.replace("\n\n", _HTML_BR_DOUBLE).replace("\n", "<br>")
         )  # nosemgrep
 
     return template.render(  # nosemgrep

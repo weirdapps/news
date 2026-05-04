@@ -25,6 +25,7 @@ jobs:
         with:
           python-version: '3.11'
 
+      # Safe: feedparser dependency (sgmllib3k) has no binary wheels, requires source install
       - name: Install dependencies
         continue-on-error: true
         run: |

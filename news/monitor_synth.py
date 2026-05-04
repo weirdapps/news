@@ -104,6 +104,30 @@ Return ONLY valid JSON. No preamble, no markdown formatting."""
 )
 
 
+def _build_article_entry(article: Any, index: int, last_run_at: "datetime | None") -> dict:
+    """Build a single article entry for the monitor prompt."""
+    is_new = True
+    if last_run_at and article.fetched_at:
+        is_new = article.fetched_at > last_run_at
+
+    entry = {
+        "id": index,
+        "title": article.title,
+        "source": article.source,
+        "category": article.categories[0] if article.categories else "unknown",
+        "snippet": article.content[:300] if article.content else "",
+        "language": article.language,
+        "is_new": is_new,
+    }
+
+    if article.published_at and article.fetched_at:
+        entry["age_hours"] = round(
+            (article.fetched_at - article.published_at).total_seconds() / 3600
+        )
+
+    return entry
+
+
 def build_monitor_prompt(
     articles: list[Any],
     previous_summary: dict | None,
@@ -121,35 +145,11 @@ def build_monitor_prompt(
     Returns:
         Complete prompt string
     """
-    new_count = 0
-    article_entries = []
-    for i, article in enumerate(articles):
-        # Flag articles fetched after the last run as new
-        is_new = True
-        if last_run_at and article.fetched_at:
-            is_new = article.fetched_at > last_run_at
-
-        if is_new:
-            new_count += 1
-
-        entry = {
-            "id": i,
-            "title": article.title,
-            "source": article.source,
-            "category": article.categories[0] if article.categories else "unknown",
-            "snippet": article.content[:300] if article.content else "",
-            "language": article.language,
-            "is_new": is_new,
-        }
-        if article.published_at:
-            entry["age_hours"] = (
-                round(
-                    (article.fetched_at - article.published_at).total_seconds() / 3600
-                )
-                if article.fetched_at
-                else None
-            )
-        article_entries.append(entry)
+    article_entries = [
+        _build_article_entry(article, i, last_run_at)
+        for i, article in enumerate(articles)
+    ]
+    new_count = sum(1 for entry in article_entries if entry["is_new"])
 
     context = {
         "time_window": time_window,

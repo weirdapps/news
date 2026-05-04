@@ -219,6 +219,55 @@ async def run_pipeline(run_type: str = "scheduled", profile: str = "digest") -> 
     await run_digest_pipeline(run_type=run_type)
 
 
+def _setup_digest_pipeline(settings: dict, sources: dict):
+    """Extract and prepare pipeline configuration."""
+    pipeline_config = settings["pipeline"]
+    email_config = settings["email"]
+    storage_config = settings["storage"]
+    schedule_config = settings["schedule"]
+    synthesis_config = settings.get("synthesis", {})
+    scoring_config = settings.get("scoring", {})
+
+    db_path = Path(storage_config["db_path"]).expanduser()
+    run_log_path = Path(storage_config["run_log_path"]).expanduser()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
+    source_tiers = {
+        source["name"]: source.get("tier", 2) for source in sources["rss_feeds"]
+    }
+
+    return {
+        "pipeline": pipeline_config,
+        "email": email_config,
+        "schedule": schedule_config,
+        "synthesis": synthesis_config,
+        "scoring": scoring_config,
+        "db_path": db_path,
+        "run_log_path": run_log_path,
+        "source_tiers": source_tiers,
+    }
+
+
+def _select_digest_articles(all_recent: list, pipeline_config: dict):
+    """Select top articles for digest with per-source diversity cap."""
+    max_digest = pipeline_config.get("max_digest_articles", 300)
+    max_per_source = pipeline_config.get("max_articles_per_source", 20)
+
+    all_recent.sort(key=lambda a: a.relevance_score, reverse=True)
+    source_counts: dict[str, int] = {}
+    capped_articles = []
+
+    for article in all_recent:
+        count = source_counts.get(article.source, 0)
+        if count < max_per_source:
+            capped_articles.append(article)
+            source_counts[article.source] = count + 1
+        if len(capped_articles) >= max_digest:
+            break
+
+    return capped_articles
+
+
 async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     """Execute the full news digest pipeline.
 
@@ -234,23 +283,11 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     sources = get_sources()
     categories_config = get_categories()
 
-    # Extract settings
-    pipeline_config = settings["pipeline"]
-    email_config = settings["email"]
-    storage_config = settings["storage"]
-    schedule_config = settings["schedule"]
-    synthesis_config = settings.get("synthesis", {})
-    scoring_config = settings.get("scoring", {})
-
-    # Expand paths
-    db_path = Path(storage_config["db_path"]).expanduser()
-    run_log_path = Path(storage_config["run_log_path"]).expanduser()
-
-    # Ensure data directory exists
-    db_path.parent.mkdir(parents=True, exist_ok=True)
+    # Setup pipeline configuration and paths
+    config = _setup_digest_pipeline(settings, sources)
 
     # Connect to database
-    conn = get_connection(db_path)
+    conn = get_connection(config["db_path"])
     init_db(conn)
 
     # Get last digest for time window calculation
@@ -261,7 +298,7 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     time_window = get_time_window(
         start_time,
         last_digest_at,
-        schedule_config["timezone"],
+        config["schedule"]["timezone"],
     )
     logger.info(f"Time window: {time_window}")
 
@@ -293,19 +330,14 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
         if get_article_by_hash(conn, article.content_hash):
             existing_hashes.add(article.content_hash)
 
-    # Build source tiers mapping
-    source_tiers = {
-        source["name"]: source.get("tier", 2) for source in sources["rss_feeds"]
-    }
-
     processed_articles, process_stats = process_articles(
         articles=raw_articles,
         existing_hashes=existing_hashes,
         categories_config=categories_config,
-        scoring_config=scoring_config,
-        source_tiers=source_tiers,
-        min_words=pipeline_config["min_article_length_words"],
-        max_age_hours=pipeline_config["max_article_age_hours"],
+        scoring_config=config["scoring"],
+        source_tiers=config["source_tiers"],
+        min_words=config["pipeline"]["min_article_length_words"],
+        max_age_hours=config["pipeline"]["max_article_age_hours"],
     )
 
     logger.info(
@@ -318,28 +350,17 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
         insert_article(conn, article)
 
     # DIGEST POOL: Pull last 48h of articles from DB for synthesis
-    digest_window = timedelta(hours=pipeline_config.get("digest_window_hours", 48))
+    digest_window = timedelta(hours=config["pipeline"].get("digest_window_hours", 48))
     digest_since = start_time - digest_window
     all_recent = get_articles_since(conn, digest_since, min_score=0)
 
     # Select top articles by relevance score, with per-source diversity limit
-    max_digest = pipeline_config.get("max_digest_articles", 300)
-    max_per_source = pipeline_config.get("max_articles_per_source", 20)
-    all_recent.sort(key=lambda a: a.relevance_score, reverse=True)
-    source_counts: dict[str, int] = {}
-    capped_articles = []
-    for article in all_recent:
-        count = source_counts.get(article.source, 0)
-        if count < max_per_source:
-            capped_articles.append(article)
-            source_counts[article.source] = count + 1
-        if len(capped_articles) >= max_digest:
-            break
+    capped_articles = _select_digest_articles(all_recent, config["pipeline"])
 
     logger.info(
         f"Digest pool: {len(all_recent)} articles from last "
-        f"{pipeline_config.get('digest_window_hours', 48)}h, "
-        f"selected top {len(capped_articles)} by score (cap {max_digest}, max {max_per_source}/source)"
+        f"{config['pipeline'].get('digest_window_hours', 48)}h, "
+        f"selected top {len(capped_articles)} by score"
     )
 
     # SYNTHESIZE: Check auth first — skip synthesis if expired (avoid wasted retries)
@@ -349,10 +370,10 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
             articles=capped_articles,
             previous_highlights=previous_highlights,
             time_window=time_window,
-            max_retries=synthesis_config.get("max_retries", 2),
-            timeout=synthesis_config.get("timeout", 300),
-            claude_command=synthesis_config.get("claude_command", "claude"),
-            claude_args=synthesis_config.get("claude_args", []),
+            max_retries=config["synthesis"].get("max_retries", 2),
+            timeout=config["synthesis"].get("timeout", 300),
+            claude_command=config["synthesis"].get("claude_command", "claude"),
+            claude_args=config["synthesis"].get("claude_args", []),
         )
     else:
         logger.warning("gcloud auth expired — skipping synthesis, using fallback")
@@ -375,7 +396,7 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     # Calculate next digest time
     now_athens = start_time.astimezone(_ATHENS_TZ)
     current_time_str = now_athens.strftime("%H:%M")
-    next_digest = get_next_digest_time(current_time_str, schedule_config["runs"])
+    next_digest = get_next_digest_time(current_time_str, config["schedule"]["runs"])
 
     # DELIVER: Render HTML and send email
     source_count = len(sources["rss_feeds"])
@@ -405,7 +426,7 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     email_sent = send_email(
         subject=subject,
         html_body=html_output,
-        recipient=email_config["recipient"],
+        recipient=config["email"]["recipient"],
     )
 
     # Handle send failure
@@ -437,7 +458,7 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     # Log run
     duration = (datetime.now(timezone.utc) - start_time).total_seconds()
     log_run(
-        log_path=str(run_log_path),
+        log_path=str(config["run_log_path"]),
         run_type=run_type,
         article_count=len(processed_articles),
         new_count=process_stats["output_count"],
@@ -464,22 +485,11 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     sources = get_sources(profile="monitor")
     keywords_config = get_keywords(profile="monitor")
 
-    # Extract settings
-    pipeline_config = settings["pipeline"]
-    email_config = settings["email"]
-    storage_config = settings["storage"]
-    schedule_config = settings["schedule"]
-    synthesis_config = settings.get("synthesis", {})
-    scoring_config = settings.get("scoring", {})
-
-    # Expand paths
-    db_path = Path(storage_config["db_path"]).expanduser()
-    run_log_path = Path(storage_config["run_log_path"]).expanduser()
-
-    db_path.parent.mkdir(parents=True, exist_ok=True)
+    # Setup pipeline configuration and paths
+    config = _setup_digest_pipeline(settings, sources)
 
     # Connect to database
-    conn = get_connection(db_path)
+    conn = get_connection(config["db_path"])
     init_db(conn)
 
     # Get last monitor digest for continuity
@@ -490,7 +500,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     time_window = get_time_window(
         start_time,
         last_digest_at,
-        schedule_config["timezone"],
+        config["schedule"]["timezone"],
     )
     logger.info(f"Monitor time window: {time_window}")
 
@@ -521,18 +531,15 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
         if get_article_by_hash(conn, article.content_hash):
             existing_hashes.add(article.content_hash)
 
-    # Build source tiers mapping
-    source_tiers = {source["name"]: source.get("tier", 2) for source in rss_feeds}
-
     # Use keywords config as categories for classification
     processed_articles, process_stats = process_articles(
         articles=raw_articles,
         existing_hashes=existing_hashes,
         categories_config=keywords_config,
-        scoring_config=scoring_config,
-        source_tiers=source_tiers,
-        min_words=pipeline_config["min_article_length_words"],
-        max_age_hours=pipeline_config["max_article_age_hours"],
+        scoring_config=config["scoring"],
+        source_tiers=config["source_tiers"],
+        min_words=config["pipeline"]["min_article_length_words"],
+        max_age_hours=config["pipeline"]["max_article_age_hours"],
     )
 
     # Set pipeline on all processed articles
@@ -545,13 +552,13 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     )
 
     # Check skip_empty setting
-    skip_empty = pipeline_config.get("skip_empty", True)
+    skip_empty = config["pipeline"].get("skip_empty", True)
     if skip_empty and process_stats["output_count"] == 0 and run_type != "adhoc":
         logger.info("No new mentions — skipping synthesis and delivery")
         conn.close()
         duration = (datetime.now(timezone.utc) - start_time).total_seconds()
         log_run(
-            log_path=str(run_log_path),
+            log_path=str(config["run_log_path"]),
             run_type=f"monitor-{run_type}",
             article_count=0,
             new_count=0,
@@ -566,23 +573,12 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
         insert_article(conn, article)
 
     # DIGEST POOL: Pull recent monitor articles
-    digest_window = timedelta(hours=pipeline_config.get("digest_window_hours", 24))
+    digest_window = timedelta(hours=config["pipeline"].get("digest_window_hours", 24))
     digest_since = start_time - digest_window
     all_recent = get_articles_since(conn, digest_since, min_score=0, pipeline="monitor")
 
     # Select top articles
-    max_digest = pipeline_config.get("max_digest_articles", 100)
-    max_per_source = pipeline_config.get("max_articles_per_source", 10)
-    all_recent.sort(key=lambda a: a.relevance_score, reverse=True)
-    source_counts: dict[str, int] = {}
-    capped_articles = []
-    for article in all_recent:
-        count = source_counts.get(article.source, 0)
-        if count < max_per_source:
-            capped_articles.append(article)
-            source_counts[article.source] = count + 1
-        if len(capped_articles) >= max_digest:
-            break
+    capped_articles = _select_digest_articles(all_recent, config["pipeline"])
 
     logger.info(
         f"Monitor pool: {len(all_recent)} articles, selected top {len(capped_articles)}"
@@ -596,10 +592,10 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
             previous_summary=previous_summary,
             time_window=time_window,
             last_run_at=last_digest_at,
-            max_retries=synthesis_config.get("max_retries", 2),
-            timeout=synthesis_config.get("timeout", 300),
-            claude_command=synthesis_config.get("claude_command", "claude"),
-            claude_args=synthesis_config.get("claude_args", []),
+            max_retries=config["synthesis"].get("max_retries", 2),
+            timeout=config["synthesis"].get("timeout", 300),
+            claude_command=config["synthesis"].get("claude_command", "claude"),
+            claude_args=config["synthesis"].get("claude_args", []),
         )
     else:
         logger.warning(
@@ -621,7 +617,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     # Calculate next scan time
     now_athens = start_time.astimezone(_ATHENS_TZ)
     current_time_str = now_athens.strftime("%H:%M")
-    next_scan = get_next_digest_time(current_time_str, schedule_config["runs"])
+    next_scan = get_next_digest_time(current_time_str, config["schedule"]["runs"])
 
     # DELIVER: Render monitor HTML and send email
     source_count = len(rss_feeds)
@@ -658,7 +654,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     email_sent = send_email(
         subject=subject,
         html_body=html_output,
-        recipient=email_config["recipient"],
+        recipient=config["email"]["recipient"],
     )
 
     if not email_sent:
@@ -689,7 +685,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     # Log run
     duration = (datetime.now(timezone.utc) - start_time).total_seconds()
     log_run(
-        log_path=str(run_log_path),
+        log_path=str(config["run_log_path"]),
         run_type=f"monitor-{run_type}",
         article_count=len(processed_articles),
         new_count=process_stats["output_count"],

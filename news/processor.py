@@ -47,6 +47,14 @@ def deduplicate(
     return unique, dupes
 
 
+def _keyword_matches(text: str, keyword: str) -> bool:
+    """Check if keyword matches in text with appropriate boundary logic."""
+    kw = keyword.lower()
+    if len(kw) <= 3:
+        return bool(re.search(r"\b" + re.escape(kw) + r"\b", text))
+    return kw in text
+
+
 def classify_article(article: Article, categories_config: dict) -> None:
     """
     Classify article into categories based on keyword matching.
@@ -63,15 +71,7 @@ def classify_article(article: Article, categories_config: dict) -> None:
     for category_key, category_info in categories.items():
         keywords = category_info.get("keywords", [])
         for keyword in keywords:
-            kw = keyword.lower()
-            # Use word boundary matching for short keywords to avoid false positives
-            # e.g. "ai" matching "maintain", "certain", etc.
-            if len(kw) <= 3:
-                if re.search(r"\b" + re.escape(kw) + r"\b", text):
-                    if category_key not in article.categories:
-                        article.categories.append(category_key)
-                    break
-            elif kw in text:
+            if _keyword_matches(text, keyword):
                 if category_key not in article.categories:
                     article.categories.append(category_key)
                 break

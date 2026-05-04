@@ -56,6 +56,34 @@ def _compile_dict_patterns(dict_id: int, dict_keys_tuple: tuple) -> tuple:
     return (short_pattern, long_pattern)
 
 
+def _extract_cashtags(text: str) -> set[str]:
+    """Extract cashtag ($TICKER) mentions from text."""
+    return {m.group(1).upper() for m in CASHTAG_RE.finditer(text)}
+
+
+def _extract_short_keys(text: str, pattern, ticker_dict: dict[str, str]) -> set[str]:
+    """Extract tickers from short keys (ALL-CAPS required)."""
+    found = set()
+    if pattern:
+        for m in pattern.finditer(text):
+            ticker = ticker_dict.get(m.group(1).lower())
+            if ticker:
+                found.add(ticker)
+    return found
+
+
+def _extract_long_keys(text: str, pattern, ticker_dict: dict[str, str]) -> set[str]:
+    """Extract tickers from long keys (capitalized first letter required)."""
+    found = set()
+    if pattern:
+        for m in pattern.finditer(text):
+            if text[m.start()].isupper():
+                ticker = ticker_dict.get(m.group(1).lower())
+                if ticker:
+                    found.add(ticker)
+    return found
+
+
 def extract_tickers_rules(text: str, ticker_dict: dict[str, str]) -> list[str]:
     """Return sorted unique uppercase tickers found in text via rules.
 
@@ -66,34 +94,15 @@ def extract_tickers_rules(text: str, ticker_dict: dict[str, str]) -> list[str]:
     Long names (≥4 chars): case-insensitive match, requires capital first letter in original.
     Short names (≤3 chars): require ALL-CAPS match (proper-noun heuristic for ticker mentions).
     """
-    found: set[str] = set()
-
-    # Cashtag matches — always captured
-    for m in CASHTAG_RE.finditer(text):
-        found.add(m.group(1).upper())
+    found = _extract_cashtags(text)
 
     if not ticker_dict:
         return sorted(found)
 
     short_pat, long_pat = _compile_dict_patterns(id(ticker_dict), tuple(ticker_dict.keys()))
 
-    # Short keys: case-sensitive search on original text for ALL-CAPS forms
-    if short_pat:
-        for m in short_pat.finditer(text):
-            matched = m.group(1)
-            # Map back to dict key (lowercase) → ticker
-            ticker = ticker_dict.get(matched.lower())
-            if ticker:
-                found.add(ticker)
-
-    # Long keys: case-insensitive search, capitalize-check after
-    if long_pat:
-        for m in long_pat.finditer(text):
-            if text[m.start()].isupper():
-                matched = m.group(1)
-                ticker = ticker_dict.get(matched.lower())
-                if ticker:
-                    found.add(ticker)
+    found.update(_extract_short_keys(text, short_pat, ticker_dict))
+    found.update(_extract_long_keys(text, long_pat, ticker_dict))
 
     return sorted(found)
 
