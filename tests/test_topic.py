@@ -2,6 +2,7 @@
 
 import subprocess
 from datetime import datetime, timezone
+from pathlib import Path
 
 from news.models import Article
 
@@ -133,7 +134,7 @@ def test_topic_profile_requires_query():
         ["python3", "main.py", "--profile", "topic"],
         capture_output=True,
         text=True,
-        cwd="/Users/plessas/SourceCode/news",
+        cwd=str(Path(__file__).resolve().parent.parent),
     )
     assert result.returncode != 0
     assert "query" in result.stderr.lower() or "query" in result.stdout.lower()
@@ -145,7 +146,7 @@ def test_query_flag_requires_topic_profile():
         ["python3", "main.py", "--query", "x", "--profile", "digest"],
         capture_output=True,
         text=True,
-        cwd="/Users/plessas/SourceCode/news",
+        cwd=str(Path(__file__).resolve().parent.parent),
     )
     assert result.returncode != 0
 
