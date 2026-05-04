@@ -93,6 +93,19 @@ categories:
       - AI safety
     priority: 4
 
+  claude_code:
+    display_name: "Claude Code"
+    keywords:
+      - claude code
+      - claude 4.7
+      - claude 4.6
+      - claude opus 4
+      - claude sonnet 4
+      - claude haiku 4
+      - anthropic skills
+      - claude agent sdk
+    priority: 5
+
   trading:
     display_name: "Trading & Investments"
     keywords:
@@ -170,6 +183,7 @@ display_order:
   - greece
   - business
   - ai
+  - claude_code
   - trading
   - learning
   - tech

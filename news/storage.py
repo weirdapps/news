@@ -45,6 +45,8 @@ def _migrate_db(conn: sqlite3.Connection) -> None:
         "ALTER TABLE articles ADD COLUMN mention_type TEXT",
         "ALTER TABLE articles ADD COLUMN urgency TEXT",
         "ALTER TABLE digests ADD COLUMN pipeline TEXT DEFAULT 'digest'",
+        "CREATE TABLE IF NOT EXISTS article_tickers (article_url TEXT NOT NULL, ticker TEXT NOT NULL, PRIMARY KEY (article_url, ticker), FOREIGN KEY (article_url) REFERENCES articles(url) ON DELETE CASCADE)",
+        "CREATE INDEX IF NOT EXISTS idx_article_tickers_ticker ON article_tickers(ticker)",
     ]
     for stmt in stmts:
         try:
@@ -71,6 +73,7 @@ def _backfill_fts(conn: sqlite3.Connection) -> None:
 
 def init_db(conn: sqlite3.Connection) -> None:
     """Initialize database schema with all required tables and indexes."""
+    conn.execute("PRAGMA foreign_keys=ON")
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS articles (
             url TEXT PRIMARY KEY,
@@ -100,6 +103,13 @@ def init_db(conn: sqlite3.Connection) -> None:
             FOREIGN KEY (article_url) REFERENCES articles(url) ON DELETE CASCADE
         );
 
+        CREATE TABLE IF NOT EXISTS article_tickers (
+            article_url TEXT NOT NULL,
+            ticker TEXT NOT NULL,
+            PRIMARY KEY (article_url, ticker),
+            FOREIGN KEY (article_url) REFERENCES articles(url) ON DELETE CASCADE
+        );
+
         CREATE TABLE IF NOT EXISTS digests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             digest_type TEXT NOT NULL,
@@ -126,6 +136,7 @@ def init_db(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_content_hash ON articles(content_hash);
         CREATE INDEX IF NOT EXISTS idx_fetched_at ON articles(fetched_at);
         CREATE INDEX IF NOT EXISTS idx_category ON article_categories(category);
+        CREATE INDEX IF NOT EXISTS idx_article_tickers_ticker ON article_tickers(ticker);
     """)
     conn.commit()
 
@@ -171,6 +182,13 @@ def _row_to_article(conn: sqlite3.Connection, row: sqlite3.Row) -> Article:
     )
     categories = [cat_row["category"] for cat_row in cursor.fetchall()]
 
+    # Load tickers for this article
+    ticker_rows = conn.execute(
+        "SELECT ticker FROM article_tickers WHERE article_url = ? ORDER BY ticker",
+        (row["url"],),
+    ).fetchall()
+    tickers = [r["ticker"] for r in ticker_rows]
+
     # Parse also_reported_by JSON if present
     also_reported_by = None
     if row["also_reported_by"]:
@@ -195,6 +213,7 @@ def _row_to_article(conn: sqlite3.Connection, row: sqlite3.Row) -> Article:
         sentiment=row["sentiment"] or "",
         mention_type=row["mention_type"] or "",
         urgency=row["urgency"] or "",
+        tickers=tickers,
     )
 
 
@@ -248,6 +267,14 @@ def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
             """,
                 (article.url, category),
             )
+
+        # Insert tickers
+        if article.tickers:
+            for ticker in article.tickers:
+                conn.execute(
+                    "INSERT OR IGNORE INTO article_tickers (article_url, ticker) VALUES (?, ?)",
+                    (article.url, ticker.upper()),
+                )
 
         conn.commit()
         return True

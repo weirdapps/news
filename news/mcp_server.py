@@ -39,6 +39,7 @@ def search_news(
     query: str,
     pipeline: str | None = None,
     category: str | None = None,
+    ticker: str | None = None,
     days: int = 30,
     limit: int = 20,
 ) -> list[dict]:
@@ -48,6 +49,7 @@ def search_news(
         query: Search keyword (case-insensitive)
         pipeline: Filter by pipeline — 'digest' or 'monitor' (default: both)
         category: Filter by category — banking, greece, ai, tech, etc.
+        ticker: Filter by stock ticker symbol (e.g., 'AAPL', 'MSFT')
         days: Lookback period in days (default: 30)
         limit: Maximum results (default: 20)
     """
@@ -60,6 +62,7 @@ def search_news(
             query=query,
             pipeline=pipeline,
             category=category,
+            ticker=ticker,
             days=days,
             limit=limit,
         )
@@ -100,6 +103,31 @@ def news_stats() -> dict:
     conn = _get_conn()
     try:
         return get_news_stats(conn)
+    finally:
+        conn.close()
+
+
+@mcp.tool()
+def recent_for_tickers(
+    tickers: list[str],
+    hours: int = 24,
+    limit: int = 50,
+) -> list[dict]:
+    """Get recent news articles tagged with any of the given tickers.
+
+    Optimized for trading workflows — pass a portfolio + watchlist ticker list
+    and get back relevant news from the cached corpus, much faster than WebSearch.
+
+    Args:
+        tickers: List of ticker symbols (e.g. ['AAPL', 'MSFT']). Case-insensitive.
+        hours: Lookback window in hours (default: 24).
+        limit: Max articles to return (default: 50).
+    """
+    from news.query import recent_for_tickers as _query
+
+    conn = _get_conn()
+    try:
+        return _query(conn, tickers, hours=hours, limit=limit)
     finally:
         conn.close()
 
