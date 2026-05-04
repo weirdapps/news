@@ -78,3 +78,19 @@ def test_long_key_uppercase_match():
     long_dict = {"target": "TGT"}
     text = "TARGET CORP REPORTS Q3 EARNINGS"
     assert extract_tickers_rules(text, long_dict) == ["TGT"]
+
+
+def test_alternation_regex_perf_smoke():
+    """Ensure tagger handles a large dict in reasonable time."""
+    import time
+    big_dict = {f"company{i}": f"TKR{i}" for i in range(5000)}
+    big_dict["apple"] = "AAPL"
+    text = "Apple announced iPhone updates today. " * 100  # ~3500 chars
+    start = time.time()
+    for _ in range(20):  # 20 calls = approximate one article worth of work × 20
+        extract_tickers_rules(text, big_dict)
+    elapsed = time.time() - start
+    # Should be well under 5s for 20 calls (= 0.25s per call) with 5K-key dict
+    assert elapsed < 5.0, f"Too slow: {elapsed:.2f}s for 20 calls"
+    # And should find AAPL
+    assert "AAPL" in extract_tickers_rules(text, big_dict)

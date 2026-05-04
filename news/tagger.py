@@ -29,13 +29,42 @@ def load_ticker_dict() -> dict[str, str]:
         return yaml.safe_load(f).get("tickers", {})
 
 
+@lru_cache(maxsize=4)
+def _compile_dict_patterns(dict_id: int, dict_keys_tuple: tuple) -> tuple:
+    """Compile two regex alternations: short keys (≤3 chars) and long keys (≥4 chars).
+
+    Sorted longest-first so longer alternatives win in regex matching.
+    Returns (short_pattern, long_pattern). Either can be None if no keys in that bucket.
+
+    The dict_id arg is just for cache-key uniqueness; the actual regex is built from keys_tuple.
+    """
+    short_keys = sorted([k for k in dict_keys_tuple if len(k) <= 3], key=len, reverse=True)
+    long_keys = sorted([k for k in dict_keys_tuple if len(k) > 3], key=len, reverse=True)
+
+    short_pattern = None
+    if short_keys:
+        # Short keys must match in original text in UPPERCASE form
+        short_alt = "|".join(re.escape(k.upper()) for k in short_keys)
+        short_pattern = re.compile(r"\b(" + short_alt + r")\b")
+
+    long_pattern = None
+    if long_keys:
+        # Long keys: case-insensitive search; capitalization check happens after match
+        long_alt = "|".join(re.escape(k) for k in long_keys)
+        long_pattern = re.compile(r"\b(" + long_alt + r")\b", re.IGNORECASE)
+
+    return (short_pattern, long_pattern)
+
+
 def extract_tickers_rules(text: str, ticker_dict: dict[str, str]) -> list[str]:
     """Return sorted unique uppercase tickers found in text via rules.
 
+    Optimized: uses TWO pre-compiled alternation regexes (short + long keys)
+    for O(text) match time instead of O(text × keys).
+
     Cashtags ($AAPL) — always captured.
-    Long names (≥4 chars): case-insensitive word-boundary match.
-    Short names (≤3 chars): require ALL-CAPS match to avoid common-word false
-    positives (e.g., "on" as preposition vs "ON" as ticker for ON Semiconductor).
+    Long names (≥4 chars): case-insensitive match, requires capital first letter in original.
+    Short names (≤3 chars): require ALL-CAPS match (proper-noun heuristic for ticker mentions).
     """
     found: set[str] = set()
 
@@ -43,21 +72,28 @@ def extract_tickers_rules(text: str, ticker_dict: dict[str, str]) -> list[str]:
     for m in CASHTAG_RE.finditer(text):
         found.add(m.group(1).upper())
 
-    # Name matches — sort longest-first so longer names win
-    text_lower = text.lower()
-    for name in sorted(ticker_dict.keys(), key=len, reverse=True):
-        if len(name) <= 3:
-            # Short keys: require ALL-CAPS in ORIGINAL text (case-sensitive)
-            pattern = r"\b" + re.escape(name.upper()) + r"\b"
-            if re.search(pattern, text):
-                found.add(ticker_dict[name])
-        else:
-            # Long keys: case-insensitive search, but require capital first letter in original text
-            pattern = re.compile(r"\b" + re.escape(name) + r"\b", re.IGNORECASE)
-            for m in pattern.finditer(text):
-                if text[m.start()].isupper():
-                    found.add(ticker_dict[name])
-                    break  # one match is sufficient
+    if not ticker_dict:
+        return sorted(found)
+
+    short_pat, long_pat = _compile_dict_patterns(id(ticker_dict), tuple(ticker_dict.keys()))
+
+    # Short keys: case-sensitive search on original text for ALL-CAPS forms
+    if short_pat:
+        for m in short_pat.finditer(text):
+            matched = m.group(1)
+            # Map back to dict key (lowercase) → ticker
+            ticker = ticker_dict.get(matched.lower())
+            if ticker:
+                found.add(ticker)
+
+    # Long keys: case-insensitive search, capitalize-check after
+    if long_pat:
+        for m in long_pat.finditer(text):
+            if text[m.start()].isupper():
+                matched = m.group(1)
+                ticker = ticker_dict.get(matched.lower())
+                if ticker:
+                    found.add(ticker)
 
     return sorted(found)
 
