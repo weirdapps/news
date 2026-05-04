@@ -325,7 +325,12 @@ def test_render_monitor_html_produces_valid_html():
             "full_name": "NBG",
             "short_name": "NBG",
             "monitor_label": "NBG MONITOR",
-        }
+        },
+        "competitors": {
+            "piraeus": {"names": ["Piraeus Bank"]},
+            "alpha": {"names": ["Alpha Bank"]},
+            "eurobank": {"names": ["Eurobank"]},
+        },
     }
 
     html = render_monitor_html(
@@ -425,6 +430,70 @@ def test_template_has_no_brand_specific_literals():
         src = f.read()
     for forbidden in ["NBG MONITOR", "NBG MENTIONS", "nbg_mentions"]:
         assert forbidden not in src, f"Found brand literal in template: {forbidden}"
+
+
+def test_render_monitor_html_iterates_arbitrary_competitor_keys():
+    """Template renders any competitor keys present in synthesis output, with display names from keywords."""
+    synthesis = {
+        "company_mentions": [],
+        "executive_brief": [],
+        "mention_count": 1,
+        "competitor_watch": {
+            "acme": "Acme reported strong Q1.",
+            "globex": "Globex announced new product.",
+            "initech": None,  # Should be skipped
+        },
+    }
+    keywords = {
+        "display": {"monitor_label": "TEST MON", "short_name": "TST"},
+        "competitors": {
+            "acme": {"names": ["Acme Corp"]},
+            "globex": {"names": ["Globex Inc."]},
+            "initech": {"names": ["Initech LLC"]},
+        },
+    }
+    html = render_monitor_html(
+        synthesis=synthesis,
+        mention_count=1,
+        source_count=1,
+        time_display="15:00",
+        date_display="tue 8 apr",
+        keywords_config=keywords,
+    )
+    assert "Acme Corp" in html
+    assert "Acme reported strong" in html
+    assert "Globex Inc." in html
+    # Null/empty summaries skipped
+    assert "Initech" not in html or "Initech LLC:" not in html
+
+
+def test_render_monitor_html_falls_back_to_keyname_when_display_name_missing():
+    """If a competitor key has no entry in keywords_config, render uses the key.title()."""
+    synthesis = {
+        "company_mentions": [],
+        "executive_brief": [],
+        "mention_count": 1,
+        "competitor_watch": {"unknown_competitor": "Something happened."},
+    }
+    keywords = {"display": {}, "competitors": {}}
+    html = render_monitor_html(
+        synthesis=synthesis,
+        mention_count=1,
+        source_count=1,
+        time_display="15:00",
+        date_display="tue 8 apr",
+        keywords_config=keywords,
+    )
+    # key.title() = "Unknown_Competitor" — Python's str.title()
+    assert "Unknown_Competitor" in html or "Something happened" in html
+
+
+def test_template_has_no_hardcoded_competitor_keys():
+    """The monitor.html template doesn't mention specific competitor names directly."""
+    with open("templates/monitor.html") as f:
+        src = f.read()
+    for forbidden in ["piraeus", "alpha", "eurobank", "greek banking"]:
+        assert forbidden.lower() not in src.lower(), f"Found hardcoded competitor: {forbidden}"
 
 
 # --- Section-builder tests (post-refactor) ---

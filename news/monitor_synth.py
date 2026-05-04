@@ -51,17 +51,25 @@ Phrases that look like the company name but are NOT — exclude articles where t
 
 
 def _competitor_section(competitors: dict) -> str:
-    """Build the competitor-context section, or '' when no competitors configured."""
-    names = []
-    for _, comp in competitors.items():
-        comp_names = comp.get("names", [])
-        if comp_names:
-            names.append(comp_names[0])
-    if not names:
+    """Build the competitor-context section, or '' when no competitors configured.
+
+    Includes the dict key alongside each competitor name so the LLM uses the
+    same key in its JSON output's `competitor_watch` block (which the email
+    template iterates over dynamically).
+    """
+    if not competitors:
+        return ""
+    lines = []
+    for key, comp in competitors.items():
+        names = comp.get("names", [])
+        if names:
+            lines.append(f"  - {key!r}: {names[0]}")
+    if not lines:
         return ""
     return f"""
 **COMPETITOR CONTEXT:**
-Compare the company's mentions alongside {", ".join(names)} where relevant. Note relative positioning (e.g., "X upgraded while Y downgraded").
+Compare the company's mentions alongside these competitors where relevant. In your JSON output, use the exact KEY (left side of `:`) as the key in `competitor_watch`:
+{chr(10).join(lines)}
 """
 
 

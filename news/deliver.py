@@ -281,6 +281,12 @@ def render_monitor_html(
             text.replace("\n\n", "<br><br>").replace("\n", "<br>")
         )  # nosemgrep
 
+    competitors = keywords_config.get("competitors", {})
+    competitor_display_names = {
+        key: comp.get("names", [key.title()])[0]
+        for key, comp in competitors.items()
+    }
+
     return template.render(  # nosemgrep
         subject=subject,
         date_display=date_display,
@@ -294,6 +300,7 @@ def render_monitor_html(
         display=keywords_config.get("display", {}),
         sector_context=sector_context,
         competitor_watch=competitor_watch,
+        competitor_display_names=competitor_display_names,
         fallback_text=fallback_text,
         next_scan=next_scan,
     )
