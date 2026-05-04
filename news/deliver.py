@@ -283,8 +283,7 @@ def render_monitor_html(
 
     competitors = keywords_config.get("competitors", {})
     competitor_display_names = {
-        key: comp.get("names", [key.title()])[0]
-        for key, comp in competitors.items()
+        key: comp.get("names", [key.title()])[0] for key, comp in competitors.items()
     }
 
     return template.render(  # nosemgrep
