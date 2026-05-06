@@ -242,3 +242,46 @@ def test_build_subject_synthesis_failed():
 
     assert "headlines only" in subject
     assert subject.endswith("headlines only")
+
+
+def test_render_digest_html_renders_linked_articles_per_section():
+    """When a section has `articles`, render each as a linked title with source."""
+    synthesis = {
+        "executive_brief": ["Bullet"],
+        "what_changed": [],
+        "sections": [
+            {
+                "category": "banking",
+                "display_name": "Banking",
+                "synthesis": "Synth.",
+                "opposing_views": "None noted",
+                "fact_check": "All statements fact-based",
+                "sources": ["FT"],
+                "high_value": True,
+                "articles": [
+                    {
+                        "title": "FT scoop on rates",
+                        "url": "https://ft.com/rates",
+                        "source": "FT",
+                    },
+                    {
+                        "title": "Reuters follow-up",
+                        "url": "https://reuters.com/r",
+                        "source": "Reuters",
+                    },
+                ],
+            }
+        ],
+    }
+    html = render_digest_html(
+        synthesis=synthesis,
+        article_count=2,
+        source_count=2,
+        time_display="09:00",
+        date_display="wed 6 may",
+        subject="x",
+    )
+    assert 'href="https://ft.com/rates"' in html
+    assert "FT scoop on rates" in html
+    assert 'href="https://reuters.com/r"' in html
+    assert "Reuters follow-up" in html
