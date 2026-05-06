@@ -285,3 +285,45 @@ def test_render_digest_html_renders_linked_articles_per_section():
     assert "FT scoop on rates" in html
     assert 'href="https://reuters.com/r"' in html
     assert "Reuters follow-up" in html
+
+
+def test_render_monitor_html_links_mention_title_when_url_present():
+    """When a mention has `url`, the title is wrapped in an <a> tag."""
+    from news.deliver import render_monitor_html
+
+    synthesis = {
+        "alerts": [],
+        "executive_brief": ["k"],
+        "sentiment_summary": {
+            "positive": 1,
+            "negative": 0,
+            "neutral": 0,
+            "trend": "stable",
+        },
+        "company_mentions": [
+            {
+                "title": "NBG Q1 results",
+                "source": "Reuters",
+                "type": "news",
+                "sentiment": "positive",
+                "summary": "Strong quarter.",
+                "url": "https://reuters.com/nbg-q1",
+            }
+        ],
+        "sector_context": "",
+    }
+    keywords_config = {
+        "display": {"short_name": "NBG", "monitor_label": "NBG MONITOR"},
+        "competitors": {},
+    }
+    html = render_monitor_html(
+        synthesis=synthesis,
+        mention_count=1,
+        source_count=1,
+        time_display="09:00",
+        date_display="wed 6 may",
+        keywords_config=keywords_config,
+        subject="x",
+    )
+    assert 'href="https://reuters.com/nbg-q1"' in html
+    assert "NBG Q1 results" in html

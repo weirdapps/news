@@ -143,7 +143,7 @@
                                             <tr>
                                                 <td style="font-family: Aptos, Calibri, Arial, sans-serif; font-size: 12pt; color: #404040;">
                                                     {% if mention.sentiment == 'positive' %}<span style="color: #2e7d32;">&#9650;</span>{% elif mention.sentiment == 'negative' %}<span style="color: #c62828;">&#9660;</span>{% else %}<span style="color: #757575;">&#9679;</span>{% endif %}
-                                                    <strong>{{ mention.title }}</strong>
+                                                    {% if mention.url %}<strong><a href="{{ mention.url }}" style="color: #1a237e; text-decoration: none;">{{ mention.title }}</a></strong>{% else %}<strong>{{ mention.title }}</strong>{% endif %}
                                                 </td>
                                             </tr>
                                             <tr>
