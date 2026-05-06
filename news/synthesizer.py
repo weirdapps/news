@@ -55,18 +55,20 @@ You will receive a large list of article titles and snippets. Your job is to:
 6. For AI section: Focus on what can be practically applied, not just announcements
 7. Create section names that reflect the actual content, not generic category labels
 
+**CITATION REQUIREMENT (CRITICAL):**
+Every bullet, section, and what-changed entry MUST include an "article_ids" field listing the integer id(s) of the input articles that support the claim — using the "id" field from the articles array in CONTEXT below. If you cannot point to a specific input article that supports a claim, OMIT the claim. Unsourced items will be silently dropped before delivery.
+
 **OUTPUT FORMAT:**
 Return a JSON object with this exact structure:
 
 {
   "executive_brief": [
-    "Bullet 1 - most critical insight",
-    "Bullet 2 - second most critical",
-    "Bullet 3",
-    "Bullet 4",
-    "Bullet 5"
+    {"text": "Bullet 1 — most critical insight", "article_ids": [3, 7]},
+    {"text": "Bullet 2", "article_ids": [12]}
   ],
-  "what_changed": "Summary of what's new since previous highlights",
+  "what_changed": [
+    {"text": "What's new since previous highlights", "article_ids": [3]}
+  ],
   "sections": [
     {
       "category": "category_key",
@@ -75,6 +77,7 @@ Return a JSON object with this exact structure:
       "opposing_views": "Note any conflicting perspectives or tensions between sources, or 'None noted'",
       "fact_check": "Flag any speculation vs verified facts, or 'All statements fact-based'",
       "sources": ["Source1", "Source2"],
+      "article_ids": [3, 7, 12],
       "high_value": true
     }
   ]
@@ -83,6 +86,7 @@ Return a JSON object with this exact structure:
 **category keys** (use these): banking, greece, business, ai, trading, learning, tech, apple
 **high_value flag:** true for sections with strategic business implications, false for general interest.
 **display_name:** Use descriptive titles that reflect the actual content (e.g. "ECB Rate Decision & Banking Impact" not just "Banking & Fintech").
+**article_ids:** integer ids from the articles array in CONTEXT — required on every bullet, what_changed entry, and section. Sections must list the union of ids cited across all stories synthesised in that section.
 
 Return ONLY valid JSON. No preamble, no markdown formatting, no prose. Just the JSON object."""
 )

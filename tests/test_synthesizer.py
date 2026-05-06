@@ -178,3 +178,13 @@ def test_invoke_claude_timeout(mock_run):
     result = invoke_claude("test prompt", timeout=60)
 
     assert result is None
+
+
+def test_build_prompt_requires_article_ids_citations():
+    """Digest prompt must require article_ids per bullet and section."""
+    prompt = build_prompt(_make_articles(), [], "24h")
+
+    assert "article_ids" in prompt
+    assert "CITATION REQUIREMENT" in prompt
+    # The schema must show article_ids on bullets and sections
+    assert '"text"' in prompt
