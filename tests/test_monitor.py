@@ -493,9 +493,9 @@ def test_template_has_no_hardcoded_competitor_keys():
     with open("templates/monitor.html") as f:
         src = f.read()
     for forbidden in ["piraeus", "alpha", "eurobank", "greek banking"]:
-        assert (
-            forbidden.lower() not in src.lower()
-        ), f"Found hardcoded competitor: {forbidden}"
+        assert forbidden.lower() not in src.lower(), (
+            f"Found hardcoded competitor: {forbidden}"
+        )
 
 
 # --- Section-builder tests (post-refactor) ---
