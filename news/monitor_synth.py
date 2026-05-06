@@ -76,41 +76,44 @@ Compare the company's mentions alongside these competitors where relevant. In yo
 def _output_format_section(short_name: str) -> str:
     """Build the JSON output schema + run-cadence rules section."""
     return f"""
+**CITATION REQUIREMENT (CRITICAL):**
+Every bullet, alert, mention, and competitor entry MUST include an "article_ids" field listing the integer id(s) of the input articles that support it — using the "id" field from the articles array in CONTEXT below. If you cannot point to a specific input article that supports a claim, OMIT the claim. Unsourced items will be silently dropped before delivery.
+
 **OUTPUT FORMAT:**
 Return a JSON object with this exact structure:
 
-{{
+{{{{
   "mention_count": 15,
   "new_since_last": 8,
-  "sentiment_summary": {{
+  "sentiment_summary": {{{{
     "positive": 5,
     "negative": 2,
     "neutral": 8,
     "trend": "improving"
-  }},
+  }}}},
   "alerts": [
-    "Brief description of any critical/urgent items requiring attention"
+    {{{{"text": "Brief description of any critical/urgent items requiring attention", "article_ids": [4]}}}}
   ],
   "company_mentions": [
-    {{
+    {{{{
       "title": "Article title",
       "source": "Source name",
       "type": "news|regulatory|stock|corporate|sector",
       "sentiment": "positive|negative|neutral",
       "summary": "One-sentence summary of the mention",
-      "relevance": "high|medium|low"
-    }}
+      "relevance": "high|medium|low",
+      "article_ids": [12]
+    }}}}
   ],
   "sector_context": "1-2 paragraph synthesis of relevant sector activity",
-  "competitor_watch": {{
-    "<competitor_key>": "Brief on competitor activity, or null if nothing"
-  }},
+  "competitor_watch": {{{{
+    "<competitor_key>": {{{{"summary": "Brief on competitor activity", "article_ids": [7]}}}}
+  }}}},
   "executive_brief": [
-    "Bullet 1 — most important {short_name}-related insight",
-    "Bullet 2",
-    "Bullet 3"
+    {{{{"text": "Bullet 1 — most important {short_name}-related insight", "article_ids": [12, 4]}}}},
+    {{{{"text": "Bullet 2", "article_ids": [7]}}}}
   ]
-}}
+}}}}
 
 **NEW vs REPEAT ARTICLES:**
 Each article has an "is_new" flag:
@@ -125,10 +128,11 @@ This monitor runs every 2 hours during business hours. Each report must STAND AL
 
 **RULES:**
 1. If no genuine {short_name} mentions exist, return mention_count: 0 with empty arrays
-2. Alerts array should only contain genuinely urgent items (negative press, regulatory actions, stock drops)
+2. Alerts array should only contain genuinely urgent items (negative press, regulatory actions, stock drops) — and MUST cite article_ids; never invent incidents not in the input
 3. Each report must be self-contained — the reader may have missed previous scans
-4. Competitor section can be null if no competitor news
+4. Competitor section: each entry must cite article_ids; entries with no source articles will be dropped
 5. Executive brief: max 5 bullets, lead with new items, repeat critical ongoing items
+6. company_mentions[].article_ids: include the id of the input article that the mention summarises (the renderer uses this id to attach the source URL to the mention)
 
 Return ONLY valid JSON. No preamble, no markdown formatting."""
 

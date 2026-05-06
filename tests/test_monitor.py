@@ -493,9 +493,9 @@ def test_template_has_no_hardcoded_competitor_keys():
     with open("templates/monitor.html") as f:
         src = f.read()
     for forbidden in ["piraeus", "alpha", "eurobank", "greek banking"]:
-        assert forbidden.lower() not in src.lower(), (
-            f"Found hardcoded competitor: {forbidden}"
-        )
+        assert (
+            forbidden.lower() not in src.lower()
+        ), f"Found hardcoded competitor: {forbidden}"
 
 
 # --- Section-builder tests (post-refactor) ---
@@ -692,3 +692,39 @@ def test_build_monitor_prompt_includes_roster_when_leadership_present():
     assert "Alice" in prompt
     assert "CEO" in prompt
     assert "EXECUTIVE NAME ROSTER" in prompt
+
+
+def test_monitor_prompt_requires_article_ids_citations():
+    """Monitor prompt must require article_ids per bullet/alert/mention/competitor."""
+    from datetime import datetime, timezone
+
+    from news.models import Article
+    from news.monitor_synth import build_monitor_prompt
+
+    articles = [
+        Article(
+            url="https://example.com/x",
+            title="x",
+            source="s",
+            content="c",
+            categories=["nbg_direct"],
+            language="en",
+            relevance_score=50,
+            fetched_at=datetime.now(timezone.utc),
+            published_at=datetime.now(timezone.utc),
+        )
+    ]
+    keywords_config = {
+        "display": {
+            "full_name": "NBG",
+            "short_name": "NBG",
+            "monitor_label": "NBG MONITOR",
+        },
+        "company": {},
+        "competitors": {},
+    }
+
+    prompt = build_monitor_prompt(articles, keywords_config, None, "1h")
+
+    assert "article_ids" in prompt
+    assert "CITATION REQUIREMENT" in prompt
