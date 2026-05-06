@@ -7,6 +7,7 @@ from news.citation_filter import (
     filter_unsourced_sections,
     enrich_mentions,
     enrich_section_articles,
+    filter_competitor_watch,
 )
 from news.models import Article
 
@@ -92,3 +93,15 @@ def test_enrich_mentions_attaches_url_from_first_id():
     assert len(enriched) == 1
     assert enriched[0]["title"] == "kept"
     assert enriched[0]["url"] == "https://example.com/3"
+
+
+def test_filter_competitor_watch_drops_legacy_strings_and_invalid():
+    """Legacy schema (key→str) always dropped; new schema (key→{summary,article_ids}) survives only with valid ids."""
+    cw = {
+        "alpha": "legacy string summary — must drop",
+        "piraeus": {"summary": "kept", "article_ids": [1]},
+        "eurobank": {"summary": "no ids", "article_ids": []},
+        "optima": {"summary": "bad id", "article_ids": [99]},
+    }
+    result = filter_competitor_watch(cw, _articles())
+    assert result == {"piraeus": "kept"}
