@@ -679,6 +679,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
         synthesis_data["competitor_watch"] = filter_competitor_watch(
             synthesis_data.get("competitor_watch"), capped_articles
         )
+        synthesis_data["mention_count"] = len(synthesis_data["company_mentions"])
         synthesis_text = json.dumps(synthesis_data)
     else:
         assert isinstance(synthesis_result, str)
