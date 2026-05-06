@@ -40,7 +40,7 @@
 - Create: `news/citation_filter.py`
 - Test: `tests/test_citation_filter.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 """Tests for synthesis citation filter."""
@@ -139,12 +139,12 @@ def test_enrich_mentions_attaches_url_from_first_id():
     assert enriched[0]["url"] == "https://example.com/3"
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `pytest tests/test_citation_filter.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'news.citation_filter'`
 
-- [ ] **Step 3: Write the module**
+- [x] **Step 3: Write the module**
 
 ```python
 """Filter and enrich synthesis output using article_ids citations.
@@ -322,12 +322,12 @@ def filter_competitor_watch(
     return kept
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/test_citation_filter.py -v`
 Expected: PASS (6 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add news/citation_filter.py tests/test_citation_filter.py
@@ -342,7 +342,7 @@ git commit -m "feat(citation): add filter+enrich for sourced synthesis bullets"
 
 - Modify: `tests/test_citation_filter.py`
 
-- [ ] **Step 1: Add the failing test**
+- [x] **Step 1: Add the failing test**
 
 Append to `tests/test_citation_filter.py`:
 
@@ -371,12 +371,12 @@ from news.citation_filter import (
 )
 ```
 
-- [ ] **Step 2: Run to verify it passes** (the function already exists from Task 1)
+- [x] **Step 2: Run to verify it passes** (the function already exists from Task 1)
 
 Run: `pytest tests/test_citation_filter.py::test_filter_competitor_watch_drops_legacy_strings_and_invalid -v`
 Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/test_citation_filter.py
@@ -392,7 +392,7 @@ git commit -m "test(citation): cover competitor_watch filter"
 - Modify: `news/synthesizer.py` (lines 58-87 — the OUTPUT FORMAT block)
 - Modify: `tests/test_synthesizer.py`
 
-- [ ] **Step 1: Add the failing test**
+- [x] **Step 1: Add the failing test**
 
 Append to `tests/test_synthesizer.py`:
 
@@ -407,12 +407,12 @@ def test_build_prompt_requires_article_ids_citations():
     assert '"text"' in prompt
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_synthesizer.py::test_build_prompt_requires_article_ids_citations -v`
 Expected: FAIL — substrings not present
 
-- [ ] **Step 3: Update the digest OUTPUT FORMAT block**
+- [x] **Step 3: Update the digest OUTPUT FORMAT block**
 
 In `news/synthesizer.py`, replace lines 58-87 (`**OUTPUT FORMAT:**` through the closing `Just the JSON object."""`) with:
 
@@ -453,12 +453,12 @@ Return a JSON object with this exact structure:
 Return ONLY valid JSON. No preamble, no markdown formatting, no prose. Just the JSON object."""
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/test_synthesizer.py -v`
 Expected: PASS — all tests including the new one (`parse_synthesis_output` tests still pass because parser is unchanged)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add news/synthesizer.py tests/test_synthesizer.py
@@ -474,7 +474,7 @@ git commit -m "feat(synthesizer): require article_ids citation in digest prompt"
 - Modify: `news/monitor_synth.py` (lines 76-133 — the `_output_format_section` function)
 - Modify: `tests/test_monitor.py`
 
-- [ ] **Step 1: Add the failing test**
+- [x] **Step 1: Add the failing test**
 
 Find an existing prompt-building test in `tests/test_monitor.py` and add nearby (or at the bottom):
 
@@ -511,12 +511,12 @@ def test_monitor_prompt_requires_article_ids_citations():
     assert "CITATION REQUIREMENT" in prompt
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pytest tests/test_monitor.py::test_monitor_prompt_requires_article_ids_citations -v`
 Expected: FAIL — substrings missing
 
-- [ ] **Step 3: Update the monitor `_output_format_section`**
+- [x] **Step 3: Update the monitor `_output_format_section`**
 
 In `news/monitor_synth.py`, replace the entire body of `_output_format_section` (lines 78-133) with:
 
@@ -585,12 +585,12 @@ This monitor runs every 2 hours during business hours. Each report must STAND AL
 Return ONLY valid JSON. No preamble, no markdown formatting."""
 ```
 
-- [ ] **Step 4: Run tests to verify pass**
+- [x] **Step 4: Run tests to verify pass**
 
 Run: `pytest tests/test_monitor.py -v`
 Expected: PASS — including the new test
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add news/monitor_synth.py tests/test_monitor.py
@@ -605,7 +605,7 @@ git commit -m "feat(monitor): require article_ids citation in monitor prompt"
 
 - Modify: `main.py` (around lines 391-420 — after `synthesize()` call, before render)
 
-- [ ] **Step 1: Add a failing pipeline-level test**
+- [x] **Step 1: Add a failing pipeline-level test**
 
 Append to `tests/test_orchestrator.py` (or create one if missing — check first):
 
@@ -622,7 +622,7 @@ If `tests/test_orchestrator.py` already covers the pipeline, skip creating this 
 
 Run: `grep -l "run_digest_pipeline\|run_pipeline" tests/` to check.
 
-- [ ] **Step 2: Modify `main.py` to call the filter**
+- [x] **Step 2: Modify `main.py` to call the filter**
 
 In `main.py`, find the digest pipeline block at lines 408-420 (the section after `synthesize()` returns and before render). Replace:
 
@@ -676,12 +676,12 @@ with:
         synthesis_text = synthesis_result
 ```
 
-- [ ] **Step 3: Run all existing tests**
+- [x] **Step 3: Run all existing tests**
 
 Run: `pytest -v`
 Expected: PASS — no regressions. (Existing render tests use legacy bullet strings which the renderer still accepts; the new filter only kicks in inside `main.py`, not in `render_digest_html`.)
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add main.py
@@ -696,7 +696,7 @@ git commit -m "feat(digest): drop unsourced bullets, enrich sections with articl
 
 - Modify: `main.py` (around lines 640-651 — after `synthesize_monitor()` returns)
 
-- [ ] **Step 1: Modify `main.py`**
+- [x] **Step 1: Modify `main.py`**
 
 Find the monitor pipeline block at lines 640-651. Replace:
 
@@ -748,7 +748,7 @@ with:
         synthesis_text = synthesis_result
 ```
 
-- [ ] **Step 2: Adjust `mention_count` and `has_alerts` defaults**
+- [x] **Step 2: Adjust `mention_count` and `has_alerts` defaults**
 
 The current code at lines 662-667 reads:
 
@@ -774,12 +774,12 @@ The current code at lines 662-667 reads:
     has_alerts = bool(synthesis_data.get("alerts")) if synthesis_ok else False
 ```
 
-- [ ] **Step 3: Run all existing tests**
+- [x] **Step 3: Run all existing tests**
 
 Run: `pytest -v`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add main.py
@@ -795,7 +795,7 @@ git commit -m "feat(monitor): drop unsourced alerts/mentions, attach mention URL
 - Modify: `templates/digest.html` (after the Sources line, around line 179)
 - Modify: `tests/test_deliver.py`
 
-- [ ] **Step 1: Add the failing test**
+- [x] **Step 1: Add the failing test**
 
 Add to `tests/test_deliver.py`:
 
@@ -843,12 +843,12 @@ def test_render_digest_html_renders_linked_articles_per_section():
     assert "Reuters follow-up" in html
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `pytest tests/test_deliver.py::test_render_digest_html_renders_linked_articles_per_section -v`
 Expected: FAIL — `href="https://ft.com/rates"` not in output
 
-- [ ] **Step 3: Modify `templates/digest.html`**
+- [x] **Step 3: Modify `templates/digest.html`**
 
 In `templates/digest.html`, find the `<!-- Sources -->` block at lines 168-179. Insert this block **before** it (so the article list appears between the synthesis paragraph and the source-name line):
 
@@ -872,12 +872,12 @@ In `templates/digest.html`, find the `<!-- Sources -->` block at lines 168-179. 
 
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `pytest tests/test_deliver.py -v`
 Expected: PASS — including the new test, no regressions to `test_render_digest_html_produces_valid_html`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add templates/digest.html tests/test_deliver.py
@@ -893,7 +893,7 @@ git commit -m "feat(digest-template): render linked article list under each sect
 - Modify: `templates/monitor.html` (lines 144-148 — the mention title cell)
 - Modify: `tests/test_deliver.py`
 
-- [ ] **Step 1: Add the failing test**
+- [x] **Step 1: Add the failing test**
 
 Add to `tests/test_deliver.py`:
 
@@ -935,12 +935,12 @@ def test_render_monitor_html_links_mention_title_when_url_present():
     assert "NBG Q1 results" in html
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `pytest tests/test_deliver.py::test_render_monitor_html_links_mention_title_when_url_present -v`
 Expected: FAIL — `href` not present
 
-- [ ] **Step 3: Modify `templates/monitor.html`**
+- [x] **Step 3: Modify `templates/monitor.html`**
 
 In `templates/monitor.html`, replace lines 143-148 (the title row inside the mention loop):
 
@@ -964,12 +964,12 @@ with:
                                             </tr>
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `pytest tests/test_deliver.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add templates/monitor.html tests/test_deliver.py
@@ -982,7 +982,7 @@ git commit -m "feat(monitor-template): link mention titles when URL resolved"
 
 **Files:** none (operational verification)
 
-- [ ] **Step 1: Run an ad-hoc digest pipeline**
+- [x] **Step 1: Run an ad-hoc digest pipeline**
 
 Run: `cd ~/SourceCode/news && python3 main.py --adhoc`
 Expected:
@@ -1001,7 +1001,7 @@ sqlite3 ~/SourceCode/news/data/news.db "SELECT synthesis_text FROM digests WHERE
 
 Expected: each section has an `articles` array with `{title, url, source}` triples; bullets are plain strings (filtered + flattened).
 
-- [ ] **Step 2: Run an ad-hoc monitor pipeline**
+- [x] **Step 2: Run an ad-hoc monitor pipeline**
 
 Run: `cd ~/SourceCode/news && python3 main.py --profile monitor --adhoc`
 Expected:
@@ -1016,7 +1016,7 @@ sqlite3 ~/SourceCode/news/data/news.db "SELECT synthesis_text FROM digests WHERE
 
 Expected: each `company_mentions` entry has `url`; `alerts` are plain strings (filtered).
 
-- [ ] **Step 3: If bullets are empty (LLM ignored citation requirement)**
+- [x] **Step 3: If bullets are empty (LLM ignored citation requirement)**
 
 This is the failure mode to watch for. Diagnostics:
 
@@ -1026,7 +1026,7 @@ tail -100 ~/SourceCode/news/data/run.log
 
 If the run log shows `synthesis OK` but bullets are empty, the LLM is not emitting `article_ids`. Tighten the prompt's CITATION REQUIREMENT block (move it to the top of the system prompt instead of mid-document) and re-run.
 
-- [ ] **Step 4: Commit any prompt tweaks made in step 3**
+- [x] **Step 4: Commit any prompt tweaks made in step 3**
 
 ```bash
 git add news/synthesizer.py news/monitor_synth.py
