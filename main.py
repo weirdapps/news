@@ -660,8 +660,26 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     if synthesis_ok:
         # Contract: synthesize_monitor() returns dict on success, str on failure.
         assert isinstance(synthesis_result, dict)
+        from news.citation_filter import (
+            enrich_mentions,
+            filter_competitor_watch,
+            filter_unsourced_bullets,
+        )
+
         synthesis_data = synthesis_result
-        synthesis_text = json.dumps(synthesis_result)
+        synthesis_data["executive_brief"] = filter_unsourced_bullets(
+            synthesis_data.get("executive_brief", []), capped_articles
+        )
+        synthesis_data["alerts"] = filter_unsourced_bullets(
+            synthesis_data.get("alerts", []), capped_articles
+        )
+        synthesis_data["company_mentions"] = enrich_mentions(
+            synthesis_data.get("company_mentions", []), capped_articles
+        )
+        synthesis_data["competitor_watch"] = filter_competitor_watch(
+            synthesis_data.get("competitor_watch"), capped_articles
+        )
+        synthesis_text = json.dumps(synthesis_data)
     else:
         assert isinstance(synthesis_result, str)
         synthesis_data = {"fallback_text": synthesis_result}
@@ -678,7 +696,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     date_display = now_athens.strftime("%a %-d %b").lower()
 
     mention_count = (
-        synthesis_data.get("mention_count", len(capped_articles))
+        len(synthesis_data.get("company_mentions", []))
         if synthesis_ok
         else len(capped_articles)
     )
