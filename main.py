@@ -411,8 +411,26 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     if synthesis_ok:
         # Contract: synthesize() returns dict on success, str on failure.
         assert isinstance(synthesis_result, dict)
+        from news.citation_filter import (
+            enrich_section_articles,
+            filter_unsourced_bullets,
+            filter_unsourced_sections,
+        )
+
         synthesis_data = synthesis_result
-        synthesis_text = json.dumps(synthesis_result)
+        synthesis_data["executive_brief"] = filter_unsourced_bullets(
+            synthesis_data.get("executive_brief", []), capped_articles
+        )
+        synthesis_data["what_changed"] = filter_unsourced_bullets(
+            synthesis_data.get("what_changed", []), capped_articles
+        )
+        synthesis_data["sections"] = enrich_section_articles(
+            filter_unsourced_sections(
+                synthesis_data.get("sections", []), capped_articles
+            ),
+            capped_articles,
+        )
+        synthesis_text = json.dumps(synthesis_data)
     else:
         # Fallback case - plain text
         assert isinstance(synthesis_result, str)
