@@ -24,11 +24,13 @@ from news.config import (
 )
 from news.deliver import (
     build_monitor_subject,
+    build_stack_subject,
     build_subject,
     build_topic_subject,
     notify_macos,
     render_digest_html,
     render_monitor_html,
+    render_stack_html,
     render_topic_html,
     save_fallback,
     send_email,
@@ -234,9 +236,11 @@ async def run_pipeline(
         await run_monitor_pipeline(run_type=run_type)
         return
     if profile == "topic":
-        # Argparse-level validation already guarantees query is present.
         assert query is not None, "topic profile requires --query"
         await run_topic_pipeline(query=query, hours=hours, print_only=print_only)
+        return
+    if profile == "stack":
+        await run_stack_pipeline(run_type=run_type)
         return
     await run_digest_pipeline(run_type=run_type)
 
@@ -771,6 +775,213 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     logger.info(f"Monitor pipeline complete in {duration:.1f}s")
 
 
+async def run_stack_pipeline(run_type: str = "scheduled") -> None:
+    """Execute the stack (AI/dev intelligence) pipeline."""
+    start_time = datetime.now(timezone.utc)
+    logger = logging.getLogger(__name__)
+    logger.info(f"Starting stack {run_type} pipeline run")
+
+    settings = get_settings(profile="stack")
+    sources = get_sources(profile="stack")
+    categories_config = get_categories(profile="stack")
+
+    config = _setup_digest_pipeline(settings, sources)
+
+    conn = get_connection(config["db_path"])
+    init_db(conn)
+
+    last_digest = get_last_digest(conn, pipeline="stack")
+    last_digest_at = last_digest.created_at if last_digest else None
+
+    time_window = get_time_window(
+        start_time,
+        last_digest_at,
+        config["schedule"]["timezone"],
+    )
+    logger.info(f"Stack time window: {time_window}")
+
+    previous_highlights: list[str] = []
+    if last_digest and last_digest.synthesis_text:
+        try:
+            previous_synthesis = json.loads(last_digest.synthesis_text)
+            if isinstance(previous_synthesis, dict):
+                previous_highlights = previous_synthesis.get("executive_brief", [])
+        except json.JSONDecodeError:
+            pass
+
+    # FETCH
+    rss_feeds = sources.get("rss_feeds", [])
+    logger.info(f"Fetching {len(rss_feeds)} stack RSS feeds")
+    raw_articles, fetch_errors = await fetch_rss_feeds(rss_feeds)
+    logger.info(f"Fetched {len(raw_articles)} articles")
+
+    if fetch_errors:
+        logger.warning(f"Fetch errors: {len(fetch_errors)}")
+        for error in fetch_errors[:5]:
+            logger.warning(f"  {error}")
+
+    # PROCESS
+    existing_hashes: set[str] = set()
+    for article in raw_articles:
+        article.pipeline = "stack"
+        article.compute_hash()
+        if get_article_by_hash(conn, article.content_hash):
+            existing_hashes.add(article.content_hash)
+
+    processed_articles, process_stats = process_articles(
+        articles=raw_articles,
+        existing_hashes=existing_hashes,
+        categories_config=categories_config,
+        scoring_config=config["scoring"],
+        source_tiers=config["source_tiers"],
+        min_words=config["pipeline"]["min_article_length_words"],
+        max_age_hours=config["pipeline"]["max_article_age_hours"],
+    )
+
+    for article in processed_articles:
+        article.pipeline = "stack"
+
+    logger.info(
+        f"Processing complete: {process_stats['output_count']} new articles "
+        f"({process_stats['duplicates']} duplicates, "
+        f"{process_stats['quality_dropped']} quality drops)"
+    )
+
+    # STORE
+    for article in processed_articles:
+        insert_article(conn, article)
+
+    # POOL: pull recent stack articles
+    digest_window = timedelta(hours=config["pipeline"].get("digest_window_hours", 36))
+    digest_since = start_time - digest_window
+    all_recent = get_articles_since(conn, digest_since, min_score=0, pipeline="stack")
+
+    capped_articles = _select_digest_articles(all_recent, config["pipeline"])
+    logger.info(
+        f"Stack pool: {len(all_recent)} articles, selected top {len(capped_articles)}"
+    )
+
+    # SYNTHESIZE
+    from news.stack_synth import build_stack_fallback, synthesize_stack
+
+    auth_ok = check_gcloud_auth()
+    if auth_ok and capped_articles:
+        synthesis_result, synthesis_ok = synthesize_stack(
+            articles=capped_articles,
+            previous_highlights=previous_highlights,
+            time_window=time_window,
+            max_retries=config["synthesis"].get("max_retries", 2),
+            timeout=config["synthesis"].get("timeout", 300),
+            claude_command=config["synthesis"].get("claude_command", "claude"),
+            claude_args=config["synthesis"].get("claude_args", []),
+        )
+    else:
+        if not auth_ok:
+            logger.warning("gcloud auth expired — skipping synthesis, using fallback")
+        elif not capped_articles:
+            logger.warning("No articles fetched — using fallback")
+        synthesis_result = build_stack_fallback(capped_articles)
+        synthesis_ok = False
+
+    # Prepare synthesis data
+    synthesis_data: dict
+    if synthesis_ok:
+        assert isinstance(synthesis_result, dict)
+        from news.citation_filter import (
+            filter_unsourced_bullets,
+            filter_unsourced_sections,
+        )
+
+        synthesis_data = synthesis_result
+        synthesis_data["executive_brief"] = filter_unsourced_bullets(
+            synthesis_data.get("executive_brief", []), capped_articles
+        )
+        synthesis_data["try_this"] = filter_unsourced_bullets(
+            synthesis_data.get("try_this", []), capped_articles
+        )
+        synthesis_data["recommendations"] = filter_unsourced_bullets(
+            synthesis_data.get("recommendations", []), capped_articles
+        )
+        synthesis_data["sections"] = filter_unsourced_sections(
+            synthesis_data.get("sections", []), capped_articles
+        )
+        synthesis_text = json.dumps(synthesis_data)
+    else:
+        assert isinstance(synthesis_result, str)
+        synthesis_data = {"fallback_text": synthesis_result}
+        synthesis_text = synthesis_result
+
+    # DELIVER
+    now_athens = start_time.astimezone(_ATHENS_TZ)
+    current_time_str = now_athens.strftime("%H:%M")
+    next_run = get_next_digest_time(current_time_str, config["schedule"]["runs"])
+
+    source_count = len(rss_feeds)
+    time_display = now_athens.strftime("%H:%M")
+    date_display = now_athens.strftime("%a %-d %b").lower()
+
+    subject = build_stack_subject(
+        dt=now_athens,
+        is_adhoc=(run_type == "adhoc"),
+        synthesis_failed=(not synthesis_ok),
+        article_count=len(all_recent),
+        source_count=source_count,
+    )
+
+    html_output = render_stack_html(
+        synthesis=synthesis_data,
+        article_count=len(all_recent),
+        source_count=source_count,
+        time_display=time_display,
+        date_display=date_display,
+        next_run=next_run,
+        subject=subject,
+    )
+
+    email_sent = send_email(
+        subject=subject,
+        html_body=html_output,
+        recipient=config["email"]["recipient"],
+    )
+
+    if not email_sent:
+        logger.error("Stack email send failed - saving fallback")
+        fallback_path = save_fallback(html_output, label="stack")
+        notify_macos(
+            title="Stack Send Failed",
+            message=f"Saved to {fallback_path}",
+        )
+
+    digest = Digest(
+        digest_type=run_type,
+        created_at=start_time,
+        article_count=len(all_recent),
+        synthesis_text=synthesis_text,
+        html_output=html_output,
+        sent_at=None,
+        pipeline="stack",
+    )
+    digest_id = insert_digest(conn, digest)
+
+    if email_sent:
+        update_digest_sent(conn, digest_id)
+
+    conn.close()
+
+    duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+    log_run(
+        log_path=str(config["run_log_path"]),
+        run_type=f"stack-{run_type}",
+        article_count=len(processed_articles),
+        new_count=process_stats["output_count"],
+        synthesis_ok=synthesis_ok,
+        sent_ok=email_sent,
+        duration_seconds=duration,
+    )
+
+    logger.info(f"Stack pipeline complete in {duration:.1f}s")
+
+
 async def run_topic_pipeline(
     query: str,
     hours: int = 24,
@@ -987,7 +1198,7 @@ def main() -> None:
         default="digest",
         help=(
             "Pipeline profile: 'digest' (default), 'monitor' (brand monitoring), "
-            "or 'topic' (ad-hoc topical brief — requires --query)"
+            "'stack' (AI/dev intelligence), or 'topic' (ad-hoc topical brief — requires --query)"
         ),
     )
     parser.add_argument(

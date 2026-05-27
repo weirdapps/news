@@ -465,6 +465,103 @@ def build_topic_subject(
     return base
 
 
+def render_stack_html(
+    synthesis: dict,
+    article_count: int,
+    source_count: int,
+    time_display: str,
+    date_display: str,
+    next_run: str | None = None,
+    subject: str = "",
+) -> str:
+    """Render the stack HTML using Jinja2 template."""
+    env = Environment(  # nosemgrep
+        loader=FileSystemLoader(_TEMPLATES_DIR),
+        autoescape=select_autoescape(default_for_string=True, default=True),
+    )
+    template = env.get_template("stack.html")
+
+    executive_brief = synthesis.get("executive_brief", [])
+    try_this = synthesis.get("try_this", [])
+    recommendations = synthesis.get("recommendations", [])
+    sections = synthesis.get("sections", [])
+    fallback_text = synthesis.get("fallback_text", "")
+
+    # Extract text from citation-filtered bullets (same pattern as digest)
+    if executive_brief and isinstance(executive_brief[0], dict):
+        executive_brief = [b.get("text", str(b)) for b in executive_brief]
+    if try_this and isinstance(try_this[0], dict):
+        try_this = [t.get("text", str(t)) for t in try_this]
+    if recommendations and isinstance(recommendations[0], dict):
+        recommendations = [r.get("text", str(r)) for r in recommendations]
+
+    for section in sections:
+        if "synthesis" in section and section["synthesis"]:
+            text = (
+                section["synthesis"]
+                .replace("&", _HTML_AMP)
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+            )
+            section["synthesis"] = Markup(  # nosemgrep
+                text.replace("\n\n", _HTML_BR_DOUBLE).replace("\n", "<br>")
+            )
+    if fallback_text:
+        text = (
+            fallback_text.replace("&", _HTML_AMP)
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+        )
+        fallback_text = Markup(
+            text.replace("\n\n", _HTML_BR_DOUBLE).replace("\n", "<br>")
+        )  # nosemgrep
+
+    return template.render(  # nosemgrep
+        subject=subject,
+        date_display=date_display,
+        time_display=time_display,
+        article_count=article_count,
+        source_count=source_count,
+        executive_brief=executive_brief,
+        try_this=try_this,
+        recommendations=recommendations,
+        sections=sections,
+        fallback_text=fallback_text,
+        next_run=next_run,
+    )
+
+
+def build_stack_subject(
+    dt: datetime,
+    is_adhoc: bool = False,
+    synthesis_failed: bool = False,
+    article_count: int = 0,
+    source_count: int = 0,
+) -> str:
+    """Build stack email subject line.
+
+    Format: "Stack | {article_count} articles | Day D MON HH:MM"
+    """
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=_ATHENS_TZ)
+    else:
+        dt = dt.astimezone(_ATHENS_TZ)
+
+    time_str = dt.strftime("%H:%M")
+    day_name = dt.strftime("%a").capitalize()
+    day_num = dt.strftime("%-d")
+    month_name = dt.strftime("%b").upper()
+
+    base = f"Stack | {article_count} articles | {day_name} {day_num} {month_name} {time_str}"
+
+    if is_adhoc:
+        base = f"[adhoc] {base}"
+    if synthesis_failed:
+        base += " | headlines only"
+
+    return base
+
+
 def save_fallback(
     html: str, output_dir: str = "~/Downloads", label: str = "digest"
 ) -> str:

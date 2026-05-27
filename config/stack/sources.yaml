@@ -1,0 +1,225 @@
+# Stack profile — AI, dev tools, and technology intelligence
+# Curated sources for actionable tech insights + industry trends
+
+rss_feeds:
+  # === RELEASES & TOOLS ===
+  - name: "Claude Code Releases"
+    url: "https://github.com/anthropics/claude-code/releases.atom"
+    category: "releases"
+    tier: 1
+    language: "en"
+  - name: "Anthropic News"
+    url: "https://news.google.com/rss/search?q=when:24h+allinurl:anthropic.com&ceid=US:en&hl=en-US&gl=US"
+    category: "releases"
+    tier: 1
+    language: "en"
+  - name: "OpenAI News"
+    url: "https://news.google.com/rss/search?q=when:24h+allinurl:openai.com&ceid=US:en&hl=en-US&gl=US"
+    category: "releases"
+    tier: 1
+    language: "en"
+  - name: "Google AI Blog"
+    url: "https://news.google.com/rss/search?q=when:24h+allinurl:blog.google+AI&ceid=US:en&hl=en-US&gl=US"
+    category: "releases"
+    tier: 1
+    language: "en"
+  - name: "DeepMind"
+    url: "https://news.google.com/rss/search?q=when:24h+allinurl:deepmind.google&ceid=US:en&hl=en-US&gl=US"
+    category: "releases"
+    tier: 1
+    language: "en"
+  - name: "Mistral AI"
+    url: "https://news.google.com/rss/search?q=when:48h+%22Mistral+AI%22&ceid=US:en&hl=en-US&gl=US"
+    category: "releases"
+    tier: 2
+    language: "en"
+  - name: "Vercel Blog"
+    url: "https://news.google.com/rss/search?q=when:48h+allinurl:vercel.com%2Fblog&ceid=US:en&hl=en-US&gl=US"
+    category: "releases"
+    tier: 2
+    language: "en"
+  - name: "Hugging Face Papers"
+    url: "https://news.google.com/rss/search?q=when:24h+allinurl:huggingface.co&ceid=US:en&hl=en-US&gl=US"
+    category: "releases"
+    tier: 2
+    language: "en"
+  - name: "Cursor AI"
+    url: "https://news.google.com/rss/search?q=when:48h+%22Cursor+AI%22+OR+%22Cursor+IDE%22&ceid=US:en&hl=en-US&gl=US"
+    category: "releases"
+    tier: 2
+    language: "en"
+
+  # === TUTORIALS & WORKFLOWS ===
+  - name: "Simon Willison"
+    url: "https://simonwillison.net/atom/everything/"
+    category: "tutorials"
+    tier: 1
+    language: "en"
+  - name: "Dev.to AI"
+    url: "https://dev.to/feed/tag/ai"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "Dev.to Claude"
+    url: "https://dev.to/feed/tag/claude"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "Dev.to LLM"
+    url: "https://dev.to/feed/tag/llm"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "Dev.to Programming"
+    url: "https://dev.to/feed/tag/programming"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "Lobsters"
+    url: "https://lobste.rs/rss"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "Substack AI"
+    url: "https://news.google.com/rss/search?q=when:24h+(claude+code+OR+agentic+AI+OR+MCP+servers)+site:substack.com&ceid=US:en&hl=en-US&gl=US"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "Medium AI"
+    url: "https://medium.com/feed/tag/artificial-intelligence"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+
+  # === RESEARCH & TRENDS ===
+  - name: "MIT Technology Review"
+    url: "https://www.technologyreview.com/feed/"
+    category: "research"
+    tier: 1
+    language: "en"
+  - name: "The Batch (deeplearning.ai)"
+    url: "https://news.google.com/rss/search?q=when:7d+allinurl:deeplearning.ai&ceid=US:en&hl=en-US&gl=US"
+    category: "research"
+    tier: 1
+    language: "en"
+  - name: "AI News"
+    url: "https://www.artificialintelligence-news.com/feed/"
+    category: "research"
+    tier: 2
+    language: "en"
+  - name: "Hacker News Best"
+    url: "https://hnrss.org/best?points=100"
+    category: "research"
+    tier: 1
+    language: "en"
+  - name: "arXiv cs.AI"
+    url: "https://rss.arxiv.org/rss/cs.AI"
+    category: "research"
+    tier: 2
+    language: "en"
+  - name: "arXiv cs.CL"
+    url: "https://rss.arxiv.org/rss/cs.CL"
+    category: "research"
+    tier: 2
+    language: "en"
+
+  # === SHOW & TELL ===
+  - name: "Show HN"
+    url: "https://hnrss.org/show?points=50"
+    category: "showcase"
+    tier: 2
+    language: "en"
+  - name: "Product Hunt"
+    url: "https://www.producthunt.com/feed"
+    category: "showcase"
+    tier: 2
+    language: "en"
+  - name: "GitHub Trending All"
+    url: "https://mshibanami.github.io/GitHubTrendingRSS/daily/all.xml"
+    category: "showcase"
+    tier: 2
+    language: "en"
+  - name: "GitHub Trending Python"
+    url: "https://mshibanami.github.io/GitHubTrendingRSS/daily/python.xml"
+    category: "showcase"
+    tier: 2
+    language: "en"
+  - name: "GitHub Trending TypeScript"
+    url: "https://mshibanami.github.io/GitHubTrendingRSS/daily/typescript.xml"
+    category: "showcase"
+    tier: 2
+    language: "en"
+  - name: "GitHub Trending Rust"
+    url: "https://mshibanami.github.io/GitHubTrendingRSS/daily/rust.xml"
+    category: "showcase"
+    tier: 2
+    language: "en"
+  - name: "Changelog"
+    url: "https://changelog.com/feed"
+    category: "showcase"
+    tier: 2
+    language: "en"
+
+  # === INDUSTRY & PEOPLE ===
+  - name: "TechCrunch AI"
+    url: "https://news.google.com/rss/search?q=when:24h+allinurl:techcrunch.com+AI&ceid=US:en&hl=en-US&gl=US"
+    category: "industry"
+    tier: 1
+    language: "en"
+  - name: "Ars Technica"
+    url: "https://feeds.arstechnica.com/arstechnica/index"
+    category: "industry"
+    tier: 1
+    language: "en"
+  - name: "The Verge"
+    url: "https://www.theverge.com/rss/index.xml"
+    category: "industry"
+    tier: 1
+    language: "en"
+  - name: "Wired"
+    url: "https://www.wired.com/feed/rss"
+    category: "industry"
+    tier: 2
+    language: "en"
+  - name: "HN Front Page"
+    url: "https://hnrss.org/frontpage?points=200"
+    category: "industry"
+    tier: 1
+    language: "en"
+
+  # === YOUTUBE ===
+  - name: "YouTube: Fireship"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA"
+    category: "tutorials"
+    tier: 1
+    language: "en"
+  - name: "YouTube: Matt Wolfe"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UChpleBmo18P08aKCIgti38g"
+    category: "research"
+    tier: 2
+    language: "en"
+  - name: "YouTube: AI Explained"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCNJ1Ymd5yFuUPtn21xtRbbw"
+    category: "research"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Two Minute Papers"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg"
+    category: "research"
+    tier: 2
+    language: "en"
+  - name: "YouTube: IndyDevDan"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC_x36zCEGilGpB1m-V4gmjg"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "YouTube: ThePrimeagen"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC8ENHE5xdFSwx71u3fDH5Xw"
+    category: "industry"
+    tier: 2
+    language: "en"
+  - name: "YouTube: NetworkChuck"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC9x0AN7BWHpCDHSm9NiJFJQ"
+    category: "tutorials"
+    tier: 2
+    language: "en"

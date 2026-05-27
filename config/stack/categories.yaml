@@ -1,0 +1,117 @@
+# Stack profile — category definitions
+# 5 categories optimized for mixed actionable + trends slant
+
+categories:
+  releases:
+    display_name: "Releases & Tools"
+    keywords:
+      - release
+      - launch
+      - update
+      - changelog
+      - new version
+      - SDK
+      - MCP
+      - Model Context Protocol
+      - API
+      - claude code
+      - anthropic
+      - openai
+      - model release
+      - GPT
+      - Gemini
+      - Sonnet
+      - Opus
+      - Haiku
+      - cursor
+      - copilot
+      - windsurf
+    priority: 1
+
+  tutorials:
+    display_name: "Tutorials & Workflows"
+    keywords:
+      - tutorial
+      - how to
+      - guide
+      - workflow
+      - pattern
+      - agentic
+      - prompt engineering
+      - tips
+      - hooks
+      - plugins
+      - MCP server
+      - claude code
+      - dev tools
+      - automation
+      - coding assistant
+      - AI workflow
+      - best practices
+    priority: 2
+
+  research:
+    display_name: "Research & Trends"
+    keywords:
+      - research
+      - paper
+      - benchmark
+      - evaluation
+      - reasoning
+      - frontier
+      - alignment
+      - safety
+      - scaling
+      - architecture
+      - transformer
+      - multimodal
+      - foundation model
+      - AGI
+      - AI regulation
+      - AI policy
+      - debate
+      - analysis
+    priority: 3
+
+  showcase:
+    display_name: "Show & Tell"
+    keywords:
+      - open source
+      - trending
+      - GitHub
+      - Show HN
+      - Product Hunt
+      - launch
+      - project
+      - demo
+      - tool
+      - library
+      - framework
+      - repository
+      - star
+    priority: 4
+
+  industry:
+    display_name: "Industry & People"
+    keywords:
+      - funding
+      - acquisition
+      - hire
+      - startup
+      - valuation
+      - AI company
+      - big tech
+      - enterprise AI
+      - strategy
+      - partnership
+      - competition
+      - market
+      - regulation
+    priority: 5
+
+display_order:
+  - releases
+  - tutorials
+  - research
+  - showcase
+  - industry

@@ -1,0 +1,48 @@
+# Stack profile — Pipeline Settings
+# Daily AI/dev intelligence at 13:00 Athens
+
+pipeline:
+  relevance_threshold: 15
+  max_articles_per_category: 10
+  max_article_age_hours: 36
+  min_article_length_words: 10
+  digest_window_hours: 36
+  max_digest_articles: 150
+  max_articles_per_source: 8
+  dedup_hash_chars: 200
+
+email:
+  recipient: ${NEWS_STACK_RECIPIENT:-user@example.com}
+
+schedule:
+  timezone: Europe/Athens
+  runs:
+    - "13:00"
+
+storage:
+  db_path: ~/SourceCode/news/data/news.db
+  run_log_path: ~/SourceCode/news/data/run.log
+  archive_dir: ~/SourceCode/news/data/archive
+  archive_after_days: 30
+
+synthesis:
+  claude_command: ${NEWS_CLAUDE_COMMAND:-claude}
+  claude_args:
+    - "--print"
+    - "--model"
+    - "sonnet"
+  timeout: 300
+  max_retries: 2
+
+scoring:
+  company_mention: 0
+  greek_banking: 0
+  claude_mention: 30
+  category_match: 10
+  tier_1_bonus: 15
+  tier_2_bonus: 10
+  tier_3_bonus: 5
+  recency_1h: 15
+  recency_4h: 12
+  recency_12h: 10
+  recency_24h: 5
