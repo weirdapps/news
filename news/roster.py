@@ -12,7 +12,8 @@ NAME_HANDLING_RULES = """**NAME HANDLING RULES (CRITICAL — past reports had ha
 2. Preserve the original-language surname suffix when transliterating. Suffix endings often encode gender; do not strip or change them.
 3. Do not add stress accents to English transliterations.
 4. NEVER attribute a quote or position to a person not actually named in the article. If unsure who said something, attribute to the institution.
-5. If a surname is not in any provided roster, transliterate it phonetically and prefix the mention with "[unverified name]" so the reader knows to double-check."""
+5. If a surname is not in any provided roster, transliterate it phonetically and prefix the mention with "[unverified name]" so the reader knows to double-check.
+6. NEVER invent or guess job titles/roles. Only attribute a role if it appears in the roster above. If someone is mentioned in an article without a role in the roster, use their name alone — do NOT assume CEO/Chairman/Deputy based on article context."""
 
 
 def build_roster(keywords_config: dict | None = None) -> str:

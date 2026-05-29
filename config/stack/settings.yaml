@@ -30,7 +30,7 @@ synthesis:
   claude_args:
     - "--print"
     - "--model"
-    - "sonnet"
+    - "opus"
   timeout: 300
   max_retries: 2
 
