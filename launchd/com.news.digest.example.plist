@@ -6,9 +6,9 @@
     <string>com.news.digest</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/PATH/TO/YOUR/VENV/bin/python3</string>
-        <string>/PATH/TO/news/main.py</string>
-        <string>--scheduled</string>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>source ~/.config/nbg-vertex/env &amp;&amp; export CLOUD_ML_REGION=${VERTEX_REGION_LIGHT} &amp;&amp; exec /Users/plessas/.venvs/news/bin/python3 /Users/plessas/SourceCode/news/main.py --scheduled</string>
     </array>
     <key>StartCalendarInterval</key>
     <array>
@@ -44,25 +44,17 @@
         </dict>
     </array>
     <key>WorkingDirectory</key>
-    <string>/PATH/TO/news</string>
+    <string>/Users/plessas/SourceCode/news</string>
     <key>StandardOutPath</key>
-    <string>/PATH/TO/Library/Logs/news/digest.log</string>
+    <string>/Users/plessas/Library/Logs/news/digest.log</string>
     <key>StandardErrorPath</key>
-    <string>/PATH/TO/Library/Logs/news/digest.err</string>
+    <string>/Users/plessas/Library/Logs/news/digest.err</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:/PATH/TO/.local/bin</string>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:/Users/plessas/.local/bin</string>
         <key>HOME</key>
-        <string>/PATH/TO/HOME</string>
-        <key>CLAUDE_CODE_USE_VERTEX</key>
-        <string>1</string>
-        <key>ANTHROPIC_VERTEX_PROJECT_ID</key>
-        <string>your-org-uuid-placeholder</string>
-        <key>CLOUD_ML_REGION</key>
-        <string>global</string>
-        <key>ANTHROPIC_MODEL</key>
-        <string>claude-opus-4-7[1m]</string>
+        <string>/Users/plessas</string>
     </dict>
 </dict>
 </plist>

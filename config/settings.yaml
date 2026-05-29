@@ -59,11 +59,13 @@ synthesis:
   # Override with NEWS_CLAUDE_COMMAND env var if you need an absolute path.
   claude_command: ${NEWS_CLAUDE_COMMAND:-claude}
 
-  # Arguments for Claude synthesis
+  # Arguments for Claude synthesis. Opus for best-quality digest synthesis;
+  # invoke_claude() pins CLOUD_ML_REGION=eu for opus runs (the tagger stays on
+  # sonnet/europe-west1 via the launchd env — the two are decoupled per-subprocess).
   claude_args:
     - "--print"
     - "--model"
-    - "sonnet"
+    - "opus"
 
   # Timeout for synthesis in seconds
   timeout: 300

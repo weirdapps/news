@@ -172,6 +172,18 @@ def invoke_claude(
 
     cmd = [claude_command] + bare_args
 
+    # Pair the Vertex region with the requested model tier: Opus is served from
+    # `eu`, Sonnet from `europe-west1`. The launchd env pins europe-west1 (for the
+    # Sonnet tagger), so an Opus synthesis run must override the region here or it
+    # hard-fails as model-not-found in europe-west1.
+    import os
+
+    run_env = dict(os.environ)
+    if "opus" in bare_args:
+        run_env["CLOUD_ML_REGION"] = "eu"
+    elif "sonnet" in bare_args:
+        run_env["CLOUD_ML_REGION"] = "europe-west1"
+
     try:
         result = subprocess.run(
             cmd,
@@ -180,6 +192,7 @@ def invoke_claude(
             text=True,
             timeout=timeout,
             check=False,
+            env=run_env,
         )
 
         if result.returncode != 0:
