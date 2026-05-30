@@ -165,73 +165,117 @@ def invoke_claude(
     if claude_args is None:
         claude_args = []
 
-    # Always use --bare to prevent CLAUDE.md auto-discovery and hooks
-    # from injecting conflicting instructions into the synthesis prompt.
+    # --bare (no CLAUDE.md/hooks) + --print + --output-format json so we can read the
+    # result envelope's stop_reason (refusal detection) and is_error (e.g. 429).
     bare_args = list(claude_args)
     if "--bare" not in bare_args:
         bare_args.append("--bare")
+    if "--print" not in bare_args:
+        bare_args.append("--print")
+    if "--output-format" not in bare_args:
+        bare_args += ["--output-format", "json"]
 
-    run_env = dict(os.environ)
+    def _resolve_tier() -> tuple[str | None, str | None]:
+        """Map the opus/sonnet tier alias in bare_args to (exact id, region).
 
-    # Resolve the human-readable tier alias ("opus"/"sonnet") passed in claude_args
-    # to the EXACT Vertex model id + region from the central env
-    # (~/.config/nbg-vertex/env) — the same proven settings interactive Claude Code
-    # uses. The bare "opus" alias resolves to an unprovisioned eu quota bucket
-    # (429 → unprocessed fallback); the heavy-tier id claude-opus-4-8[1m] is the
-    # provisioned model. Region must track the model: Opus is served from `eu`,
-    # Sonnet from `europe-west1`.
-    if "--model" in bare_args:
-        model_idx = bare_args.index("--model") + 1
-        if model_idx < len(bare_args):
-            tier = bare_args[model_idx].lower()
-            if "opus" in tier:
-                bare_args[model_idx] = os.environ.get(
-                    "VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]"
-                )
-                run_env["CLOUD_ML_REGION"] = os.environ.get("VERTEX_REGION_HEAVY", "eu")
-            elif "sonnet" in tier:
-                bare_args[model_idx] = os.environ.get(
-                    "VERTEX_MODEL_LIGHT", "claude-sonnet-4-6"
-                )
-                run_env["CLOUD_ML_REGION"] = os.environ.get(
-                    "VERTEX_REGION_LIGHT", "europe-west1"
-                )
+        The bare "opus" alias resolves to an unprovisioned eu quota bucket (429); the
+        heavy-tier id claude-opus-4-8[1m] is the provisioned model. Region must track
+        the model: Opus -> eu, Sonnet -> europe-west1 (central ~/.config/nbg-vertex/env).
+        """
+        if "--model" in bare_args:
+            i = bare_args.index("--model") + 1
+            if i < len(bare_args):
+                tier = bare_args[i].lower()
+                if "opus" in tier:
+                    return (
+                        os.environ.get("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]"),
+                        os.environ.get("VERTEX_REGION_HEAVY", "eu"),
+                    )
+                if "sonnet" in tier:
+                    return (
+                        os.environ.get("VERTEX_MODEL_LIGHT", "claude-sonnet-4-6"),
+                        os.environ.get("VERTEX_REGION_LIGHT", "europe-west1"),
+                    )
+        return (None, None)
 
-    cmd = [claude_command] + bare_args
+    def _run_once(model: str | None, region: str | None) -> dict[str, Any] | None:
+        """Run claude once with model id `model` + CLOUD_ML_REGION=region.
 
-    try:
-        result = subprocess.run(
-            cmd,
-            input=prompt,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            check=False,
-            env=run_env,
-        )
-
-        if result.returncode != 0:
-            logger.warning(
-                f"Claude CLI exited with code {result.returncode}: "
-                f"{result.stderr[:500] if result.stderr else '(no stderr)'}"
+        Returns the parsed --output-format json envelope, or None on failure.
+        """
+        args = list(bare_args)
+        if model is not None:
+            if "--model" in args:
+                args[args.index("--model") + 1] = model
+            else:
+                args += ["--model", model]
+        run_env = dict(os.environ)
+        if region:
+            run_env["CLOUD_ML_REGION"] = region
+        try:
+            proc = subprocess.run(
+                [claude_command] + args,
+                input=prompt,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+                env=run_env,
             )
-
-        if not result.stdout or not result.stdout.strip():
+        except subprocess.TimeoutExpired:
+            logger.warning(f"Claude CLI timed out after {timeout}s")
+            return None
+        except Exception as e:  # noqa: BLE001 - log and degrade, never raise
+            logger.error(f"Failed to invoke Claude CLI: {e}")
+            return None
+        if not proc.stdout or not proc.stdout.strip():
             logger.warning(
                 f"Claude CLI returned empty stdout. "
-                f"stderr: {result.stderr[:500] if result.stderr else '(none)'}"
+                f"stderr: {proc.stderr[:500] if proc.stderr else '(none)'}"
+            )
+            return None
+        try:
+            return json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            logger.warning(
+                f"Claude CLI output was not a JSON envelope: {proc.stdout[:200]!r}"
             )
             return None
 
-        return result.stdout
-
-    except subprocess.TimeoutExpired:
-        logger.warning(f"Claude CLI timed out after {timeout}s")
+    model, region = _resolve_tier()
+    env = _run_once(model, region)
+    if env is None:
         return None
 
-    except Exception as e:
-        logger.error(f"Failed to invoke Claude CLI: {e}")
+    # Auto-downgrade on a (often spurious) policy refusal OR an API error such as a
+    # 429: retry ONCE on the Opus 4.6 / europe-west1 fallback tier (model AND region
+    # together — 4.6 lives in europe-west1, so the region must flip with it).
+    if env.get("stop_reason") == "refusal" or env.get("is_error"):
+        fb_model = os.environ.get("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")
+        fb_region = os.environ.get("VERTEX_REGION_FALLBACK", "europe-west1")
+        why = (
+            "policy refusal"
+            if env.get("stop_reason") == "refusal"
+            else f"error ({str(env.get('result'))[:160]})"
+        )
+        logger.warning(
+            f"Claude {why} on {model or 'default'} @ {region or 'default'} — "
+            f"downgrading to fallback {fb_model} @ {fb_region}"
+        )
+        env = _run_once(fb_model, fb_region)
+        if env is None:
+            return None
+        if env.get("is_error"):
+            logger.error(
+                f"Fallback model {fb_model} also failed: {str(env.get('result'))[:200]}"
+            )
+            return None
+
+    text = env.get("result")
+    if not text or not str(text).strip():
+        logger.warning("Claude CLI returned an empty result field")
         return None
+    return text
 
 
 def parse_synthesis_output(raw: str) -> dict[str, Any]:

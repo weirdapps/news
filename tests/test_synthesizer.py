@@ -153,11 +153,18 @@ def test_build_fallback_digest():
     assert "https://example.com/2" in fallback
 
 
+def _envelope(result="{}", stop_reason="end_turn", is_error=False):
+    """Build a `claude --output-format json` stdout envelope (what invoke_claude parses)."""
+    return json.dumps(
+        {"result": result, "stop_reason": stop_reason, "is_error": is_error}
+    )
+
+
 @patch("news.synthesizer.subprocess.run")
 def test_invoke_claude_success(mock_run):
-    """Mock subprocess.run returning success with JSON stdout."""
+    """invoke_claude returns the envelope's `result` text on a clean turn."""
     expected_output = '{"executive_brief": [], "sections": []}'
-    mock_run.return_value = Mock(stdout=expected_output, returncode=0)
+    mock_run.return_value = Mock(stdout=_envelope(result=expected_output), returncode=0)
 
     result = invoke_claude("test prompt", timeout=60)
 
@@ -168,6 +175,8 @@ def test_invoke_claude_success(mock_run):
     assert args[1]["capture_output"] is True
     assert args[1]["text"] is True
     assert args[1]["timeout"] == 60
+    # Must request the JSON envelope so stop_reason (refusal detection) is available.
+    assert "--output-format" in args[0][0] and "json" in args[0][0]
 
 
 @patch("news.synthesizer.subprocess.run")
@@ -189,7 +198,7 @@ def test_invoke_claude_resolves_opus_alias_to_vertex_heavy_model(mock_run, monke
     """
     monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
     monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
-    mock_run.return_value = Mock(stdout="{}", returncode=0)
+    mock_run.return_value = Mock(stdout=_envelope(), returncode=0)
 
     invoke_claude("p", claude_args=["--print", "--model", "opus"])
 
@@ -207,7 +216,7 @@ def test_invoke_claude_resolves_sonnet_alias_to_vertex_light_model(
     """sonnet tier must resolve to the exact light-tier id + europe-west1 region."""
     monkeypatch.setenv("VERTEX_MODEL_LIGHT", "claude-sonnet-4-6")
     monkeypatch.setenv("VERTEX_REGION_LIGHT", "europe-west1")
-    mock_run.return_value = Mock(stdout="{}", returncode=0)
+    mock_run.return_value = Mock(stdout=_envelope(), returncode=0)
 
     invoke_claude("p", claude_args=["--print", "--model", "sonnet"])
 
@@ -228,7 +237,7 @@ def test_invoke_claude_opus_falls_back_to_correct_default_when_env_absent(
     """
     monkeypatch.delenv("VERTEX_MODEL_HEAVY", raising=False)
     monkeypatch.delenv("VERTEX_REGION_HEAVY", raising=False)
-    mock_run.return_value = Mock(stdout="{}", returncode=0)
+    mock_run.return_value = Mock(stdout=_envelope(), returncode=0)
 
     invoke_claude("p", claude_args=["--model", "opus"])
 
@@ -237,6 +246,58 @@ def test_invoke_claude_opus_falls_back_to_correct_default_when_env_absent(
     assert "claude-opus-4-8[1m]" in cmd
     assert "opus" not in cmd
     assert run_env["CLOUD_ML_REGION"] == "eu"
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_invoke_claude_downgrades_to_fallback_on_policy_refusal(mock_run, monkeypatch):
+    """A spurious 'anthropic policy' refusal must auto-retry on the Opus 4.6 /
+    europe-west1 fallback tier (model AND region together)."""
+    monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
+    monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
+    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")
+    monkeypatch.setenv("VERTEX_REGION_FALLBACK", "europe-west1")
+    mock_run.side_effect = [
+        Mock(
+            stdout=_envelope(result="I can't help with that.", stop_reason="refusal"),
+            returncode=0,
+        ),
+        Mock(stdout=_envelope(result="SYNTH_OK"), returncode=0),
+    ]
+
+    result = invoke_claude("p", claude_args=["--print", "--model", "opus"])
+
+    assert mock_run.call_count == 2
+    second_cmd = mock_run.call_args_list[1][0][0]
+    second_env = mock_run.call_args_list[1][1]["env"]
+    assert "claude-opus-4-6[1m]" in second_cmd
+    assert second_env["CLOUD_ML_REGION"] == "europe-west1"
+    assert result == "SYNTH_OK"
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_invoke_claude_downgrades_to_fallback_on_api_error(mock_run, monkeypatch):
+    """An is_error envelope (e.g. a 429) on the primary must also retry on the fallback."""
+    monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
+    monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
+    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")
+    monkeypatch.setenv("VERTEX_REGION_FALLBACK", "europe-west1")
+    mock_run.side_effect = [
+        Mock(
+            stdout=_envelope(
+                result="API Error: 429 quota",
+                stop_reason="stop_sequence",
+                is_error=True,
+            ),
+            returncode=0,
+        ),
+        Mock(stdout=_envelope(result="RECOVERED"), returncode=0),
+    ]
+
+    result = invoke_claude("p", claude_args=["--print", "--model", "opus"])
+
+    assert mock_run.call_count == 2
+    assert "claude-opus-4-6[1m]" in mock_run.call_args_list[1][0][0]
+    assert result == "RECOVERED"
 
 
 def test_build_prompt_requires_article_ids_citations():
