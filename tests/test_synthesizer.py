@@ -180,6 +180,65 @@ def test_invoke_claude_timeout(mock_run):
     assert result is None
 
 
+@patch("news.synthesizer.subprocess.run")
+def test_invoke_claude_resolves_opus_alias_to_vertex_heavy_model(mock_run, monkeypatch):
+    """opus tier must resolve to the exact provisioned model id + eu region.
+
+    The bare 'opus' alias hits an unprovisioned eu quota bucket (429 → unprocessed
+    fallback). Synthesis must use the central-env heavy-tier id instead.
+    """
+    monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
+    monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
+    mock_run.return_value = Mock(stdout="{}", returncode=0)
+
+    invoke_claude("p", claude_args=["--print", "--model", "opus"])
+
+    cmd = mock_run.call_args[0][0]
+    run_env = mock_run.call_args[1]["env"]
+    assert "claude-opus-4-8[1m]" in cmd
+    assert "opus" not in cmd  # the bare alias must never reach the CLI
+    assert run_env["CLOUD_ML_REGION"] == "eu"
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_invoke_claude_resolves_sonnet_alias_to_vertex_light_model(
+    mock_run, monkeypatch
+):
+    """sonnet tier must resolve to the exact light-tier id + europe-west1 region."""
+    monkeypatch.setenv("VERTEX_MODEL_LIGHT", "claude-sonnet-4-6")
+    monkeypatch.setenv("VERTEX_REGION_LIGHT", "europe-west1")
+    mock_run.return_value = Mock(stdout="{}", returncode=0)
+
+    invoke_claude("p", claude_args=["--print", "--model", "sonnet"])
+
+    cmd = mock_run.call_args[0][0]
+    run_env = mock_run.call_args[1]["env"]
+    assert "claude-sonnet-4-6" in cmd
+    assert "sonnet" not in cmd
+    assert run_env["CLOUD_ML_REGION"] == "europe-west1"
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_invoke_claude_opus_falls_back_to_correct_default_when_env_absent(
+    mock_run, monkeypatch
+):
+    """With no central env present, opus must still resolve to the working id.
+
+    Guards against ever emitting the broken bare 'opus' alias.
+    """
+    monkeypatch.delenv("VERTEX_MODEL_HEAVY", raising=False)
+    monkeypatch.delenv("VERTEX_REGION_HEAVY", raising=False)
+    mock_run.return_value = Mock(stdout="{}", returncode=0)
+
+    invoke_claude("p", claude_args=["--model", "opus"])
+
+    cmd = mock_run.call_args[0][0]
+    run_env = mock_run.call_args[1]["env"]
+    assert "claude-opus-4-8[1m]" in cmd
+    assert "opus" not in cmd
+    assert run_env["CLOUD_ML_REGION"] == "eu"
+
+
 def test_build_prompt_requires_article_ids_citations():
     """Digest prompt must require article_ids per bullet and section."""
     prompt = build_prompt(_make_articles(), [], "24h")

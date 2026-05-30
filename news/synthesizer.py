@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import re
 import subprocess
 from typing import Any
@@ -170,19 +171,33 @@ def invoke_claude(
     if "--bare" not in bare_args:
         bare_args.append("--bare")
 
-    cmd = [claude_command] + bare_args
-
-    # Pair the Vertex region with the requested model tier: Opus is served from
-    # `eu`, Sonnet from `europe-west1`. The launchd env pins europe-west1 (for the
-    # Sonnet tagger), so an Opus synthesis run must override the region here or it
-    # hard-fails as model-not-found in europe-west1.
-    import os
-
     run_env = dict(os.environ)
-    if "opus" in bare_args:
-        run_env["CLOUD_ML_REGION"] = "eu"
-    elif "sonnet" in bare_args:
-        run_env["CLOUD_ML_REGION"] = "europe-west1"
+
+    # Resolve the human-readable tier alias ("opus"/"sonnet") passed in claude_args
+    # to the EXACT Vertex model id + region from the central env
+    # (~/.config/nbg-vertex/env) — the same proven settings interactive Claude Code
+    # uses. The bare "opus" alias resolves to an unprovisioned eu quota bucket
+    # (429 → unprocessed fallback); the heavy-tier id claude-opus-4-8[1m] is the
+    # provisioned model. Region must track the model: Opus is served from `eu`,
+    # Sonnet from `europe-west1`.
+    if "--model" in bare_args:
+        model_idx = bare_args.index("--model") + 1
+        if model_idx < len(bare_args):
+            tier = bare_args[model_idx].lower()
+            if "opus" in tier:
+                bare_args[model_idx] = os.environ.get(
+                    "VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]"
+                )
+                run_env["CLOUD_ML_REGION"] = os.environ.get("VERTEX_REGION_HEAVY", "eu")
+            elif "sonnet" in tier:
+                bare_args[model_idx] = os.environ.get(
+                    "VERTEX_MODEL_LIGHT", "claude-sonnet-4-6"
+                )
+                run_env["CLOUD_ML_REGION"] = os.environ.get(
+                    "VERTEX_REGION_LIGHT", "europe-west1"
+                )
+
+    cmd = [claude_command] + bare_args
 
     try:
         result = subprocess.run(
