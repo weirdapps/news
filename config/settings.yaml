@@ -59,9 +59,11 @@ synthesis:
   # Override with NEWS_CLAUDE_COMMAND env var if you need an absolute path.
   claude_command: ${NEWS_CLAUDE_COMMAND:-claude}
 
-  # Arguments for Claude synthesis. Opus for best-quality digest synthesis;
-  # invoke_claude() pins CLOUD_ML_REGION=eu for opus runs (the tagger stays on
-  # sonnet/europe-west1 via the launchd env — the two are decoupled per-subprocess).
+  # Arguments for Claude synthesis. "opus" is a tier selector, not the literal
+  # model: invoke_claude() resolves it to the exact provisioned Vertex id
+  # (VERTEX_MODEL_HEAVY=claude-opus-4-8[1m]) and region (eu) from the central env
+  # ~/.config/nbg-vertex/env. The bare "opus" alias hits an unprovisioned eu quota
+  # bucket (429). The tagger stays on sonnet/europe-west1 — decoupled per-subprocess.
   claude_args:
     - "--print"
     - "--model"
