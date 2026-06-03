@@ -223,3 +223,28 @@ rss_feeds:
     category: "tutorials"
     tier: 2
     language: "en"
+
+# === FEED-LESS HTML SOURCES (scraped listing pages) ===
+# the-agent-daily.org publishes no RSS/Atom feed and is not indexed by Google
+# News, so it cannot be added as an rss_feeds line. It IS server-rendered, so we
+# scrape its section listing pages for article links + titles (see
+# news.fetcher.parse_html_listing). link_pattern is a regex the article hrefs match.
+html_sources:
+  - name: "The Agent Daily — News"
+    url: "https://the-agent-daily.org/agentnews/news"
+    link_pattern: "/agentnews/news/.+"
+    category: "industry"
+    tier: 1
+    language: "en"
+  - name: "The Agent Daily — Deep Dives"
+    url: "https://the-agent-daily.org/agentnews/deep-dives"
+    link_pattern: "/agentnews/deep-dives/.+"
+    category: "tutorials"
+    tier: 1
+    language: "en"
+  - name: "The Agent Daily — Articles"
+    url: "https://the-agent-daily.org/agentnews/articles"
+    link_pattern: "/agentnews/articles/.+"
+    category: "research"
+    tier: 2
+    language: "en"

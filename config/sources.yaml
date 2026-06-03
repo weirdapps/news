@@ -45,8 +45,10 @@ rss_feeds:
     category: "trading"
     tier: 2
     language: "en"
-  - name: "TipRanks via Google"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:tipranks.com&ceid=US:en&hl=en-US&gl=US"
+  - name: "TipRanks News via Google"
+    # NB: allinurl:tipranks.com returns 0 items in Google News; site:tipranks.com/news
+    # returns ~100/24h. Use the site: form scoped to the /news section.
+    url: "https://news.google.com/rss/search?q=when:24h+site:tipranks.com/news&ceid=US:en&hl=en-US&gl=US"
     category: "trading"
     tier: 2
     language: "en"

@@ -8,6 +8,7 @@ dependencies = [
     "httpx",
     "trafilatura",
     "readability-lxml",
+    "lxml",
     "Jinja2",
     "PyYAML",
     "markupsafe",
