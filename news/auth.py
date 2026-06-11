@@ -16,10 +16,30 @@ _AUTO_LOGIN_SCRIPT = (
 
 
 def _token_valid() -> bool:
-    """Check if gcloud access token is currently valid."""
+    """Check if the gcloud user access token is currently valid."""
     try:
         result = subprocess.run(
             ["gcloud", "auth", "print-access-token"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        return result.returncode == 0 and bool(result.stdout.strip())
+    except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
+        return False
+
+
+def _adc_valid() -> bool:
+    """Check if Application Default Credentials (ADC) are currently valid.
+
+    Claude Code's Vertex routing authenticates via ADC, so a stale ADC fails the
+    call even when the user access token looks fine. Probing both closes the
+    false-green gap that let an invalid_rapt run ship an unsynthesized digest.
+    """
+    try:
+        result = subprocess.run(
+            ["gcloud", "auth", "application-default", "print-access-token"],
             capture_output=True,
             text=True,
             timeout=15,
@@ -67,15 +87,28 @@ def _refresh_auth(timeout: int = 120) -> bool:
         return False
 
 
+def refresh_auth() -> bool:
+    """Force a gcloud re-auth (user creds + ADC) via the centralized auto-login script.
+
+    Used reactively when a Vertex call fails with an auth-class error (e.g.
+    invalid_rapt) — the access token can look valid while the RAPT reauth proof
+    has lapsed, which only the live call reveals.
+
+    Returns:
+        True if re-auth succeeded, False otherwise
+    """
+    return _refresh_auth()
+
+
 def check_gcloud_auth() -> bool:
     """Check if gcloud auth is valid, attempt auto-refresh if expired.
 
     Returns:
         True if authenticated (possibly after auto-refresh), False otherwise
     """
-    if _token_valid():
+    if _token_valid() and _adc_valid():
         logger.info("gcloud auth check: OK")
         return True
 
-    logger.warning("gcloud auth expired — attempting auto-refresh")
+    logger.warning("gcloud auth expired (user token or ADC) — attempting auto-refresh")
     return _refresh_auth()

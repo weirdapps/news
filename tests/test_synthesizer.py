@@ -308,3 +308,83 @@ def test_build_prompt_requires_article_ids_citations():
     assert "CITATION REQUIREMENT" in prompt
     # The schema must show article_ids on bullets and sections
     assert '"text"' in prompt
+
+
+# --- Auth self-heal (invalid_rapt / reauth) -------------------------------
+
+_RAPT_ERR = (
+    '{"error":"invalid_grant","error_description":'
+    '"reauth related error (invalid_rapt)","error_subtype":"invalid_rapt"}'
+)
+
+
+@patch("news.synthesizer.refresh_auth")
+@patch("news.synthesizer.subprocess.run")
+def test_invoke_claude_reauths_on_invalid_rapt_then_retries_same_tier(
+    mock_run, mock_reauth, monkeypatch
+):
+    """An invalid_rapt auth error must trigger a gcloud re-auth and retry the
+    SAME model/region — NOT a model downgrade (creds, not quota)."""
+    monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
+    monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
+    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")
+    monkeypatch.setenv("VERTEX_REGION_FALLBACK", "europe-west1")
+    mock_run.side_effect = [
+        Mock(stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0),
+        Mock(stdout=_envelope(result="SYNTH_OK"), returncode=0),
+    ]
+    mock_reauth.return_value = True
+
+    result = invoke_claude("p", claude_args=["--print", "--model", "opus"])
+
+    mock_reauth.assert_called_once()
+    assert mock_run.call_count == 2
+    second_cmd = mock_run.call_args_list[1][0][0]
+    second_env = mock_run.call_args_list[1][1]["env"]
+    assert "claude-opus-4-8[1m]" in second_cmd  # retried same tier
+    assert "claude-opus-4-6[1m]" not in second_cmd  # NOT downgraded
+    assert second_env["CLOUD_ML_REGION"] == "eu"
+    assert result == "SYNTH_OK"
+
+
+@patch("news.synthesizer.refresh_auth")
+@patch("news.synthesizer.subprocess.run")
+def test_invoke_claude_returns_none_when_reauth_fails(
+    mock_run, mock_reauth, monkeypatch
+):
+    """If re-auth itself fails, synthesis must return None (so the pipeline can
+    alert) — and must NOT waste a model downgrade on an auth failure."""
+    monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
+    monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
+    mock_run.return_value = Mock(
+        stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0
+    )
+    mock_reauth.return_value = False
+
+    result = invoke_claude("p", claude_args=["--print", "--model", "opus"])
+
+    assert result is None
+    mock_reauth.assert_called_once()
+    assert mock_run.call_count == 1  # no retry, no downgrade
+
+
+@patch("news.synthesizer.refresh_auth")
+@patch("news.synthesizer.subprocess.run")
+def test_invoke_claude_429_does_not_trigger_reauth(mock_run, mock_reauth, monkeypatch):
+    """A 429/quota error is NOT auth-class: it must downgrade, never re-auth."""
+    monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
+    monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
+    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")
+    monkeypatch.setenv("VERTEX_REGION_FALLBACK", "europe-west1")
+    mock_run.side_effect = [
+        Mock(
+            stdout=_envelope(result="API Error: 429 quota", is_error=True), returncode=0
+        ),
+        Mock(stdout=_envelope(result="RECOVERED"), returncode=0),
+    ]
+
+    result = invoke_claude("p", claude_args=["--print", "--model", "opus"])
+
+    mock_reauth.assert_not_called()
+    assert "claude-opus-4-6[1m]" in mock_run.call_args_list[1][0][0]  # downgraded
+    assert result == "RECOVERED"

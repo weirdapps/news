@@ -9,7 +9,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from markupsafe import Markup
+from markupsafe import Markup, escape
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +148,79 @@ def build_subject(
         base += " | partial sources"
 
     return base
+
+
+def build_alert_subject(label: str, dt: datetime) -> str:
+    """Subject for the synthesis-failure alert email.
+
+    Sent instead of an unsynthesized digest when synthesis cannot be produced
+    (e.g. gcloud re-auth failed). Format: "<label> | synthesis unavailable | Day D MON HH:MM".
+    """
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=_ATHENS_TZ)
+    else:
+        dt = dt.astimezone(_ATHENS_TZ)
+
+    time_str = dt.strftime("%H:%M")
+    day_name = dt.strftime("%a").capitalize()
+    day_num = dt.strftime("%-d")
+    month_name = dt.strftime("%b").upper()
+
+    return (
+        f"{label} | synthesis unavailable | "
+        f"{day_name} {day_num} {month_name} {time_str}"
+    )
+
+
+def build_alert_html(
+    label: str,
+    time_display: str,
+    date_display: str,
+    reason: str,
+    next_run: str | None = None,
+) -> str:
+    """Render a minimal one-line alert email, sent INSTEAD of an unsynthesized dump.
+
+    When synthesis cannot be produced (e.g. gcloud re-auth failed), the raw
+    article list is withheld and this short notice is sent so the reader knows
+    the run failed and when the next attempt is — without inbox clutter.
+
+    Args:
+        label: Pipeline label (e.g. "News Digest", "NBG Brand Monitor", "Stack")
+        time_display: Time string (e.g. "21:00")
+        date_display: Date string (e.g. "wed 3 jun")
+        reason: Short human-readable failure reason
+        next_run: Optional next scheduled run time
+
+    Returns:
+        Rendered HTML string (light theme, thin teal accent)
+    """
+    next_line = (
+        f'<p style="margin:8px 0 0;font-size:13px;color:#6b7280;">'
+        f"Next scheduled run: {escape(next_run)}.</p>"
+        if next_run
+        else ""
+    )
+    return (
+        "<!DOCTYPE html>\n"
+        '<html><body style="margin:0;padding:24px;background:#ffffff;'
+        'font-family:Aptos,Calibri,Arial,sans-serif;color:#404040;">\n'
+        '  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        'style="max-width:600px;">\n'
+        '    <tr><td style="border-left:3px solid #007a5e;padding:12px 16px;'
+        'background:#f7faf9;">\n'
+        '      <p style="margin:0;font-size:15px;font-weight:600;color:#007a5e;">'
+        f"{escape(label)} — synthesis unavailable</p>\n"
+        f'      <p style="margin:8px 0 0;font-size:14px;">{escape(reason)}</p>\n'
+        '      <p style="margin:8px 0 0;font-size:13px;color:#6b7280;">The article '
+        "list was withheld to avoid sending an unsynthesized digest.</p>\n"
+        f"      {next_line}\n"
+        '      <p style="margin:12px 0 0;font-size:12px;color:#9ca3af;">'
+        f"{escape(date_display)} {escape(time_display)} Athens</p>\n"
+        "    </td></tr>\n"
+        "  </table>\n"
+        "</body></html>"
+    )
 
 
 def send_email(

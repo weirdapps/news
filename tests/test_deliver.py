@@ -8,6 +8,8 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from news.deliver import (
+    build_alert_html,
+    build_alert_subject,
     build_subject,
     notify_macos,
     render_digest_html,
@@ -16,6 +18,33 @@ from news.deliver import (
 )
 
 _ATHENS_TZ = ZoneInfo("Europe/Athens")
+
+
+def test_build_alert_html_is_minimal_and_states_reason():
+    """The failure alert is a one-line notice, NOT the unsynthesized article dump."""
+    html = build_alert_html(
+        label="News Digest",
+        time_display="21:00",
+        date_display="wed 3 jun",
+        reason="AI synthesis could not be produced (gcloud re-auth failed).",
+        next_run="23:00",
+    )
+    assert "<html" in html.lower()
+    assert "News Digest" in html
+    assert "synthesis" in html.lower()
+    assert "re-auth" in html.lower()
+    assert "23:00" in html  # next run so the reader knows when to expect the next try
+    # Must NOT be the old fallback dump (that header came from build_*_fallback).
+    assert "SYNTHESIS UNAVAILABLE" not in html
+    assert "Recent headlines" not in html
+
+
+def test_build_alert_subject_flags_synthesis_unavailable():
+    dt = datetime(2026, 6, 3, 21, 0, tzinfo=_ATHENS_TZ)
+    subject = build_alert_subject("News Digest", dt)
+    assert "News Digest" in subject
+    assert "synthesis unavailable" in subject.lower()
+    assert "Wed 3 JUN" in subject
 
 
 @pytest.fixture

@@ -23,6 +23,8 @@ from news.config import (
     get_sources,
 )
 from news.deliver import (
+    build_alert_html,
+    build_alert_subject,
     build_monitor_subject,
     build_stack_subject,
     build_subject,
@@ -35,7 +37,7 @@ from news.deliver import (
     save_fallback,
     send_email,
 )
-from news.fetcher import fetch_rss_feeds
+from news.fetcher import fetch_all_sources, fetch_rss_feeds
 from news.models import Digest
 from news.monitor_synth import synthesize_monitor
 from news.processor import process_articles
@@ -60,6 +62,13 @@ from news.topic_synth import (
 _ATHENS_TZ = ZoneInfo("Europe/Athens")
 _PROJECT_ROOT = Path(__file__).resolve().parent
 _DEFAULT_LOCK_PATH = _PROJECT_ROOT / "data" / "pipeline.lock"
+
+# Shown in the failure-alert email when synthesis cannot be produced. We withhold
+# the unsynthesized article dump and send this one-line notice instead.
+_SYNTH_FAIL_REASON = (
+    "AI synthesis could not be produced this run — the model call failed "
+    "(e.g. an unrecoverable gcloud auth error after a re-auth attempt)."
+)
 
 
 def setup_logging() -> None:
@@ -338,9 +347,9 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
         except json.JSONDecodeError:
             pass
 
-    # FETCH: Get articles from RSS feeds
+    # FETCH: Get articles from RSS feeds (+ any feed-less HTML sources)
     logger.info(f"Fetching {len(sources['rss_feeds'])} RSS feeds")
-    raw_articles, fetch_errors = await fetch_rss_feeds(sources["rss_feeds"])
+    raw_articles, fetch_errors = await fetch_all_sources(sources)
     logger.info(f"Fetched {len(raw_articles)} articles")
 
     if fetch_errors:
@@ -451,24 +460,34 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     time_display = now_athens.strftime("%H:%M")
     date_display = now_athens.strftime("%a %-d %b").lower()
 
-    subject = build_subject(
-        dt=now_athens,
-        is_adhoc=(run_type == "adhoc"),
-        partial_sources=(len(fetch_errors) > 0),
-        synthesis_failed=(not synthesis_ok),
-        article_count=len(relevant_articles),
-        source_count=source_count,
-    )
-
-    html_output = render_digest_html(
-        synthesis=synthesis_data,
-        article_count=len(relevant_articles),
-        source_count=source_count,
-        time_display=time_display,
-        date_display=date_display,
-        next_digest=next_digest,
-        subject=subject,
-    )
+    if synthesis_ok:
+        subject = build_subject(
+            dt=now_athens,
+            is_adhoc=(run_type == "adhoc"),
+            partial_sources=(len(fetch_errors) > 0),
+            synthesis_failed=False,
+            article_count=len(relevant_articles),
+            source_count=source_count,
+        )
+        html_output = render_digest_html(
+            synthesis=synthesis_data,
+            article_count=len(relevant_articles),
+            source_count=source_count,
+            time_display=time_display,
+            date_display=date_display,
+            next_digest=next_digest,
+            subject=subject,
+        )
+    else:
+        # Synthesis failed — send a one-line alert, NOT the unsynthesized dump.
+        subject = build_alert_subject("News Digest", now_athens)
+        html_output = build_alert_html(
+            label="News Digest",
+            time_display=time_display,
+            date_display=date_display,
+            reason=_SYNTH_FAIL_REASON,
+            next_run=next_digest,
+        )
 
     # Send email
     email_sent = send_email(
@@ -560,10 +579,10 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
         except json.JSONDecodeError:
             pass
 
-    # FETCH: Get articles from monitor RSS feeds
+    # FETCH: Get articles from monitor RSS feeds (+ any feed-less HTML sources)
     rss_feeds = sources.get("rss_feeds", [])
     logger.info(f"Fetching {len(rss_feeds)} monitor RSS feeds")
-    raw_articles, fetch_errors = await fetch_rss_feeds(rss_feeds)
+    raw_articles, fetch_errors = await fetch_all_sources(sources)
     logger.info(f"Fetched {len(raw_articles)} articles")
 
     if fetch_errors:
@@ -707,26 +726,39 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     )
     has_alerts = bool(synthesis_data.get("alerts")) if synthesis_ok else False
 
-    subject = build_monitor_subject(
-        dt=now_athens,
-        keywords_config=keywords_config,
-        is_adhoc=(run_type == "adhoc"),
-        mention_count=mention_count,
-        source_count=source_count,
-        has_alerts=has_alerts,
-        synthesis_failed=(not synthesis_ok),
-    )
-
-    html_output = render_monitor_html(
-        synthesis=synthesis_data,
-        mention_count=mention_count,
-        source_count=source_count,
-        time_display=time_display,
-        date_display=date_display,
-        keywords_config=keywords_config,
-        next_scan=next_scan,
-        subject=subject,
-    )
+    if synthesis_ok:
+        subject = build_monitor_subject(
+            dt=now_athens,
+            keywords_config=keywords_config,
+            is_adhoc=(run_type == "adhoc"),
+            mention_count=mention_count,
+            source_count=source_count,
+            has_alerts=has_alerts,
+            synthesis_failed=False,
+        )
+        html_output = render_monitor_html(
+            synthesis=synthesis_data,
+            mention_count=mention_count,
+            source_count=source_count,
+            time_display=time_display,
+            date_display=date_display,
+            keywords_config=keywords_config,
+            next_scan=next_scan,
+            subject=subject,
+        )
+    else:
+        # Synthesis failed — send a one-line alert, NOT the unsynthesized dump.
+        monitor_label = keywords_config.get("display", {}).get(
+            "monitor_label", "Brand Monitor"
+        )
+        subject = build_alert_subject(monitor_label, now_athens)
+        html_output = build_alert_html(
+            label=monitor_label,
+            time_display=time_display,
+            date_display=date_display,
+            reason=_SYNTH_FAIL_REASON,
+            next_run=next_scan,
+        )
 
     # Send email
     email_sent = send_email(
@@ -809,10 +841,10 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
         except json.JSONDecodeError:
             pass
 
-    # FETCH
+    # FETCH (RSS feeds + any feed-less HTML sources)
     rss_feeds = sources.get("rss_feeds", [])
     logger.info(f"Fetching {len(rss_feeds)} stack RSS feeds")
-    raw_articles, fetch_errors = await fetch_rss_feeds(rss_feeds)
+    raw_articles, fetch_errors = await fetch_all_sources(sources)
     logger.info(f"Fetched {len(raw_articles)} articles")
 
     if fetch_errors:
@@ -920,23 +952,33 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
     time_display = now_athens.strftime("%H:%M")
     date_display = now_athens.strftime("%a %-d %b").lower()
 
-    subject = build_stack_subject(
-        dt=now_athens,
-        is_adhoc=(run_type == "adhoc"),
-        synthesis_failed=(not synthesis_ok),
-        article_count=len(all_recent),
-        source_count=source_count,
-    )
-
-    html_output = render_stack_html(
-        synthesis=synthesis_data,
-        article_count=len(all_recent),
-        source_count=source_count,
-        time_display=time_display,
-        date_display=date_display,
-        next_run=next_run,
-        subject=subject,
-    )
+    if synthesis_ok:
+        subject = build_stack_subject(
+            dt=now_athens,
+            is_adhoc=(run_type == "adhoc"),
+            synthesis_failed=False,
+            article_count=len(all_recent),
+            source_count=source_count,
+        )
+        html_output = render_stack_html(
+            synthesis=synthesis_data,
+            article_count=len(all_recent),
+            source_count=source_count,
+            time_display=time_display,
+            date_display=date_display,
+            next_run=next_run,
+            subject=subject,
+        )
+    else:
+        # Synthesis failed — send a one-line alert, NOT the unsynthesized dump.
+        subject = build_alert_subject("Stack", now_athens)
+        html_output = build_alert_html(
+            label="Stack",
+            time_display=time_display,
+            date_display=date_display,
+            reason=_SYNTH_FAIL_REASON,
+            next_run=next_run,
+        )
 
     email_sent = send_email(
         subject=subject,

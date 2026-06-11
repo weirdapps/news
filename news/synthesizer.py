@@ -7,9 +7,25 @@ import re
 import subprocess
 from typing import Any
 
+from news.auth import refresh_auth
 from news.roster import build_roster
 
 logger = logging.getLogger(__name__)
+
+# Auth-class error markers in the Claude/Vertex JSON envelope's `result`. These
+# are credential failures (re-auth fixes them) — distinct from a 429/quota or a
+# policy refusal (a model downgrade fixes those). Kept precise to avoid
+# misclassifying a quota error as auth.
+_AUTH_ERROR_MARKERS = ("invalid_rapt", "invalid_grant", "reauth", "unauthenticated")
+
+
+def _is_auth_error(env: dict[str, Any] | None) -> bool:
+    """True if the envelope is an error AND looks like a gcloud auth-class failure."""
+    if not env or not env.get("is_error"):
+        return False
+    result = str(env.get("result", "")).lower()
+    return any(marker in result for marker in _AUTH_ERROR_MARKERS)
+
 
 _SYSTEM_PROMPT = (
     """You are a senior news analyst preparing a daily briefing for a senior executive in financial services.
@@ -244,6 +260,24 @@ def invoke_claude(
 
     model, region = _resolve_tier()
     env = _run_once(model, region)
+
+    # Self-heal on auth-class errors (e.g. invalid_rapt): re-auth (user + ADC) and
+    # retry the SAME tier once. A model downgrade cannot fix an account-level
+    # credential failure, so we re-authenticate instead of falling back. If re-auth
+    # itself fails, return None so the pipeline alerts rather than shipping a dump.
+    if _is_auth_error(env):
+        logger.warning(
+            f"Claude auth error on {model or 'default'} @ {region or 'default'} — "
+            f"refreshing gcloud auth (user + ADC) and retrying same tier"
+        )
+        if refresh_auth():
+            env = _run_once(model, region)
+        if _is_auth_error(env):
+            logger.error(
+                "Claude auth still failing after re-auth — synthesis unavailable"
+            )
+            return None
+
     if env is None:
         return None
 
