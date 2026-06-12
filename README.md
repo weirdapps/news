@@ -1,6 +1,10 @@
 # news — personal news intelligence platform
 
-A forkable Python scaffold that fetches RSS feeds, runs LLM synthesis, and emails curated digests on a schedule. Three profiles ship in the box: a broad multi-topic **digest**, a brand-aware **monitor** with competitor tracking, and an ad-hoc **topic** brief driven by a CLI query.
+[![CI](https://github.com/weirdapps/news/actions/workflows/ci.yml/badge.svg)](https://github.com/weirdapps/news/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
+
+A forkable Python scaffold that fetches RSS feeds, runs LLM synthesis via the Claude CLI, and emails curated digests on a schedule. Three profiles ship in the box: a broad multi-topic **digest**, a brand-aware **monitor** with competitor tracking, and an ad-hoc **topic** brief driven by a CLI query.
 
 ## Profiles
 
@@ -61,6 +65,39 @@ python3 main.py --profile topic --query '"Claude Code"' --hours 72 --print
 
 Topic runs persist to `news.db` with `pipeline='topic'`, so the MCP server's `search_news` tool finds them later. There is no scheduled cadence — topic briefs only fire when you ask.
 
+## Architecture
+
+Five-stage pipeline shared by all profiles:
+
+```text
+fetch  →  process  →  store  →  synthesize  →  deliver
+```
+
+Each stage is a standalone module under `news/`:
+
+| Module | Stage | Responsibility |
+|--------|-------|----------------|
+| `news/fetcher.py` | fetch | Pulls RSS feeds (and optional NewsAPI / WebSearch) concurrently |
+| `news/processor.py` | process | Extracts full article text via trafilatura, scores relevance |
+| `news/storage.py` | store | SQLite persistence (`data/news.db`) with FTS5 search |
+| `news/synthesizer.py` | synthesize (digest) | One-pass curation prompt for the broad digest |
+| `news/monitor_synth.py` | synthesize (monitor) | Brand-aware composition prompt with competitor watch |
+| `news/topic_synth.py` | synthesize (topic) | Topic-focused composition prompt + Google News RSS URL builder |
+| `news/deliver.py` | deliver | Renders Jinja2 HTML and sends via outlook-cli |
+
+The `--profile` flag selects which synth module + email template + config dir to use; everything else is shared.
+
+### Brand-extraction architecture (monitor)
+
+The monitor profile reads its identity from `config/monitor/keywords.yaml` at runtime — nothing brand-specific is hardcoded. Key seams:
+
+- `news/roster.py` — `NAME_HANDLING_RULES` (brand-neutral guidance) plus `build_roster(keywords_config)` (brand-aware roster builder; returns just the rules when called with no args).
+- `news/monitor_synth.py` — composes the prompt from four section builders (`_base_prompt`, `_disambiguation_section`, `_competitor_section`, `_output_format_section`). Each returns `""` when its data is empty, so the prompt is fail-soft.
+- `news/processor.py compute_relevance_score()` — reads patterns from `keywords_config["company"]["names"]` and `keywords_config["competitors"]` instead of any baked-in lists.
+- `templates/monitor.html` — iterates `competitor_watch.items()` and uses `display.monitor_label` / `display.short_name` for labels.
+
+For the full design rationale, see `docs/superpowers/specs/2026-04-05-newsreader-design.md`.
+
 ## Configuration reference
 
 ### Environment variables (`.env`)
@@ -93,55 +130,11 @@ Topic runs persist to `news.db` with `pipeline='topic'`, so the MCP server's `se
 
 The `*.example.*` files are committed; the real working copies are gitignored. Forkers copy each example, fill in their own values, and the system runs without ever exposing your brand or RSS list to the public repo.
 
-## Architecture
-
-Five-stage pipeline shared by both profiles:
-
-```text
-fetch  →  process  →  store  →  synthesize  →  deliver
-```
-
-Each stage is a standalone module under `news/`:
-
-| Module | Stage | Responsibility |
-|--------|-------|----------------|
-| `news/fetcher.py` | fetch | Pulls RSS feeds (and optional NewsAPI / WebSearch) concurrently |
-| `news/processor.py` | process | Extracts full article text via trafilatura, scores relevance |
-| `news/storage.py` | store | SQLite persistence (`data/news.db`) with FTS5 search |
-| `news/synthesizer.py` | synthesize (digest) | One-pass curation prompt for the broad digest |
-| `news/monitor_synth.py` | synthesize (monitor) | Brand-aware composition prompt with competitor watch |
-| `news/topic_synth.py` | synthesize (topic) | Topic-focused composition prompt + Google News RSS URL builder |
-| `news/deliver.py` | deliver | Renders Jinja2 HTML and sends via outlook-cli |
-
-The `--profile` flag selects which synth module + email template + config dir to use; everything else is shared.
-
-### Brand-extraction architecture (monitor)
-
-The monitor profile reads its identity from `config/monitor/keywords.yaml` at runtime — nothing brand-specific is hardcoded. Key seams:
-
-- `news/roster.py` — `NAME_HANDLING_RULES` (brand-neutral guidance) plus `build_roster(keywords_config)` (brand-aware roster builder; returns just the rules when called with no args).
-- `news/monitor_synth.py` — composes the prompt from four section builders (`_base_prompt`, `_disambiguation_section`, `_competitor_section`, `_output_format_section`). Each returns `""` when its data is empty, so the prompt is fail-soft.
-- `news/processor.py compute_relevance_score()` — reads patterns from `keywords_config["company"]["names"]` and `keywords_config["competitors"]` instead of any baked-in lists.
-- `templates/monitor.html` — iterates `competitor_watch.items()` and uses `display.monitor_label` / `display.short_name` for labels.
-
-For the full design rationale, see `docs/superpowers/specs/2026-04-05-newsreader-design.md`.
-
 ## Email delivery
 
 Sending goes through [`outlook-cli`](https://github.com/weirdapps/outlook-cli) (Microsoft Graph API) using your existing user auth. The integration point is `news/deliver.py:181`.
 
 If you'd rather use a different sender — Gmail API, SMTP, SendGrid, anything that accepts an HTML body — replace `send_email()` in `news/deliver.py`. Templates already produce Outlook-Mac-compatible HTML (table layout, inline CSS, no `<p>` tags), so most clients render cleanly.
-
-## Tests and development
-
-```bash
-pytest                # 173 tests in <1s
-pre-commit install    # ruff format + mypy + gitleaks
-```
-
-Tests use in-memory SQLite, mock all HTTP, and mock the `claude` CLI subprocess — no real LLM calls during testing.
-
-The `pyproject.toml` `[[tool.mypy.overrides]]` block for `scripts.*` is intentional: scripts under `scripts/` are utility one-offs and are excluded from strict type checking.
 
 ## MCP server (optional)
 
@@ -159,18 +152,29 @@ Add to your Claude Code MCP config:
 }
 ```
 
-## Tech stack
+## Tests and development
 
-Python 3.12+, feedparser, httpx, trafilatura, Jinja2, SQLite (FTS5), the Claude Code CLI, and `outlook-cli` for delivery. macOS LaunchAgents for scheduling (any cron-equivalent works on other platforms — invoke `python3 main.py --scheduled` on the cadence you want).
+```bash
+pytest                # 173 tests in <1s
+pre-commit install    # ruff format + mypy + gitleaks
+```
+
+Tests use in-memory SQLite, mock all HTTP, and mock the `claude` CLI subprocess — no real LLM calls during testing.
+
+The `pyproject.toml` `[[tool.mypy.overrides]]` block for `scripts.*` is intentional: scripts under `scripts/` are utility one-offs and are excluded from strict type checking.
 
 ## Requirements
 
-- macOS for the bundled launchd plists (any scheduler works elsewhere)
 - Python 3.12+
 - `claude` CLI on `PATH` (or set `NEWS_CLAUDE_COMMAND`)
-- `outlook-cli` installed and authenticated, or a drop-in replacement
+- `outlook-cli` installed and authenticated, or a drop-in `send_email()` replacement in `news/deliver.py`
 - Vertex AI / cloud auth as required by your `claude` CLI setup (see `news/auth.py`)
+- macOS for the bundled launchd plists (any cron-equivalent works on other platforms)
+
+## Tech stack
+
+Python 3.12+, feedparser, httpx, trafilatura, Jinja2, SQLite (FTS5), the Claude CLI, and `outlook-cli` for delivery.
 
 ## License
 
-MIT.
+MIT — see [LICENSE](LICENSE).
