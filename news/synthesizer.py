@@ -312,6 +312,48 @@ def invoke_claude(
     return text
 
 
+def _validate_synthesis(data: dict[str, Any]) -> list[str]:
+    """Validate synthesis output structure. Returns list of issues (empty = valid)."""
+    issues: list[str] = []
+
+    if not isinstance(data.get("executive_brief"), list):
+        issues.append("executive_brief must be a list")
+    else:
+        for i, item in enumerate(data["executive_brief"]):
+            if isinstance(item, str):
+                data["executive_brief"][i] = {"text": item, "article_ids": []}
+            elif isinstance(item, dict):
+                if "text" not in item:
+                    issues.append(f"executive_brief[{i}] missing 'text'")
+            else:
+                issues.append(
+                    f"executive_brief[{i}] is {type(item).__name__}, expected dict"
+                )
+
+    if not isinstance(data.get("sections"), list):
+        issues.append("sections must be a list")
+    else:
+        required_section_keys = {"category", "display_name", "synthesis"}
+        for i, section in enumerate(data["sections"]):
+            if not isinstance(section, dict):
+                issues.append(f"sections[{i}] is not a dict")
+                continue
+            missing = required_section_keys - set(section.keys())
+            if missing:
+                issues.append(f"sections[{i}] missing keys: {missing}")
+            if "high_value" not in section:
+                section["high_value"] = False
+            if "article_ids" not in section:
+                section["article_ids"] = []
+
+    if "what_changed" not in data:
+        data["what_changed"] = []
+    elif isinstance(data["what_changed"], str):
+        data["what_changed"] = [{"text": data["what_changed"], "article_ids": []}]
+
+    return issues
+
+
 def parse_synthesis_output(raw: str) -> dict[str, Any]:
     """Parse Claude's output, extracting JSON from various formats.
 
@@ -321,39 +363,53 @@ def parse_synthesis_output(raw: str) -> dict[str, Any]:
     Returns:
         Parsed JSON dict, or fallback dict with error message
     """
+    parsed = None
+
     # Try direct JSON parse
     try:
-        return json.loads(raw)
+        parsed = json.loads(raw)
     except json.JSONDecodeError:
         pass
 
     # Try extracting from markdown code block
-    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(1))
-        except json.JSONDecodeError:
-            pass
+    if parsed is None:
+        match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
+        if match:
+            try:
+                parsed = json.loads(match.group(1))
+            except json.JSONDecodeError:
+                pass
 
     # Try finding JSON object in text
-    match = re.search(r"\{.*\}", raw, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(0))
-        except json.JSONDecodeError:
-            pass
+    if parsed is None:
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
+        if match:
+            try:
+                parsed = json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
 
-    # All parsing failed — log raw output for diagnostics
-    preview = raw[:500] if raw else "(empty)"
-    logger.error(
-        f"Failed to parse Claude output as JSON. Raw output preview: {preview}"
-    )
-    return {
-        "executive_brief": ["Failed to parse synthesis output"],
-        "what_changed": "Error occurred during synthesis",
-        "sections": [],
-        "error": "Parse failure",
-    }
+    if parsed is None:
+        preview = raw[:500] if raw else "(empty)"
+        logger.error(
+            f"Failed to parse Claude output as JSON. Raw output preview: {preview}"
+        )
+        return {
+            "executive_brief": ["Failed to parse synthesis output"],
+            "what_changed": "Error occurred during synthesis",
+            "sections": [],
+            "error": "Parse failure",
+        }
+
+    # Validate and coerce structure
+    issues = _validate_synthesis(parsed)
+    if issues:
+        logger.warning(
+            f"Synthesis output has {len(issues)} validation issue(s): "
+            + "; ".join(issues[:5])
+        )
+
+    return parsed
 
 
 def build_fallback_digest(

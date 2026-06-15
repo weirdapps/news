@@ -104,17 +104,20 @@ def test_parse_synthesis_output_valid_json():
 
     result = parse_synthesis_output(raw)
 
-    assert result["executive_brief"] == [
-        "Item 1",
-        "Item 2",
-        "Item 3",
-        "Item 4",
-        "Item 5",
+    # Bare strings are coerced to {"text": ..., "article_ids": []} dicts
+    assert len(result["executive_brief"]) == 5
+    assert result["executive_brief"][0] == {"text": "Item 1", "article_ids": []}
+    assert result["executive_brief"][4] == {"text": "Item 5", "article_ids": []}
+    # Bare string what_changed coerced to list of dicts
+    assert result["what_changed"] == [
+        {"text": "Major changes occurred.", "article_ids": []}
     ]
-    assert result["what_changed"] == "Major changes occurred."
     assert len(result["sections"]) == 1
     assert result["sections"][0]["category"] == "banking"
     assert result["sections"][0]["display_name"] == "Banking"
+    # Missing fields get defaults
+    assert result["sections"][0]["high_value"] is False
+    assert result["sections"][0]["article_ids"] == []
 
 
 def test_parse_synthesis_output_extracts_json_from_prose():
@@ -128,14 +131,9 @@ def test_parse_synthesis_output_extracts_json_from_prose():
 
     result = parse_synthesis_output(raw)
 
-    assert result["executive_brief"] == [
-        "Brief 1",
-        "Brief 2",
-        "Brief 3",
-        "Brief 4",
-        "Brief 5",
-    ]
-    assert result["what_changed"] == "Changes noted."
+    assert len(result["executive_brief"]) == 5
+    assert result["executive_brief"][0] == {"text": "Brief 1", "article_ids": []}
+    assert result["what_changed"] == [{"text": "Changes noted.", "article_ids": []}]
 
 
 def test_build_fallback_digest():
