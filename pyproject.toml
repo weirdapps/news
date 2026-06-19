@@ -13,6 +13,10 @@ dependencies = [
     "PyYAML",
     "markupsafe",
     "mcp[cli]",
+    # Security pins — transitive via mcp[cli]; keep until mcp bumps its own floor
+    "starlette>=1.3.1",       # CVE-2025-*: high; patched in 1.3.1
+    "python-multipart>=0.0.31",  # CVE-2025-*: high+low; patched in 0.0.31
+    "cryptography>=48.0.1",   # CVE-2025-*: high; patched in 48.0.1
 ]
 
 [project.optional-dependencies]
