@@ -1,7 +1,18 @@
 #!/bin/bash
-# MCP server launcher. Resolves to the script's own directory so the
-# repo can be cloned anywhere. Override venv with NEWS_VENV_PYTHON
-# (default: ./venv/bin/python relative to repo root).
+# MCP server launcher. Resolves to the script's own directory so the repo can be
+# cloned anywhere, and auto-detects the venv python so the SAME committed script
+# works on every host (MacBook in-repo .venv, VPS out-of-repo ~/.venvs):
+#   1. $NEWS_VENV_PYTHON  (explicit override)
+#   2. ./.venv or ./venv  (in-repo)
+#   3. ~/.venvs/news      (shared venv dir)
+#   4. python3            (last resort)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
-exec "${NEWS_VENV_PYTHON:-$SCRIPT_DIR/venv/bin/python}" -m news.mcp_server
+for _py in \
+  "${NEWS_VENV_PYTHON:-}" \
+  "$SCRIPT_DIR/.venv/bin/python" \
+  "$SCRIPT_DIR/venv/bin/python" \
+  "$HOME/.venvs/news/bin/python"; do
+  [ -n "$_py" ] && [ -x "$_py" ] && exec "$_py" -m news.mcp_server
+done
+exec python3 -m news.mcp_server
