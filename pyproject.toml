@@ -44,3 +44,13 @@ warn_unused_ignores = false
 [[tool.mypy.overrides]]
 module = ["scripts.*"]
 ignore_errors = true
+
+# PEP 735 dev group — synced by default on `uv sync` / `uv run`, so a fresh
+# checkout gets pytest + pytest-asyncio without extra flags. Mirrors the
+# [project.optional-dependencies].dev extra above, which CI installs via pip
+# (`pip install -e ".[dev]"`); keep the two in sync.
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.4.0",
+]
