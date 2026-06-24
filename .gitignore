@@ -2,6 +2,7 @@
 data/news.db
 data/news.db-wal
 data/news.db-shm
+data/news.db.*
 data/run.log
 data/runs.log
 data/archive/
