@@ -1,7 +1,7 @@
 """Tests for the topic profile — ad-hoc topical news briefs from a CLI query."""
 
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from news.models import Article
@@ -16,7 +16,7 @@ def _make_article(
     published_at=None,
 ):
     if published_at is None:
-        published_at = datetime.now(timezone.utc)
+        published_at = datetime.now(UTC)
     return Article(
         url=url,
         title=title,

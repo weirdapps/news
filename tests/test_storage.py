@@ -1,15 +1,16 @@
-from datetime import datetime, timedelta, timezone
-from news.storage import (
-    insert_article,
-    get_article_by_url,
-    get_article_by_hash,
-    get_articles_since,
-    insert_digest,
-    get_last_digest,
-    update_digest_sent,
-    get_run_stats,
-)
+from datetime import UTC, datetime, timedelta
+
 from news.models import Digest
+from news.storage import (
+    get_article_by_hash,
+    get_article_by_url,
+    get_articles_since,
+    get_last_digest,
+    get_run_stats,
+    insert_article,
+    insert_digest,
+    update_digest_sent,
+)
 
 
 def test_init_db_creates_tables(db):
@@ -71,13 +72,13 @@ def test_get_articles_since(db, sample_article):
     insert_article(db, sample_article)
 
     # Query since 1 hour ago (should find article)
-    one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
+    one_hour_ago = datetime.now(UTC) - timedelta(hours=1)
     articles = get_articles_since(db, one_hour_ago)
     assert len(articles) == 1
     assert articles[0].url == sample_article.url
 
     # Query since 1 hour in future (should be empty)
-    one_hour_future = datetime.now(timezone.utc) + timedelta(hours=1)
+    one_hour_future = datetime.now(UTC) + timedelta(hours=1)
     articles = get_articles_since(db, one_hour_future)
     assert len(articles) == 0
 
@@ -86,7 +87,7 @@ def test_insert_and_get_digest(db):
     """Insert Digest and retrieve with get_last_digest."""
     digest = Digest(
         digest_type="morning",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         article_count=5,
         synthesis_text="Morning digest synthesis",
         html_output="<html>Digest</html>",
@@ -109,7 +110,7 @@ def test_update_digest_sent(db):
     """Insert digest, update sent_at, verify it's set."""
     digest = Digest(
         digest_type="evening",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         article_count=3,
         synthesis_text="Evening digest",
         html_output="<html>Evening</html>",

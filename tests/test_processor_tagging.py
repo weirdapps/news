@@ -1,7 +1,8 @@
+from datetime import UTC, datetime
 from unittest.mock import patch
-from news.tagger import tag_article
+
 from news.models import Article
-from datetime import datetime, timezone
+from news.tagger import tag_article
 
 TICKER_DICT = {"apple": "AAPL", "aapl": "AAPL", "microsoft": "MSFT", "msft": "MSFT"}
 
@@ -12,13 +13,13 @@ def _art(title, content="", categories=None):
         title=title,
         source="s",
         author=None,
-        published_at=datetime.now(tz=timezone.utc),
+        published_at=datetime.now(tz=UTC),
         content=content,
         summary=None,
         content_hash="h",
         language="en",
         relevance_score=0,
-        fetched_at=datetime.now(tz=timezone.utc),
+        fetched_at=datetime.now(tz=UTC),
         categories=categories or [],
         tickers=[],
     )
@@ -40,9 +41,7 @@ def test_rules_only_when_match_found():
 
 
 def test_llm_fallback_when_rules_empty_and_market_category():
-    art = _art(
-        "Mystery firm soars", "A previously unknown company...", categories=["business"]
-    )
+    art = _art("Mystery firm soars", "A previously unknown company...", categories=["business"])
     with (
         patch("news.tagger.load_ticker_dict", return_value=TICKER_DICT),
         patch("news.tagger.extract_tickers_llm", return_value=["XYZ"]),
@@ -52,9 +51,7 @@ def test_llm_fallback_when_rules_empty_and_market_category():
 
 
 def test_no_llm_when_not_market_category():
-    art = _art(
-        "Claude Code 4.7 ships", "Anthropic released...", categories=["claude_code"]
-    )
+    art = _art("Claude Code 4.7 ships", "Anthropic released...", categories=["claude_code"])
     with (
         patch("news.tagger.load_ticker_dict", return_value=TICKER_DICT),
         patch("news.tagger.extract_tickers_llm") as mock_llm,
@@ -68,9 +65,7 @@ def test_processor_invokes_tagger():
     """Smoke: process_articles populates article.tickers."""
     from news.processor import process_articles
 
-    art = _art(
-        "Apple Q3 earnings", "Apple Inc. reported strong revenue.", categories=[]
-    )
+    art = _art("Apple Q3 earnings", "Apple Inc. reported strong revenue.", categories=[])
     with patch("news.tagger.load_ticker_dict", return_value=TICKER_DICT):
         result = process_articles(
             [art],

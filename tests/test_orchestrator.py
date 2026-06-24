@@ -1,6 +1,6 @@
 """Tests for orchestrator (main.py)."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from main import (
     acquire_lock,
@@ -23,8 +23,8 @@ def test_acquire_and_release_lock(tmp_path):
 
 def test_get_time_window():
     """Test time window formatting."""
-    now = datetime(2026, 4, 5, 13, 0, tzinfo=timezone.utc)
-    last_digest_at = datetime(2026, 4, 5, 9, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 4, 5, 13, 0, tzinfo=UTC)
+    last_digest_at = datetime(2026, 4, 5, 9, 0, tzinfo=UTC)
     window = get_time_window(now, last_digest_at, "Europe/Athens")
     assert "April" in window or "Apr" in window
 

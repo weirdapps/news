@@ -1,12 +1,12 @@
 """Tests for NBG monitor pipeline components."""
 
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from news.config import get_keywords, get_settings, get_sources, _profile_config_dir
+from news.config import _profile_config_dir, get_keywords, get_settings, get_sources
 from news.deliver import build_monitor_subject, render_monitor_html
 from news.models import Article, Digest
 from news.monitor_synth import (
@@ -152,7 +152,7 @@ def test_insert_and_retrieve_monitor_article():
         content="National Bank of Greece reported strong Q1 results " * 10,
         categories=["nbg_direct"],
         language="en",
-        published_at=datetime.now(timezone.utc),
+        published_at=datetime.now(UTC),
         pipeline="monitor",
         sentiment="positive",
         mention_type="news",
@@ -162,7 +162,7 @@ def test_insert_and_retrieve_monitor_article():
     insert_article(conn, article)
 
     # Retrieve by pipeline
-    since = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    since = datetime(2020, 1, 1, tzinfo=UTC)
     monitor_articles = get_articles_since(conn, since, pipeline="monitor")
     digest_articles = get_articles_since(conn, since, pipeline="digest")
 
@@ -222,9 +222,7 @@ def test_build_monitor_prompt_includes_articles():
     }
     prompt = build_monitor_prompt(articles, keywords, None, "last hour")
     assert "NBG Q1 Results" in prompt
-    assert (
-        "brand intelligence" in prompt.lower() or "brand monitoring" in prompt.lower()
-    )
+    assert "brand intelligence" in prompt.lower() or "brand monitoring" in prompt.lower()
     assert "false positive" in prompt.lower()
     assert "competitor" in prompt.lower()
 
@@ -276,7 +274,7 @@ def test_build_monitor_fallback():
 
 def test_build_monitor_subject():
     """Subject line uses display.monitor_label from keywords_config."""
-    dt = datetime(2026, 4, 8, 15, 0, tzinfo=timezone.utc)
+    dt = datetime(2026, 4, 8, 15, 0, tzinfo=UTC)
     keywords = {"display": {"monitor_label": "NBG Monitor"}}
     subject = build_monitor_subject(dt, keywords, mention_count=12, source_count=25)
     assert "NBG Monitor" in subject
@@ -285,7 +283,7 @@ def test_build_monitor_subject():
 
 def test_build_monitor_subject_with_alert():
     """Monitor subject includes ALERT when has_alerts is True."""
-    dt = datetime(2026, 4, 8, 15, 0, tzinfo=timezone.utc)
+    dt = datetime(2026, 4, 8, 15, 0, tzinfo=UTC)
     keywords = {"display": {"monitor_label": "NBG Monitor"}}
     subject = build_monitor_subject(dt, keywords, has_alerts=True)
     assert "ALERT" in subject
@@ -418,7 +416,7 @@ def test_render_monitor_html_falls_back_when_display_missing():
 
 def test_build_monitor_subject_falls_back_when_display_missing():
     """Subject defaults to BRAND MONITOR when keywords.display.monitor_label missing."""
-    dt = datetime(2026, 4, 8, 15, 0, tzinfo=timezone.utc)
+    dt = datetime(2026, 4, 8, 15, 0, tzinfo=UTC)
     subject = build_monitor_subject(dt, {}, mention_count=0)
     assert "BRAND MONITOR" in subject
 
@@ -493,9 +491,7 @@ def test_template_has_no_hardcoded_competitor_keys():
     with open("templates/monitor.html") as f:
         src = f.read()
     for forbidden in ["piraeus", "alpha", "eurobank", "greek banking"]:
-        assert forbidden.lower() not in src.lower(), (
-            f"Found hardcoded competitor: {forbidden}"
-        )
+        assert forbidden.lower() not in src.lower(), f"Found hardcoded competitor: {forbidden}"
 
 
 # --- Section-builder tests (post-refactor) ---
@@ -696,7 +692,7 @@ def test_build_monitor_prompt_includes_roster_when_leadership_present():
 
 def test_monitor_prompt_requires_article_ids_citations():
     """Monitor prompt must require article_ids per bullet/alert/mention/competitor."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from news.models import Article
     from news.monitor_synth import build_monitor_prompt
@@ -710,8 +706,8 @@ def test_monitor_prompt_requires_article_ids_citations():
             categories=["nbg_direct"],
             language="en",
             relevance_score=50,
-            fetched_at=datetime.now(timezone.utc),
-            published_at=datetime.now(timezone.utc),
+            fetched_at=datetime.now(UTC),
+            published_at=datetime.now(UTC),
         )
     ]
     keywords_config = {

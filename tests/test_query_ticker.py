@@ -1,8 +1,9 @@
 import sqlite3
 from datetime import datetime
-from news.storage import init_db, insert_article
+
 from news.models import Article
 from news.query import search_articles
+from news.storage import init_db, insert_article
 
 
 def _art(url, title, tickers):
@@ -81,9 +82,7 @@ def test_recent_for_tickers_respects_hours_window():
     init_db(conn)
     # Insert old article (manipulate fetched_at directly)
     insert_article(conn, _art("http://x/1", "Old Apple", ["AAPL"]))
-    conn.execute(
-        "UPDATE articles SET fetched_at='2020-01-01T00:00:00' WHERE url='http://x/1'"
-    )
+    conn.execute("UPDATE articles SET fetched_at='2020-01-01T00:00:00' WHERE url='http://x/1'")
     # Recent article
     insert_article(conn, _art("http://x/2", "Fresh Apple", ["AAPL"]))
     results = recent_for_tickers(conn, tickers=["AAPL"], hours=24, limit=10)

@@ -2,7 +2,7 @@
 """Weekly health check - verifies digest runs completed as expected."""
 
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 
@@ -22,7 +22,7 @@ def parse_run_log(log_path: Path, cutoff_date: datetime) -> tuple[int, int]:
     total_runs = 0
     failed_runs = 0
 
-    with open(log_path, "r", encoding="utf-8") as f:
+    with open(log_path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
@@ -61,7 +61,7 @@ def check_health(log_path: Path, days: int = 7) -> dict:
         Dictionary with health check results
     """
     # Calculate cutoff date
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     cutoff_date = now - timedelta(days=days)
 
     # Parse log

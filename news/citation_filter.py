@@ -130,9 +130,7 @@ def enrich_mentions(mentions: list[Any], articles: list[Any]) -> list[dict]:
     return kept
 
 
-def filter_competitor_watch(
-    competitor_watch: Any, articles: list[Any]
-) -> dict[str, str]:
+def filter_competitor_watch(competitor_watch: Any, articles: list[Any]) -> dict[str, str]:
     """Filter competitor_watch entries without article_ids.
 
     Accepts both schemas:

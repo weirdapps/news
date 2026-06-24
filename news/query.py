@@ -2,7 +2,7 @@
 
 import json
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 
 def _sanitize_fts_query(query: str) -> str:
@@ -38,7 +38,7 @@ def search_articles(
     Returns:
         List of article dicts with title, source, url, categories, published_at, pipeline
     """
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
     since_str = since.isoformat()
     fts_query = _sanitize_fts_query(query)
 
@@ -123,7 +123,7 @@ def get_digest_history(
     Returns:
         List of digest dicts with created_at, article_count, executive_brief, sections
     """
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(UTC) - timedelta(days=days)
     since_str = since.isoformat()
 
     cursor = conn.execute(
@@ -181,14 +181,10 @@ def get_news_stats(conn: sqlite3.Connection) -> dict:
     row = conn.execute("SELECT COUNT(*) as cnt FROM digests").fetchone()
     stats["total_digests"] = row["cnt"]
 
-    row = conn.execute(
-        "SELECT COUNT(*) as cnt FROM articles WHERE pipeline = 'digest'"
-    ).fetchone()
+    row = conn.execute("SELECT COUNT(*) as cnt FROM articles WHERE pipeline = 'digest'").fetchone()
     stats["digest_articles"] = row["cnt"]
 
-    row = conn.execute(
-        "SELECT COUNT(*) as cnt FROM articles WHERE pipeline = 'monitor'"
-    ).fetchone()
+    row = conn.execute("SELECT COUNT(*) as cnt FROM articles WHERE pipeline = 'monitor'").fetchone()
     stats["monitor_articles"] = row["cnt"]
 
     cat_rows = conn.execute(

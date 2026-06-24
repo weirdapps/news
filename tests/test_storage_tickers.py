@@ -2,7 +2,7 @@ import sqlite3
 from datetime import datetime
 
 from news.models import Article
-from news.storage import init_db, get_article_by_url, insert_article
+from news.storage import get_article_by_url, init_db, insert_article
 
 
 def _make_article(url="http://x/1", tickers=None):

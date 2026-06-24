@@ -2,9 +2,8 @@
 
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import Mock, patch
-
 
 from news.models import Article
 from news.synthesizer import (
@@ -17,7 +16,7 @@ from news.synthesizer import (
 
 def _make_articles():
     """Helper to create test articles."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return [
         Article(
             url="https://example.com/1",
@@ -109,9 +108,7 @@ def test_parse_synthesis_output_valid_json():
     assert result["executive_brief"][0] == {"text": "Item 1", "article_ids": []}
     assert result["executive_brief"][4] == {"text": "Item 5", "article_ids": []}
     # Bare string what_changed coerced to list of dicts
-    assert result["what_changed"] == [
-        {"text": "Major changes occurred.", "article_ids": []}
-    ]
+    assert result["what_changed"] == [{"text": "Major changes occurred.", "article_ids": []}]
     assert len(result["sections"]) == 1
     assert result["sections"][0]["category"] == "banking"
     assert result["sections"][0]["display_name"] == "Banking"
@@ -153,9 +150,7 @@ def test_build_fallback_digest():
 
 def _envelope(result="{}", stop_reason="end_turn", is_error=False):
     """Build a `claude --output-format json` stdout envelope (what invoke_claude parses)."""
-    return json.dumps(
-        {"result": result, "stop_reason": stop_reason, "is_error": is_error}
-    )
+    return json.dumps({"result": result, "stop_reason": stop_reason, "is_error": is_error})
 
 
 @patch("news.synthesizer.subprocess.run")
@@ -208,9 +203,7 @@ def test_invoke_claude_resolves_opus_alias_to_vertex_heavy_model(mock_run, monke
 
 
 @patch("news.synthesizer.subprocess.run")
-def test_invoke_claude_resolves_sonnet_alias_to_vertex_light_model(
-    mock_run, monkeypatch
-):
+def test_invoke_claude_resolves_sonnet_alias_to_vertex_light_model(mock_run, monkeypatch):
     """sonnet tier must resolve to the exact light-tier id + europe-west1 region."""
     monkeypatch.setenv("VERTEX_MODEL_LIGHT", "claude-sonnet-4-6")
     monkeypatch.setenv("VERTEX_REGION_LIGHT", "europe-west1")
@@ -226,9 +219,7 @@ def test_invoke_claude_resolves_sonnet_alias_to_vertex_light_model(
 
 
 @patch("news.synthesizer.subprocess.run")
-def test_invoke_claude_opus_falls_back_to_correct_default_when_env_absent(
-    mock_run, monkeypatch
-):
+def test_invoke_claude_opus_falls_back_to_correct_default_when_env_absent(mock_run, monkeypatch):
     """With no central env present, opus must still resolve to the working id.
 
     Guards against ever emitting the broken bare 'opus' alias.
@@ -347,16 +338,12 @@ def test_invoke_claude_reauths_on_invalid_rapt_then_retries_same_tier(
 
 @patch("news.synthesizer.refresh_auth")
 @patch("news.synthesizer.subprocess.run")
-def test_invoke_claude_returns_none_when_reauth_fails(
-    mock_run, mock_reauth, monkeypatch
-):
+def test_invoke_claude_returns_none_when_reauth_fails(mock_run, mock_reauth, monkeypatch):
     """If re-auth itself fails, synthesis must return None (so the pipeline can
     alert) — and must NOT waste a model downgrade on an auth failure."""
     monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
     monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
-    mock_run.return_value = Mock(
-        stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0
-    )
+    mock_run.return_value = Mock(stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0)
     mock_reauth.return_value = False
 
     result = invoke_claude("p", claude_args=["--print", "--model", "opus"])
@@ -375,9 +362,7 @@ def test_invoke_claude_429_does_not_trigger_reauth(mock_run, mock_reauth, monkey
     monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")
     monkeypatch.setenv("VERTEX_REGION_FALLBACK", "europe-west1")
     mock_run.side_effect = [
-        Mock(
-            stdout=_envelope(result="API Error: 429 quota", is_error=True), returncode=0
-        ),
+        Mock(stdout=_envelope(result="API Error: 429 quota", is_error=True), returncode=0),
         Mock(stdout=_envelope(result="RECOVERED"), returncode=0),
     ]
 

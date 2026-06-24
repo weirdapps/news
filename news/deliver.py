@@ -76,11 +76,7 @@ def render_digest_html(
                 text.replace("\n\n", _HTML_BR_DOUBLE).replace("\n", "<br>")
             )
     if fallback_text:
-        text = (
-            fallback_text.replace("&", _HTML_AMP)
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-        )
+        text = fallback_text.replace("&", _HTML_AMP).replace("<", "&lt;").replace(">", "&gt;")
         fallback_text = Markup(
             text.replace("\n\n", _HTML_BR_DOUBLE).replace("\n", "<br>")
         )  # nosemgrep
@@ -133,9 +129,7 @@ def build_subject(
     month_name = dt.strftime("%b").upper()
 
     label = "News Digest"
-    stats = (
-        f"{article_count} articles from {source_count} sources" if article_count else ""
-    )
+    stats = f"{article_count} articles from {source_count} sources" if article_count else ""
     base = f"{label} | {day_name} {day_num} {month_name} {time_str}"
 
     if stats:
@@ -166,10 +160,7 @@ def build_alert_subject(label: str, dt: datetime) -> str:
     day_num = dt.strftime("%-d")
     month_name = dt.strftime("%b").upper()
 
-    return (
-        f"{label} | synthesis unavailable | "
-        f"{day_name} {day_num} {month_name} {time_str}"
-    )
+    return f"{label} | synthesis unavailable | {day_name} {day_num} {month_name} {time_str}"
 
 
 def build_alert_html(
@@ -336,23 +327,11 @@ def render_monitor_html(
 
     # Convert sector_context newlines to <br> for HTML
     if sector_context:
-        text = (
-            sector_context.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-        )
-        sector_context = Markup(
-            text.replace("\n\n", "<br><br>").replace("\n", "<br>")
-        )  # nosemgrep
+        text = sector_context.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        sector_context = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))  # nosemgrep
     if fallback_text:
-        text = (
-            fallback_text.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-        )
-        fallback_text = Markup(
-            text.replace("\n\n", "<br><br>").replace("\n", "<br>")
-        )  # nosemgrep
+        text = fallback_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        fallback_text = Markup(text.replace("\n\n", "<br><br>").replace("\n", "<br>"))  # nosemgrep
 
     competitors = keywords_config.get("competitors", {})
     competitor_display_names = {
@@ -471,11 +450,7 @@ def render_topic_html(
                 text.replace("\n\n", _HTML_BR_DOUBLE).replace("\n", "<br>")
             )
     if fallback_text:
-        text = (
-            fallback_text.replace("&", _HTML_AMP)
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-        )
+        text = fallback_text.replace("&", _HTML_AMP).replace("<", "&lt;").replace(">", "&gt;")
         fallback_text = Markup(
             text.replace("\n\n", _HTML_BR_DOUBLE).replace("\n", "<br>")
         )  # nosemgrep
@@ -528,9 +503,7 @@ def build_topic_subject(
     else:
         query_display = query
 
-    base = (
-        f"Topic Brief | {query_display} | {day_name} {day_num} {month_name} {time_str}"
-    )
+    base = f"Topic Brief | {query_display} | {day_name} {day_num} {month_name} {time_str}"
 
     if synthesis_failed:
         base += " | headlines only"
@@ -580,11 +553,7 @@ def render_stack_html(
                 text.replace("\n\n", _HTML_BR_DOUBLE).replace("\n", "<br>")
             )
     if fallback_text:
-        text = (
-            fallback_text.replace("&", _HTML_AMP)
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-        )
+        text = fallback_text.replace("&", _HTML_AMP).replace("<", "&lt;").replace(">", "&gt;")
         fallback_text = Markup(
             text.replace("\n\n", _HTML_BR_DOUBLE).replace("\n", "<br>")
         )  # nosemgrep
@@ -635,9 +604,7 @@ def build_stack_subject(
     return base
 
 
-def save_fallback(
-    html: str, output_dir: str = "~/Downloads", label: str = "digest"
-) -> str:
+def save_fallback(html: str, output_dir: str = "~/Downloads", label: str = "digest") -> str:
     """Save HTML to timestamped file as fallback.
 
     Args:

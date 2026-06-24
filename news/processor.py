@@ -1,7 +1,8 @@
 """Article processing: deduplication, classification, scoring, and quality filtering."""
 
 import re
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
+
 from news.models import Article
 
 
@@ -106,9 +107,7 @@ def compute_relevance_score(
     # Company-mention bonus — patterns come from keywords_config.company.names.
     # When keywords_config is None (digest profile), no company bonus applies.
     if keywords_config:
-        company_names = [
-            n.lower() for n in keywords_config.get("company", {}).get("names", [])
-        ]
+        company_names = [n.lower() for n in keywords_config.get("company", {}).get("names", [])]
         if any(name in text for name in company_names):
             score += scoring.get("company_mention", 0)
 
@@ -146,7 +145,7 @@ def compute_relevance_score(
 
     # Recency bonus
     if article.published_at:
-        age = datetime.now(timezone.utc) - article.published_at
+        age = datetime.now(UTC) - article.published_at
         hours = age.total_seconds() / 3600
 
         if hours <= 1:
@@ -178,7 +177,7 @@ def filter_quality(
     """
     kept = []
     dropped = []
-    cutoff_time = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
+    cutoff_time = datetime.now(UTC) - timedelta(hours=max_age_hours)
 
     for article in articles:
         # Check word count
@@ -227,8 +226,8 @@ def extract_content(article: Article) -> None:
 
     try:
         # Fallback to readability
-        from readability import Document
         import requests
+        from readability import Document
 
         response = requests.get(article.url, timeout=10)
         doc = Document(response.content)
@@ -295,9 +294,7 @@ def process_articles(
     for article in unique:
         classify_article(article, categories_config)
         tier = source_tiers.get(article.source, 2)
-        compute_relevance_score(
-            article, scoring_config, tier, keywords_config=keywords_config
-        )
+        compute_relevance_score(article, scoring_config, tier, keywords_config=keywords_config)
         from news.tagger import tag_article
 
         tag_article(article)

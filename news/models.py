@@ -1,6 +1,6 @@
 import hashlib
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 @dataclass
@@ -17,7 +17,7 @@ class Article:
     summary: str = ""
     content_hash: str = ""
     relevance_score: int = 0
-    fetched_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    fetched_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     included_in_digest_id: int | None = None
     also_reported_by: list[str] = field(default_factory=list)
     pipeline: str = "digest"
@@ -37,7 +37,7 @@ class Digest:
     digest_type: str
     article_count: int = 0
     id: int | None = None
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     synthesis_text: str = ""
     html_output: str = ""
     sent_at: datetime | None = None

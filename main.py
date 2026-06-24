@@ -6,7 +6,7 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -130,9 +130,7 @@ def release_lock(lock_path: str) -> None:
     logging.info(f"Lock released: {lock_path}")
 
 
-def get_time_window(
-    now: datetime, last_digest_at: datetime | None, tz_name: str
-) -> str:
+def get_time_window(now: datetime, last_digest_at: datetime | None, tz_name: str) -> str:
     """Build human-readable time window string.
 
     Args:
@@ -208,7 +206,7 @@ def log_run(
     log_file = Path(log_path).expanduser()
     log_file.parent.mkdir(parents=True, exist_ok=True)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     timestamp = now.isoformat()
 
     synthesis_status = "synthesis OK" if synthesis_ok else "synthesis FAILED"
@@ -267,9 +265,7 @@ def _setup_digest_pipeline(settings: dict, sources: dict):
     run_log_path = Path(storage_config["run_log_path"]).expanduser()
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    source_tiers = {
-        source["name"]: source.get("tier", 2) for source in sources["rss_feeds"]
-    }
+    source_tiers = {source["name"]: source.get("tier", 2) for source in sources["rss_feeds"]}
 
     return {
         "pipeline": pipeline_config,
@@ -309,7 +305,7 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     Args:
         run_type: "scheduled" or "adhoc"
     """
-    start_time = datetime.now(timezone.utc)
+    start_time = datetime.now(UTC)
     logger = logging.getLogger(__name__)
     logger.info(f"Starting {run_type} pipeline run")
 
@@ -438,9 +434,7 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
             synthesis_data.get("what_changed", []), capped_articles
         )
         synthesis_data["sections"] = enrich_section_articles(
-            filter_unsourced_sections(
-                synthesis_data.get("sections", []), capped_articles
-            ),
+            filter_unsourced_sections(synthesis_data.get("sections", []), capped_articles),
             capped_articles,
         )
         synthesis_text = json.dumps(synthesis_data)
@@ -523,7 +517,7 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     conn.close()
 
     # Log run
-    duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+    duration = (datetime.now(UTC) - start_time).total_seconds()
     log_run(
         log_path=str(config["run_log_path"]),
         run_type=run_type,
@@ -543,7 +537,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     Args:
         run_type: "scheduled" or "adhoc"
     """
-    start_time = datetime.now(timezone.utc)
+    start_time = datetime.now(UTC)
     logger = logging.getLogger(__name__)
     logger.info(f"Starting monitor {run_type} pipeline run")
 
@@ -627,7 +621,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     if skip_empty and process_stats["output_count"] == 0 and run_type != "adhoc":
         logger.info("No new mentions — skipping synthesis and delivery")
         conn.close()
-        duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+        duration = (datetime.now(UTC) - start_time).total_seconds()
         log_run(
             log_path=str(config["run_log_path"]),
             run_type=f"monitor-{run_type}",
@@ -651,9 +645,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     # Select top articles
     capped_articles = _select_digest_articles(all_recent, config["pipeline"])
 
-    logger.info(
-        f"Monitor pool: {len(all_recent)} articles, selected top {len(capped_articles)}"
-    )
+    logger.info(f"Monitor pool: {len(all_recent)} articles, selected top {len(capped_articles)}")
 
     # SYNTHESIZE: Check auth first — skip synthesis if expired (avoid wasted retries)
     auth_ok = check_gcloud_auth()
@@ -670,9 +662,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
             claude_args=config["synthesis"].get("claude_args", []),
         )
     else:
-        logger.warning(
-            "gcloud auth expired — skipping monitor synthesis, using fallback"
-        )
+        logger.warning("gcloud auth expired — skipping monitor synthesis, using fallback")
         from news.monitor_synth import build_monitor_fallback
 
         synthesis_result = build_monitor_fallback(capped_articles)
@@ -720,9 +710,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     date_display = now_athens.strftime("%a %-d %b").lower()
 
     mention_count = (
-        len(synthesis_data.get("company_mentions", []))
-        if synthesis_ok
-        else len(capped_articles)
+        len(synthesis_data.get("company_mentions", [])) if synthesis_ok else len(capped_articles)
     )
     has_alerts = bool(synthesis_data.get("alerts")) if synthesis_ok else False
 
@@ -748,9 +736,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
         )
     else:
         # Synthesis failed — send a one-line alert, NOT the unsynthesized dump.
-        monitor_label = keywords_config.get("display", {}).get(
-            "monitor_label", "Brand Monitor"
-        )
+        monitor_label = keywords_config.get("display", {}).get("monitor_label", "Brand Monitor")
         subject = build_alert_subject(monitor_label, now_athens)
         html_output = build_alert_html(
             label=monitor_label,
@@ -793,7 +779,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     conn.close()
 
     # Log run
-    duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+    duration = (datetime.now(UTC) - start_time).total_seconds()
     log_run(
         log_path=str(config["run_log_path"]),
         run_type=f"monitor-{run_type}",
@@ -809,7 +795,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
 
 async def run_stack_pipeline(run_type: str = "scheduled") -> None:
     """Execute the stack (AI/dev intelligence) pipeline."""
-    start_time = datetime.now(timezone.utc)
+    start_time = datetime.now(UTC)
     logger = logging.getLogger(__name__)
     logger.info(f"Starting stack {run_type} pipeline run")
 
@@ -889,9 +875,7 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
     all_recent = get_articles_since(conn, digest_since, min_score=0, pipeline="stack")
 
     capped_articles = _select_digest_articles(all_recent, config["pipeline"])
-    logger.info(
-        f"Stack pool: {len(all_recent)} articles, selected top {len(capped_articles)}"
-    )
+    logger.info(f"Stack pool: {len(all_recent)} articles, selected top {len(capped_articles)}")
 
     # SYNTHESIZE
     from news.stack_synth import build_stack_fallback, synthesize_stack
@@ -1010,7 +994,7 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
 
     conn.close()
 
-    duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+    duration = (datetime.now(UTC) - start_time).total_seconds()
     log_run(
         log_path=str(config["run_log_path"]),
         run_type=f"stack-{run_type}",
@@ -1036,7 +1020,7 @@ async def run_topic_pipeline(
         hours: Time window in hours (1–168)
         print_only: If True, print rendered HTML to stdout instead of emailing
     """
-    start_time = datetime.now(timezone.utc)
+    start_time = datetime.now(UTC)
     logger = logging.getLogger(__name__)
     logger.info(f"Starting topic pipeline run | query={query!r} hours={hours}")
 
@@ -1107,9 +1091,9 @@ async def run_topic_pipeline(
 
     # SELECT: top N by score for synthesis input
     max_articles = pipeline_config.get("max_digest_articles", 100)
-    candidates = sorted(
-        processed_articles, key=lambda a: a.relevance_score, reverse=True
-    )[:max_articles]
+    candidates = sorted(processed_articles, key=lambda a: a.relevance_score, reverse=True)[
+        :max_articles
+    ]
 
     # SYNTHESIZE
     auth_ok = check_gcloud_auth()
@@ -1199,7 +1183,7 @@ async def run_topic_pipeline(
 
     conn.close()
 
-    duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+    duration = (datetime.now(UTC) - start_time).total_seconds()
     log_run(
         log_path=str(run_log_path),
         run_type="topic-adhoc",
@@ -1279,9 +1263,7 @@ def main() -> None:
 
     # Acquire lock
     if not acquire_lock(str(lock_path)):
-        logger.error(
-            f"Failed to acquire lock for {args.profile} - another instance running?"
-        )
+        logger.error(f"Failed to acquire lock for {args.profile} - another instance running?")
         sys.exit(1)
 
     try:

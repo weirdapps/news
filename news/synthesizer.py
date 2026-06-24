@@ -135,9 +135,7 @@ def build_prompt(
         }
         if article.published_at:
             entry["age_hours"] = (
-                round(
-                    (article.fetched_at - article.published_at).total_seconds() / 3600
-                )
+                round((article.fetched_at - article.published_at).total_seconds() / 3600)
                 if article.fetched_at
                 else None
             )
@@ -253,9 +251,7 @@ def invoke_claude(
         try:
             return json.loads(proc.stdout)
         except json.JSONDecodeError:
-            logger.warning(
-                f"Claude CLI output was not a JSON envelope: {proc.stdout[:200]!r}"
-            )
+            logger.warning(f"Claude CLI output was not a JSON envelope: {proc.stdout[:200]!r}")
             return None
 
     model, region = _resolve_tier()
@@ -273,9 +269,7 @@ def invoke_claude(
         if refresh_auth():
             env = _run_once(model, region)
         if _is_auth_error(env):
-            logger.error(
-                "Claude auth still failing after re-auth — synthesis unavailable"
-            )
+            logger.error("Claude auth still failing after re-auth — synthesis unavailable")
             return None
 
     if env is None:
@@ -300,9 +294,7 @@ def invoke_claude(
         if env is None:
             return None
         if env.get("is_error"):
-            logger.error(
-                f"Fallback model {fb_model} also failed: {str(env.get('result'))[:200]}"
-            )
+            logger.error(f"Fallback model {fb_model} also failed: {str(env.get('result'))[:200]}")
             return None
 
     text = env.get("result")
@@ -326,9 +318,7 @@ def _validate_synthesis(data: dict[str, Any]) -> list[str]:
                 if "text" not in item:
                     issues.append(f"executive_brief[{i}] missing 'text'")
             else:
-                issues.append(
-                    f"executive_brief[{i}] is {type(item).__name__}, expected dict"
-                )
+                issues.append(f"executive_brief[{i}] is {type(item).__name__}, expected dict")
 
     if not isinstance(data.get("sections"), list):
         issues.append("sections must be a list")
@@ -391,9 +381,7 @@ def parse_synthesis_output(raw: str) -> dict[str, Any]:
 
     if parsed is None:
         preview = raw[:500] if raw else "(empty)"
-        logger.error(
-            f"Failed to parse Claude output as JSON. Raw output preview: {preview}"
-        )
+        logger.error(f"Failed to parse Claude output as JSON. Raw output preview: {preview}")
         return {
             "executive_brief": ["Failed to parse synthesis output"],
             "what_changed": "Error occurred during synthesis",
@@ -405,8 +393,7 @@ def parse_synthesis_output(raw: str) -> dict[str, Any]:
     issues = _validate_synthesis(parsed)
     if issues:
         logger.warning(
-            f"Synthesis output has {len(issues)} validation issue(s): "
-            + "; ".join(issues[:5])
+            f"Synthesis output has {len(issues)} validation issue(s): " + "; ".join(issues[:5])
         )
 
     return parsed

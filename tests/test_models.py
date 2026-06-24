@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from news.models import Article, Digest, Source
 
 
@@ -8,7 +9,7 @@ def test_article_creation():
         title="Test Article",
         source="TestSource",
         author="John Doe",
-        published_at=datetime(2026, 4, 5, 9, 0, tzinfo=timezone.utc),
+        published_at=datetime(2026, 4, 5, 9, 0, tzinfo=UTC),
         content="This is the full article content for testing purposes.",
         summary="Test summary of the article.",
         categories=["tech", "ai"],

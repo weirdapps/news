@@ -6,10 +6,12 @@ Writes: config/tickers.yaml
 """
 
 from __future__ import annotations
+
 import csv
 import re
 import sys
 from pathlib import Path
+
 import yaml
 
 SUFFIXES = re.compile(

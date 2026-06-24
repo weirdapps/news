@@ -1,7 +1,7 @@
 """Tests for news MCP server tool wiring."""
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -17,7 +17,7 @@ def populated_db(tmp_path):
     conn = get_connection(str(db_path))
     init_db(conn)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     article = Article(
         url="https://example.com/test-article",
         title="ECB rate decision impacts Greek banks",

@@ -1,6 +1,6 @@
 """Tests for configuration file loading."""
 
-from news.config import load_config, get_sources, get_categories, get_settings
+from news.config import get_categories, get_settings, get_sources, load_config
 
 
 def test_load_config_reads_yaml(tmp_path):

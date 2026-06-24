@@ -1,13 +1,13 @@
 """Tests for news query functions."""
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from news.models import Article, Digest
 from news.query import get_digest_history, get_news_stats, search_articles
 from news.storage import get_connection, init_db, insert_article, insert_digest
-from news.models import Article, Digest
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def db():
     conn = get_connection(":memory:")
     init_db(conn)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     articles = [
         Article(
             url="https://example.com/ecb-rates",

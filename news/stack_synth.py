@@ -135,9 +135,7 @@ def build_stack_prompt(
     previous_highlights: list[str] | None = None,
     time_window: str = "last 36 hours",
 ) -> str:
-    article_entries = [
-        _build_article_entry(article, i) for i, article in enumerate(articles)
-    ]
+    article_entries = [_build_article_entry(article, i) for i, article in enumerate(articles)]
 
     context: dict[str, Any] = {
         "time_window": time_window,

@@ -1,19 +1,19 @@
 """Tests for synthesis citation filter."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from news.citation_filter import (
-    filter_unsourced_bullets,
-    filter_unsourced_sections,
     enrich_mentions,
     enrich_section_articles,
     filter_competitor_watch,
+    filter_unsourced_bullets,
+    filter_unsourced_sections,
 )
 from news.models import Article
 
 
 def _articles():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return [
         Article(
             url=f"https://example.com/{i}",

@@ -8,7 +8,7 @@ their server-rendered listing pages for article links + titles instead.
 import asyncio
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from typing import Any
 from urllib.parse import urljoin
@@ -26,9 +26,7 @@ _REQUEST_TIMEOUT = 30
 _MAX_CONCURRENT = 10
 
 
-def normalize_rss_entry(
-    entry: dict[str, Any], source_config: dict[str, Any]
-) -> Article:
+def normalize_rss_entry(entry: dict[str, Any], source_config: dict[str, Any]) -> Article:
     """Convert feedparser entry to Article model.
 
     Args:
@@ -71,7 +69,7 @@ def normalize_rss_entry(
             parsed[3],
             parsed[4],
             parsed[5],
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         )
     elif "updated_parsed" in entry and entry["updated_parsed"]:
         parsed = entry["updated_parsed"]
@@ -82,7 +80,7 @@ def normalize_rss_entry(
             parsed[3],
             parsed[4],
             parsed[5],
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         )
     elif "published" in entry:
         try:
@@ -158,9 +156,7 @@ async def _fetch_single_feed(
             return [], error_msg
 
 
-def parse_html_listing(
-    html_content: str, source_config: dict[str, Any]
-) -> list[Article]:
+def parse_html_listing(html_content: str, source_config: dict[str, Any]) -> list[Article]:
     """Extract articles from a server-rendered listing page (feed-less sites).
 
     Finds anchors whose href matches ``link_pattern`` (a regex), uses the inner

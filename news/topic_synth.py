@@ -146,9 +146,7 @@ def build_topic_prompt(articles: list[Any], query: str, hours: int) -> str:
     ]
     system_prompt = "".join(sections)
 
-    article_entries = [
-        _build_article_entry(article, i) for i, article in enumerate(articles)
-    ]
+    article_entries = [_build_article_entry(article, i) for i, article in enumerate(articles)]
 
     context = {
         "query": query,

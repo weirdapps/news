@@ -10,6 +10,7 @@ Usage:
 """
 
 from __future__ import annotations
+
 import argparse
 import sqlite3
 import sys
@@ -19,10 +20,11 @@ from pathlib import Path
 # Ensure news package importable when run from repo root
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from datetime import datetime
+
+from news.models import Article
 from news.storage import get_connection, init_db
 from news.tagger import tag_article
-from news.models import Article
-from datetime import datetime
 
 
 def _row_to_minimal_article(row) -> Article:
@@ -58,9 +60,7 @@ def backfill(
     that HAVE tickers. Articles with no tickers don't need junction rows.
     """
     # Load category map per article in one query
-    cat_rows = conn.execute(
-        "SELECT article_url, category FROM article_categories"
-    ).fetchall()
+    cat_rows = conn.execute("SELECT article_url, category FROM article_categories").fetchall()
     cat_map: dict[str, list[str]] = {}
     for r in cat_rows:
         cat_map.setdefault(r["article_url"], []).append(r["category"])

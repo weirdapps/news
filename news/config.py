@@ -13,8 +13,8 @@ time. Real environment variables take precedence over .env values.
 import os
 import re
 from pathlib import Path
-import yaml
 
+import yaml
 
 # Project root and config directory paths
 _PROJECT_ROOT = Path(__file__).parent.parent
@@ -45,9 +45,7 @@ def _expand_env(value):
     """Recursively expand ${VAR} / ${VAR:-default} in strings, dicts, and lists."""
     if isinstance(value, str):
         return _ENV_VAR_PATTERN.sub(
-            lambda m: os.environ.get(
-                m.group(1), m.group(2) if m.group(2) is not None else ""
-            ),
+            lambda m: os.environ.get(m.group(1), m.group(2) if m.group(2) is not None else ""),
             value,
         )
     if isinstance(value, dict):
@@ -93,7 +91,7 @@ def load_config(path: Path) -> dict:
         FileNotFoundError: If the config file doesn't exist
         yaml.YAMLError: If the file contains invalid YAML
     """
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return _expand_env(yaml.safe_load(f))
 
 

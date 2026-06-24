@@ -1,7 +1,8 @@
-from news.config import get_categories
-from news.processor import classify_article
-from news.models import Article
 from datetime import datetime
+
+from news.config import get_categories
+from news.models import Article
+from news.processor import classify_article
 
 
 def _art(title, content=""):

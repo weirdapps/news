@@ -137,9 +137,7 @@ This monitor runs every 2 hours during business hours. Each report must STAND AL
 Return ONLY valid JSON. No preamble, no markdown formatting."""
 
 
-def _build_article_entry(
-    article: Any, index: int, last_run_at: "datetime | None"
-) -> dict:
+def _build_article_entry(article: Any, index: int, last_run_at: datetime | None) -> dict:
     """Build a single article entry for the monitor prompt."""
     is_new = True
     if last_run_at and article.fetched_at:
@@ -168,7 +166,7 @@ def build_monitor_prompt(
     keywords_config: dict,
     previous_summary: dict | None,
     time_window: str,
-    last_run_at: "datetime | None" = None,
+    last_run_at: datetime | None = None,
 ) -> str:
     """Build the monitor prompt for Claude.
 
@@ -198,8 +196,7 @@ def build_monitor_prompt(
     system_prompt = "".join(s for s in sections if s)
 
     article_entries = [
-        _build_article_entry(article, i, last_run_at)
-        for i, article in enumerate(articles)
+        _build_article_entry(article, i, last_run_at) for i, article in enumerate(articles)
     ]
     new_count = sum(1 for entry in article_entries if entry["is_new"])
 
@@ -258,7 +255,7 @@ def synthesize_monitor(
     keywords_config: dict,
     previous_summary: dict | None = None,
     time_window: str = "last hour",
-    last_run_at: "datetime | None" = None,
+    last_run_at: datetime | None = None,
     max_retries: int = 2,
     timeout: int = 300,
     claude_command: str = "claude",

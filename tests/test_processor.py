@@ -1,9 +1,10 @@
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
+
 from news.models import Article
 from news.processor import (
-    deduplicate,
     classify_article,
     compute_relevance_score,
+    deduplicate,
     filter_quality,
 )
 
@@ -21,7 +22,7 @@ def _make_article(
     if categories is None:
         categories = []
     if published_at is None:
-        published_at = datetime.now(timezone.utc)
+        published_at = datetime.now(UTC)
     return Article(
         url=url,
         title=title,
@@ -61,8 +62,7 @@ def test_deduplicate_removes_exact_duplicates():
     assert dupes[0].url == "https://example.com/2"
     # Check that also_reported_by was updated on the original
     assert (
-        "https://example.com/2" in unique[0].also_reported_by
-        or "Src" in unique[0].also_reported_by
+        "https://example.com/2" in unique[0].also_reported_by or "Src" in unique[0].also_reported_by
     )
 
 
@@ -87,8 +87,7 @@ def test_classify_article_adds_categories():
     """Test that article gets classified into categories based on keyword matching."""
     article = _make_article(
         title="Claude AI Agent Used by NBG",
-        content="National Bank of Greece announces use of AI agents for customer service. "
-        * 10,
+        content="National Bank of Greece announces use of AI agents for customer service. " * 10,
     )
 
     categories_config = {
@@ -116,7 +115,7 @@ def test_compute_relevance_score():
     """Test relevance scoring with company mention, category, tier, and recency."""
     # Article mentioning the configured company name, in banking category,
     # tier 1, published 2h ago.
-    two_hours_ago = datetime.now(timezone.utc) - timedelta(hours=2)
+    two_hours_ago = datetime.now(UTC) - timedelta(hours=2)
     article = _make_article(
         title="NBG Quarterly Results",
         content="National Bank of Greece reports strong quarterly results. " * 20,
@@ -167,9 +166,7 @@ def test_compute_relevance_score_uses_keywords_config_for_company_match():
     }
     keywords = {"company": {"names": ["AcmeCorp"]}}
 
-    score = compute_relevance_score(
-        article, scoring, source_tier=2, keywords_config=keywords
-    )
+    score = compute_relevance_score(article, scoring, source_tier=2, keywords_config=keywords)
     assert score >= 50
 
 
@@ -193,9 +190,7 @@ def test_compute_relevance_score_no_keywords_config_skips_company_bonus():
         "greek_banking": 0,
     }
 
-    score = compute_relevance_score(
-        article, scoring, source_tier=2
-    )  # no keywords_config
+    score = compute_relevance_score(article, scoring, source_tier=2)  # no keywords_config
     assert score == 0
 
 
@@ -220,9 +215,7 @@ def test_compute_relevance_score_uses_competitors_for_greek_banking_bonus():
     }
     keywords = {"competitors": {"xyz": {"names": ["XYZ Bank"]}}}
 
-    score = compute_relevance_score(
-        article, scoring, source_tier=2, keywords_config=keywords
-    )
+    score = compute_relevance_score(article, scoring, source_tier=2, keywords_config=keywords)
     assert score >= 30
 
 
@@ -242,9 +235,7 @@ def test_processor_module_has_no_brand_specific_literals():
         "greek bank",  # phrase — was hardcoded in the old greek_banking_patterns
     ]
     for f in forbidden:
-        assert f.lower() not in src.lower(), (
-            f"Found brand-specific literal in processor.py: {f}"
-        )
+        assert f.lower() not in src.lower(), f"Found brand-specific literal in processor.py: {f}"
 
 
 def test_filter_quality_drops_short_articles():
@@ -264,8 +255,8 @@ def test_filter_quality_drops_short_articles():
 
 def test_filter_quality_drops_old_articles():
     """Test that old articles are dropped and recent ones kept."""
-    forty_eight_hours_ago = datetime.now(timezone.utc) - timedelta(hours=48)
-    two_hours_ago = datetime.now(timezone.utc) - timedelta(hours=2)
+    forty_eight_hours_ago = datetime.now(UTC) - timedelta(hours=48)
+    two_hours_ago = datetime.now(UTC) - timedelta(hours=2)
 
     old = _make_article(published_at=forty_eight_hours_ago)
     recent = _make_article(published_at=two_hours_ago)

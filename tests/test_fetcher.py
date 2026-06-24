@@ -1,11 +1,13 @@
-from unittest.mock import patch, AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
+
 from news.fetcher import (
-    parse_rss_feed,
+    fetch_html_sources,
     fetch_rss_feeds,
     normalize_rss_entry,
     parse_html_listing,
-    fetch_html_sources,
+    parse_rss_feed,
 )
 
 SAMPLE_RSS_XML = """<?xml version="1.0" encoding="UTF-8"?>

@@ -2,9 +2,8 @@
 
 import json
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 from news.models import Article, Digest
 
@@ -60,9 +59,7 @@ def _backfill_fts(conn: sqlite3.Connection) -> None:
     """Backfill FTS5 index from existing articles (idempotent)."""
     row = conn.execute("SELECT COUNT(*) as cnt FROM articles_fts").fetchone()
     if row["cnt"] == 0:
-        article_count = conn.execute("SELECT COUNT(*) as cnt FROM articles").fetchone()[
-            "cnt"
-        ]
+        article_count = conn.execute("SELECT COUNT(*) as cnt FROM articles").fetchone()["cnt"]
         if article_count > 0:
             conn.execute("""
                 INSERT INTO articles_fts(rowid, title, content, source)
@@ -195,7 +192,7 @@ def _row_to_article(conn: sqlite3.Connection, row: sqlite3.Row) -> Article:
         also_reported_by = json.loads(row["also_reported_by"])
 
     # fetched_at column is NOT NULL in schema; default just in case
-    fetched_at = _str_to_dt(row["fetched_at"]) or datetime.now(timezone.utc)
+    fetched_at = _str_to_dt(row["fetched_at"]) or datetime.now(UTC)
 
     return Article(
         url=row["url"],
@@ -251,9 +248,7 @@ def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
                 article.relevance_score,
                 _dt_to_str(article.fetched_at),
                 article.included_in_digest_id,
-                json.dumps(article.also_reported_by)
-                if article.also_reported_by
-                else None,
+                json.dumps(article.also_reported_by) if article.also_reported_by else None,
                 article.pipeline,
                 article.sentiment or None,
                 article.mention_type or None,
@@ -288,7 +283,7 @@ def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
         return False
 
 
-def get_article_by_url(conn: sqlite3.Connection, url: str) -> Optional[Article]:
+def get_article_by_url(conn: sqlite3.Connection, url: str) -> Article | None:
     """Retrieve article by URL."""
     cursor = conn.execute("SELECT * FROM articles WHERE url = ?", (url,))
     row = cursor.fetchone()
@@ -297,13 +292,9 @@ def get_article_by_url(conn: sqlite3.Connection, url: str) -> Optional[Article]:
     return _row_to_article(conn, row)
 
 
-def get_article_by_hash(
-    conn: sqlite3.Connection, content_hash: str
-) -> Optional[Article]:
+def get_article_by_hash(conn: sqlite3.Connection, content_hash: str) -> Article | None:
     """Retrieve article by content hash."""
-    cursor = conn.execute(
-        "SELECT * FROM articles WHERE content_hash = ?", (content_hash,)
-    )
+    cursor = conn.execute("SELECT * FROM articles WHERE content_hash = ?", (content_hash,))
     row = cursor.fetchone()
     if row is None:
         return None
@@ -314,7 +305,7 @@ def get_articles_since(
     conn: sqlite3.Connection,
     since: datetime,
     min_score: int = 0,
-    category: Optional[str] = None,
+    category: str | None = None,
     pipeline: str = "digest",
 ) -> list[Article]:
     """
@@ -371,9 +362,7 @@ def insert_digest(conn: sqlite3.Connection, digest: Digest) -> int:
     return cursor.lastrowid or 0
 
 
-def get_last_digest(
-    conn: sqlite3.Connection, pipeline: str = "digest"
-) -> Optional[Digest]:
+def get_last_digest(conn: sqlite3.Connection, pipeline: str = "digest") -> Digest | None:
     """Get the most recent digest for a given pipeline."""
     cursor = conn.execute(
         """
@@ -389,7 +378,7 @@ def get_last_digest(
         return None
 
     # created_at column is NOT NULL in schema; default just in case
-    created_at = _str_to_dt(row["created_at"]) or datetime.now(timezone.utc)
+    created_at = _str_to_dt(row["created_at"]) or datetime.now(UTC)
 
     return Digest(
         id=row["id"],
@@ -411,7 +400,7 @@ def update_digest_sent(conn: sqlite3.Connection, digest_id: int) -> None:
         SET sent_at = ?
         WHERE id = ?
     """,
-        (_dt_to_str(datetime.now(timezone.utc)), digest_id),
+        (_dt_to_str(datetime.now(UTC)), digest_id),
     )
     conn.commit()
 
