@@ -1,0 +1,131 @@
+# Market profile — category definitions
+# 6 categories tuned to classify and score market-moving news.
+
+categories:
+  macro_rates:
+    display_name: "Macro & Rates"
+    keywords:
+      - Fed
+      - Federal Reserve
+      - FOMC
+      - ECB
+      - European Central Bank
+      - interest rate
+      - rate cut
+      - rate hike
+      - inflation
+      - CPI
+      - PCE
+      - jobs report
+      - nonfarm payrolls
+      - GDP
+      - recession
+      - yield
+      - Treasury
+      - bond market
+      - dollar
+      - Powell
+      - Lagarde
+    priority: 1
+
+  equities:
+    display_name: "Equities & Indices"
+    keywords:
+      - S&P 500
+      - Nasdaq
+      - Dow Jones
+      - stock market
+      - earnings
+      - guidance
+      - profit warning
+      - buyback
+      - IPO
+      - M&A
+      - merger
+      - acquisition
+      - downgrade
+      - upgrade
+      - price target
+      - analyst
+      - short seller
+      - Russell
+      - Stoxx
+      - Nikkei
+      - Hang Seng
+    priority: 2
+
+  sectors_themes:
+    display_name: "Sectors & Themes"
+    keywords:
+      - semiconductor
+      - chips
+      - AI
+      - artificial intelligence
+      - cloud
+      - EV
+      - electric vehicle
+      - banks
+      - financials
+      - healthcare
+      - biotech
+      - defense
+      - luxury
+      - retail
+      - automakers
+      - utilities
+      - real estate
+    priority: 3
+
+  commodities_energy:
+    display_name: "Commodities & Energy"
+    keywords:
+      - oil
+      - crude
+      - Brent
+      - WTI
+      - OPEC
+      - natural gas
+      - gold
+      - silver
+      - copper
+      - commodity
+      - energy prices
+      - uranium
+    priority: 4
+
+  crypto:
+    display_name: "Crypto"
+    keywords:
+      - bitcoin
+      - ethereum
+      - crypto
+      - cryptocurrency
+      - stablecoin
+      - digital asset
+      - ETF flows
+      - blockchain
+    priority: 5
+
+  greece_athex:
+    display_name: "Greece & ATHEX"
+    keywords:
+      - Greece
+      - Greek
+      - ATHEX
+      - Athens Stock Exchange
+      - National Bank of Greece
+      - Piraeus Bank
+      - Alpha Bank
+      - Eurobank
+      - Greek bonds
+      - Greek economy
+      - Hellenic
+    priority: 6
+
+display_order:
+  - macro_rates
+  - equities
+  - sectors_themes
+  - commodities_energy
+  - crypto
+  - greece_athex

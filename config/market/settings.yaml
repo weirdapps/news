@@ -1,0 +1,55 @@
+# Market profile — Pipeline Settings
+# Market-moving news (broad market + portfolio holdings) that feeds the
+# Investment Brief. Runs ~25 min before each daytime brief slot (04/08/12/16/20
+# Athens). Store-only by default (the brief consumes it from news.db); set
+# NEWS_MARKET_RECIPIENT to also receive a standalone email.
+
+pipeline:
+  relevance_threshold: 12
+  max_articles_per_category: 12
+  max_article_age_hours: 18
+  min_article_length_words: 8
+  digest_window_hours: 18
+  max_digest_articles: 160
+  max_articles_per_source: 10
+  dedup_hash_chars: 200
+
+email:
+  recipient: ${NEWS_MARKET_RECIPIENT:-user@example.com}
+
+schedule:
+  timezone: Europe/Athens
+  runs:
+    - "03:35"
+    - "07:35"
+    - "11:35"
+    - "15:35"
+    - "19:35"
+
+storage:
+  db_path: ~/SourceCode/news/data/news.db
+  run_log_path: ~/SourceCode/news/data/run.log
+  archive_dir: ~/SourceCode/news/data/archive
+  archive_after_days: 30
+
+synthesis:
+  claude_command: ${NEWS_CLAUDE_COMMAND:-claude}
+  claude_args:
+    - "--print"
+    - "--model"
+    - "opus"
+  timeout: 300
+  max_retries: 2
+
+scoring:
+  company_mention: 20
+  greek_banking: 10
+  claude_mention: 0
+  category_match: 10
+  tier_1_bonus: 15
+  tier_2_bonus: 10
+  tier_3_bonus: 5
+  recency_1h: 20
+  recency_4h: 15
+  recency_12h: 10
+  recency_24h: 5

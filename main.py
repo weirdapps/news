@@ -249,6 +249,9 @@ async def run_pipeline(
     if profile == "stack":
         await run_stack_pipeline(run_type=run_type)
         return
+    if profile == "market":
+        await run_market_pipeline(run_type=run_type)
+        return
     await run_digest_pipeline(run_type=run_type)
 
 
@@ -1006,6 +1009,166 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
     )
 
     logger.info(f"Stack pipeline complete in {duration:.1f}s")
+
+
+async def run_market_pipeline(run_type: str = "scheduled") -> None:
+    """Execute the market (market-moving news) pipeline — STORE-ONLY.
+
+    Fetches + tags + synthesizes market-moving news and persists it to news.db
+    (pipeline='market'). The trading Investment Brief consumes it via
+    recent_for_tickers (holdings) + digest_history(pipeline='market'). No email
+    is sent by design; the brief is the consumer.
+    """
+    start_time = datetime.now(timezone.utc)
+    logger = logging.getLogger(__name__)
+    logger.info(f"Starting market {run_type} pipeline run")
+
+    settings = get_settings(profile="market")
+    sources = get_sources(profile="market")
+    categories_config = get_categories(profile="market")
+
+    config = _setup_digest_pipeline(settings, sources)
+
+    conn = get_connection(config["db_path"])
+    init_db(conn)
+
+    last_digest = get_last_digest(conn, pipeline="market")
+    last_digest_at = last_digest.created_at if last_digest else None
+
+    time_window = get_time_window(
+        start_time,
+        last_digest_at,
+        config["schedule"]["timezone"],
+    )
+    logger.info(f"Market time window: {time_window}")
+
+    previous_highlights: list[str] = []
+    if last_digest and last_digest.synthesis_text:
+        try:
+            previous_synthesis = json.loads(last_digest.synthesis_text)
+            if isinstance(previous_synthesis, dict):
+                previous_highlights = previous_synthesis.get("executive_brief", [])
+        except json.JSONDecodeError:
+            pass
+
+    # FETCH (RSS feeds + any feed-less HTML sources)
+    rss_feeds = sources.get("rss_feeds", [])
+    logger.info(f"Fetching {len(rss_feeds)} market RSS feeds")
+    raw_articles, fetch_errors = await fetch_all_sources(sources)
+    logger.info(f"Fetched {len(raw_articles)} articles")
+
+    if fetch_errors:
+        logger.warning(f"Fetch errors: {len(fetch_errors)}")
+        for error in fetch_errors[:5]:
+            logger.warning(f"  {error}")
+
+    # PROCESS
+    existing_hashes: set[str] = set()
+    for article in raw_articles:
+        article.pipeline = "market"
+        article.compute_hash()
+        if get_article_by_hash(conn, article.content_hash):
+            existing_hashes.add(article.content_hash)
+
+    processed_articles, process_stats = process_articles(
+        articles=raw_articles,
+        existing_hashes=existing_hashes,
+        categories_config=categories_config,
+        scoring_config=config["scoring"],
+        source_tiers=config["source_tiers"],
+        min_words=config["pipeline"]["min_article_length_words"],
+        max_age_hours=config["pipeline"]["max_article_age_hours"],
+    )
+
+    for article in processed_articles:
+        article.pipeline = "market"
+
+    logger.info(
+        f"Processing complete: {process_stats['output_count']} new articles "
+        f"({process_stats['duplicates']} duplicates, "
+        f"{process_stats['quality_dropped']} quality drops)"
+    )
+
+    # STORE
+    for article in processed_articles:
+        insert_article(conn, article)
+
+    # POOL: pull recent market articles
+    digest_window = timedelta(hours=config["pipeline"].get("digest_window_hours", 18))
+    digest_since = start_time - digest_window
+    all_recent = get_articles_since(conn, digest_since, min_score=0, pipeline="market")
+
+    capped_articles = _select_digest_articles(all_recent, config["pipeline"])
+    logger.info(
+        f"Market pool: {len(all_recent)} articles, selected top {len(capped_articles)}"
+    )
+
+    # SYNTHESIZE
+    from news.market_synth import build_market_fallback, synthesize_market
+
+    auth_ok = check_gcloud_auth()
+    if auth_ok and capped_articles:
+        synthesis_result, synthesis_ok = synthesize_market(
+            articles=capped_articles,
+            previous_highlights=previous_highlights,
+            time_window=time_window,
+            max_retries=config["synthesis"].get("max_retries", 2),
+            timeout=config["synthesis"].get("timeout", 300),
+            claude_command=config["synthesis"].get("claude_command", "claude"),
+            claude_args=config["synthesis"].get("claude_args", []),
+        )
+    else:
+        if not auth_ok:
+            logger.warning("gcloud auth expired — skipping synthesis, using fallback")
+        elif not capped_articles:
+            logger.warning("No articles fetched — using fallback")
+        synthesis_result = build_market_fallback(capped_articles)
+        synthesis_ok = False
+
+    if synthesis_ok:
+        assert isinstance(synthesis_result, dict)
+        from news.citation_filter import (
+            filter_unsourced_bullets,
+            filter_unsourced_sections,
+        )
+
+        synthesis_data = synthesis_result
+        synthesis_data["executive_brief"] = filter_unsourced_bullets(
+            synthesis_data.get("executive_brief", []), capped_articles
+        )
+        synthesis_data["sections"] = filter_unsourced_sections(
+            synthesis_data.get("sections", []), capped_articles
+        )
+        synthesis_text = json.dumps(synthesis_data)
+    else:
+        assert isinstance(synthesis_result, str)
+        synthesis_text = synthesis_result
+
+    # STORE DIGEST (store-only — the Investment Brief consumes this; no email)
+    digest = Digest(
+        digest_type=run_type,
+        created_at=start_time,
+        article_count=len(all_recent),
+        synthesis_text=synthesis_text,
+        html_output="",
+        sent_at=None,
+        pipeline="market",
+    )
+    insert_digest(conn, digest)
+    conn.close()
+
+    duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+    log_run(
+        log_path=str(config["run_log_path"]),
+        run_type=f"market-{run_type}",
+        article_count=len(processed_articles),
+        new_count=process_stats["output_count"],
+        synthesis_ok=synthesis_ok,
+        sent_ok=False,
+        duration_seconds=duration,
+    )
+
+    logger.info(f"Market pipeline complete in {duration:.1f}s")
 
 
 async def run_topic_pipeline(

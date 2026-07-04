@@ -20,7 +20,7 @@ import yaml
 _PROJECT_ROOT = Path(__file__).parent.parent
 _CONFIG_DIR = _PROJECT_ROOT / "config"
 
-VALID_PROFILES = ("digest", "monitor", "topic", "stack")
+VALID_PROFILES = ("digest", "monitor", "topic", "stack", "market")
 
 # Matches ${VAR} or ${VAR:-default}
 _ENV_VAR_PATTERN = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)(?::-([^}]*))?\}")

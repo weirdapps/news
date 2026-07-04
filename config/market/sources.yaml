@@ -1,0 +1,123 @@
+# Market profile — sources
+# Curated market-moving feeds: broad markets/macro + commodities/crypto +
+# Greece/ATHEX. Ticker tagging (config/tickers.yaml) surfaces holdings-specific
+# items at query time (recent_for_tickers). TipRanks NEWS is included via Google
+# News (site-scoped). NB: TipRanks *structured* data (ratings/catalysts) is a
+# separate API path and is NOT ingested here (no VPS API key) — flagged for later.
+
+rss_feeds:
+  # === BROAD MARKETS (tier 1) ===
+  - name: "Reuters Business"
+    url: "https://news.google.com/rss/search?q=when:18h+allinurl:reuters.com/business&ceid=US:en&hl=en-US&gl=US"
+    category: "equities"
+    tier: 1
+    language: "en"
+  - name: "Reuters Markets"
+    url: "https://news.google.com/rss/search?q=when:18h+site:reuters.com/markets&ceid=US:en&hl=en-US&gl=US"
+    category: "equities"
+    tier: 1
+    language: "en"
+  - name: "Bloomberg via Google"
+    url: "https://news.google.com/rss/search?q=when:18h+allinurl:bloomberg.com&ceid=US:en&hl=en-US&gl=US"
+    category: "equities"
+    tier: 1
+    language: "en"
+  - name: "WSJ Markets"
+    url: "https://feeds.a.dj.com/rss/RSSMarketsMain.xml"
+    category: "equities"
+    tier: 1
+    language: "en"
+  - name: "CNBC Top News"
+    url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114"
+    category: "equities"
+    tier: 1
+    language: "en"
+  - name: "CNBC Markets"
+    url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=20910258"
+    category: "equities"
+    tier: 1
+    language: "en"
+  - name: "MarketWatch Top Stories"
+    url: "https://feeds.content.dowjones.io/public/rss/mw_topstories"
+    category: "equities"
+    tier: 1
+    language: "en"
+  - name: "Yahoo Finance"
+    url: "https://finance.yahoo.com/news/rssindex"
+    category: "equities"
+    tier: 2
+    language: "en"
+  - name: "Investing.com News"
+    url: "https://www.investing.com/rss/news.rss"
+    category: "equities"
+    tier: 2
+    language: "en"
+  - name: "Seeking Alpha Market Currents"
+    url: "https://seekingalpha.com/market_currents.xml"
+    category: "equities"
+    tier: 2
+    language: "en"
+  - name: "TipRanks News via Google"
+    # site: form — allinurl:tipranks.com returns 0 in Google News; site:tipranks.com/news works.
+    url: "https://news.google.com/rss/search?q=when:18h+site:tipranks.com/news&ceid=US:en&hl=en-US&gl=US"
+    category: "equities"
+    tier: 2
+    language: "en"
+
+  # === MACRO & CENTRAL BANKS (tier 1) ===
+  - name: "Fed Press Releases"
+    url: "https://www.federalreserve.gov/feeds/press_all.xml"
+    category: "macro_rates"
+    tier: 1
+    language: "en"
+  - name: "Reuters Economy via Google"
+    url: "https://news.google.com/rss/search?q=when:18h+site:reuters.com/markets/us+(Fed+OR+inflation+OR+rates+OR+jobs)&ceid=US:en&hl=en-US&gl=US"
+    category: "macro_rates"
+    tier: 1
+    language: "en"
+  - name: "ECB via Google"
+    url: "https://news.google.com/rss/search?q=when:24h+(ECB+OR+Lagarde+OR+euro+area+inflation)&ceid=US:en&hl=en-US&gl=US"
+    category: "macro_rates"
+    tier: 2
+    language: "en"
+
+  # === COMMODITIES & ENERGY ===
+  - name: "OilPrice.com"
+    url: "https://oilprice.com/rss/main"
+    category: "commodities_energy"
+    tier: 2
+    language: "en"
+  - name: "Reuters Commodities via Google"
+    url: "https://news.google.com/rss/search?q=when:18h+site:reuters.com+(oil+OR+gold+OR+OPEC+OR+commodities)&ceid=US:en&hl=en-US&gl=US"
+    category: "commodities_energy"
+    tier: 2
+    language: "en"
+
+  # === CRYPTO ===
+  - name: "CoinDesk"
+    url: "https://www.coindesk.com/arc/outboundfeeds/rss/"
+    category: "crypto"
+    tier: 2
+    language: "en"
+  - name: "Cointelegraph"
+    url: "https://cointelegraph.com/rss"
+    category: "crypto"
+    tier: 2
+    language: "en"
+
+  # === GREECE / ATHEX ===
+  - name: "Naftemporiki"
+    url: "https://www.naftemporiki.gr/feed"
+    category: "greece_athex"
+    tier: 2
+    language: "gr"
+  - name: "Capital.gr via Google"
+    url: "https://news.google.com/rss/search?q=when:24h+allinurl:capital.gr&ceid=GR:el&hl=el&gl=GR"
+    category: "greece_athex"
+    tier: 2
+    language: "gr"
+  - name: "Euro2day via Google"
+    url: "https://news.google.com/rss/search?q=when:24h+allinurl:euro2day.gr&ceid=GR:el&hl=el&gl=GR"
+    category: "greece_athex"
+    tier: 2
+    language: "gr"
