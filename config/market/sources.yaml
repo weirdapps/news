@@ -12,11 +12,6 @@ rss_feeds:
     category: "equities"
     tier: 1
     language: "en"
-  - name: "Reuters Markets"
-    url: "https://news.google.com/rss/search?q=when:18h+site:reuters.com/markets&ceid=US:en&hl=en-US&gl=US"
-    category: "equities"
-    tier: 1
-    language: "en"
   - name: "Bloomberg via Google"
     url: "https://news.google.com/rss/search?q=when:18h+allinurl:bloomberg.com&ceid=US:en&hl=en-US&gl=US"
     category: "equities"
@@ -84,11 +79,6 @@ rss_feeds:
   # === COMMODITIES & ENERGY ===
   - name: "OilPrice.com"
     url: "https://oilprice.com/rss/main"
-    category: "commodities_energy"
-    tier: 2
-    language: "en"
-  - name: "Reuters Commodities via Google"
-    url: "https://news.google.com/rss/search?q=when:18h+site:reuters.com+(oil+OR+gold+OR+OPEC+OR+commodities)&ceid=US:en&hl=en-US&gl=US"
     category: "commodities_energy"
     tier: 2
     language: "en"
