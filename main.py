@@ -1019,7 +1019,7 @@ async def run_market_pipeline(run_type: str = "scheduled") -> None:
     recent_for_tickers (holdings) + digest_history(pipeline='market'). No email
     is sent by design; the brief is the consumer.
     """
-    start_time = datetime.now(timezone.utc)
+    start_time = datetime.now(UTC)
     logger = logging.getLogger(__name__)
     logger.info(f"Starting market {run_type} pipeline run")
 
@@ -1099,9 +1099,7 @@ async def run_market_pipeline(run_type: str = "scheduled") -> None:
     all_recent = get_articles_since(conn, digest_since, min_score=0, pipeline="market")
 
     capped_articles = _select_digest_articles(all_recent, config["pipeline"])
-    logger.info(
-        f"Market pool: {len(all_recent)} articles, selected top {len(capped_articles)}"
-    )
+    logger.info(f"Market pool: {len(all_recent)} articles, selected top {len(capped_articles)}")
 
     # SYNTHESIZE
     from news.market_synth import build_market_fallback, synthesize_market
@@ -1157,7 +1155,7 @@ async def run_market_pipeline(run_type: str = "scheduled") -> None:
     insert_digest(conn, digest)
     conn.close()
 
-    duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+    duration = (datetime.now(UTC) - start_time).total_seconds()
     log_run(
         log_path=str(config["run_log_path"]),
         run_type=f"market-{run_type}",
