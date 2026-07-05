@@ -54,3 +54,6 @@ repos:
     hooks:
       - id: markdownlint
         args: [--config, .markdownlint.yaml]
+        # superpowers plans/specs are generated, point-in-time design
+        # artifacts, not maintained prose — exclude from markdown linting
+        exclude: ^docs/superpowers/
