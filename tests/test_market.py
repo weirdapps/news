@@ -1,6 +1,6 @@
 """Tests for the market profile — config validity + market_synth behavior."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 from news.config import VALID_PROFILES, get_categories, get_settings, get_sources
@@ -47,7 +47,7 @@ def test_market_categories_present():
 
 
 def _mk_article(title, source="Reuters", content=("word " * 20), lang="en"):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return SimpleNamespace(
         title=title,
         source=source,
