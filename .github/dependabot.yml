@@ -1,6 +1,8 @@
 version: 2
 updates:
-  - package-ecosystem: "pip"
+  # uv (not pip): the pip ecosystem updates pyproject.toml but leaves uv.lock
+  # stale — the uv ecosystem updates both together (Dependabot uv GA 2025-03).
+  - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "weekly"
