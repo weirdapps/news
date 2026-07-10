@@ -23,7 +23,7 @@ All profiles hit the same pipeline. The `--profile` flag selects the config dir,
 ## Pipeline
 
 ```mermaid
-flowchart LR
+flowchart TD
     A[fetch<br/>RSS + HTML listings] --> B[process<br/>trafilatura, dedup, score]
     B --> C[store<br/>SQLite FTS5<br/>data/news.db]
     C --> D[synthesize<br/>claude CLI subprocess]
