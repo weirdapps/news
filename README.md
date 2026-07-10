@@ -213,7 +213,7 @@ The launcher auto-detects a venv in this order: `$NEWS_VENV_PYTHON`, `./.venv`, 
 
 ```bash
 uv sync                   # install runtime + dev deps (or: pip install -e ".[dev]")
-pytest                    # ~194 test functions, all HTTP + claude CLI mocked
+pytest                    # ~210 test functions, all HTTP + claude CLI mocked
 ruff check .              # lint (runs in CI)
 ruff format --check .     # format check (runs in CI)
 pre-commit install        # optional: ruff + mypy + gitleaks on every commit
