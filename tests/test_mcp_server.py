@@ -76,3 +76,16 @@ class TestMcpTools:
             result = news_stats()
             assert result["total_articles"] >= 1
             assert result["total_digests"] >= 1
+
+
+class TestMcpErrors:
+    def test_unopenable_db_raises_unavailable(self, tmp_path):
+        """A DB that cannot be opened surfaces as a canonical unavailable error."""
+        from news import mcp_result
+        from news.mcp_server import news_stats
+
+        # Point _DB_PATH at a directory, which sqlite cannot open as a DB file.
+        with patch("news.mcp_server._DB_PATH", str(tmp_path)):
+            with pytest.raises(mcp_result.Unavailable) as exc_info:
+                news_stats()
+        assert exc_info.value.code == "unavailable"

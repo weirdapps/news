@@ -6,10 +6,12 @@ for querying from Claude Code sessions.
 Run: python -m news.mcp_server
 """
 
+import sqlite3
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
+from news import mcp_result
 from news.storage import get_connection, init_db
 
 # Default database path — same as pipeline uses
@@ -29,12 +31,19 @@ mcp = FastMCP(
 
 def _get_conn():
     """Get a database connection with row factory."""
-    conn = get_connection(_DB_PATH)
-    init_db(conn)
-    return conn
+    try:
+        conn = get_connection(_DB_PATH)
+        init_db(conn)
+        return conn
+    except sqlite3.Error as exc:
+        raise mcp_result.Unavailable(
+            f"news database unavailable at {_DB_PATH}: {exc}",
+            remediation="Run the news pipeline to create data/news.db",
+        ) from exc
 
 
 @mcp.tool()
+@mcp_result.tool
 def search_news(
     query: str,
     pipeline: str | None = None,
@@ -71,6 +80,7 @@ def search_news(
 
 
 @mcp.tool()
+@mcp_result.tool
 def digest_history(
     pipeline: str = "digest",
     days: int = 7,
@@ -96,6 +106,7 @@ def digest_history(
 
 
 @mcp.tool()
+@mcp_result.tool
 def news_stats() -> dict:
     """Get news database statistics: article counts, category distribution, source distribution, date range."""
     from news.query import get_news_stats
@@ -108,6 +119,7 @@ def news_stats() -> dict:
 
 
 @mcp.tool()
+@mcp_result.tool
 def recent_for_tickers(
     tickers: list[str],
     hours: int = 24,
