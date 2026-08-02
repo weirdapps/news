@@ -15,7 +15,7 @@ from news.auth import _AUTO_LOGIN_SCRIPT, check_gcloud_auth
 def test_auto_login_script_path_is_current():
     path = str(_AUTO_LOGIN_SCRIPT)
     assert "trading-marketplace" not in path, "stale pre-rename repo path"
-    assert path.endswith("plessas-trading/scripts/gcloud-auto-login.sh")
+    assert path.endswith("claude-config/scripts/local-bin/gcloud-auto-login.sh")
 
 
 @patch("news.auth._refresh_auth")
