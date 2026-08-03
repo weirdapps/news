@@ -193,7 +193,7 @@ def invoke_claude(
         """Map the opus/sonnet tier alias in bare_args to (exact id, region).
 
         The bare "opus" alias resolves to an unprovisioned eu quota bucket (429); the
-        heavy-tier id claude-opus-4-8[1m] is the provisioned model. Region must track
+        heavy-tier id claude-opus-5[1m] is the provisioned model. Region must track
         the model: Opus -> eu, Sonnet -> europe-west1 (central ~/.config/nbg-vertex/env).
         """
         if "--model" in bare_args:
@@ -202,7 +202,7 @@ def invoke_claude(
                 tier = bare_args[i].lower()
                 if "opus" in tier:
                     return (
-                        os.environ.get("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]"),
+                        os.environ.get("VERTEX_MODEL_HEAVY", "claude-opus-5[1m]"),
                         os.environ.get("VERTEX_REGION_HEAVY", "eu"),
                     )
                 if "sonnet" in tier:
@@ -275,12 +275,12 @@ def invoke_claude(
     if env is None:
         return None
 
-    # Auto-downgrade on a (often spurious) policy refusal OR an API error such as a
-    # 429: retry ONCE on the Opus 4.6 / europe-west1 fallback tier (model AND region
-    # together — 4.6 lives in europe-west1, so the region must flip with it).
+    # Retry on a (often spurious) policy refusal OR an API error such as a 429: one more
+    # attempt on the fallback tier (model AND region together — region is a function of
+    # model version, so the two must always flip together).
     if env.get("stop_reason") == "refusal" or env.get("is_error"):
-        fb_model = os.environ.get("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")
-        fb_region = os.environ.get("VERTEX_REGION_FALLBACK", "europe-west1")
+        fb_model = os.environ.get("VERTEX_MODEL_FALLBACK", "claude-opus-5[1m]")
+        fb_region = os.environ.get("VERTEX_REGION_FALLBACK", "eu")
         why = (
             "policy refusal"
             if env.get("stop_reason") == "refusal"

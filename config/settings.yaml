@@ -61,7 +61,7 @@ synthesis:
 
   # Arguments for Claude synthesis. "opus" is a tier selector, not the literal
   # model: invoke_claude() resolves it to the exact provisioned Vertex id
-  # (VERTEX_MODEL_HEAVY=claude-opus-4-8[1m]) and region (eu) from the central env
+  # (VERTEX_MODEL_HEAVY=claude-opus-5[1m]) and region (eu) from the central env
   # ~/.config/nbg-vertex/env. The bare "opus" alias hits an unprovisioned eu quota
   # bucket (429). The tagger stays on sonnet/europe-west1 — decoupled per-subprocess.
   claude_args:
