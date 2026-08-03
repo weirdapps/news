@@ -9,7 +9,7 @@ Run: python -m news.mcp_server
 import sqlite3
 from pathlib import Path
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 from news import mcp_result
 from news.storage import get_connection, init_db
@@ -17,7 +17,10 @@ from news.storage import get_connection, init_db
 # Default database path — same as pipeline uses
 _DB_PATH = str(Path(__file__).parent.parent / "data" / "news.db")
 
-mcp = FastMCP(
+# mcp 2.x renamed FastMCP -> MCPServer and moved mcp.server.fastmcp ->
+# mcp.server.mcpserver. Keep `instructions` a keyword: v2 inserted `title` and
+# `description` as the 2nd/3rd positional parameters.
+mcp = MCPServer(
     "news-reader",
     instructions=(
         "News intelligence platform — search articles from digest and brand monitor "

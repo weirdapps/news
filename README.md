@@ -213,9 +213,9 @@ The launcher auto-detects a venv in this order: `$NEWS_VENV_PYTHON`, `./.venv`, 
 
 ```bash
 uv sync                   # install runtime + dev deps (or: pip install -e ".[dev]")
-pytest                    # ~210 test functions, all HTTP + claude CLI mocked
-ruff check .              # lint (runs in CI)
-ruff format --check .     # format check (runs in CI)
+pytest                    # ~223 test functions, all HTTP + claude CLI mocked
+ruff check .              # lint (runs in CI, pinned to ruff 0.16.1)
+ruff format --check .     # format check (runs in CI, pinned to ruff 0.16.1)
 pre-commit install        # optional: ruff + mypy + gitleaks on every commit
 ```
 
@@ -240,7 +240,7 @@ The `pyproject.toml` `[[tool.mypy.overrides]]` block that excludes `scripts.*` f
 
 ## Tech stack
 
-Python 3.12+, feedparser, httpx, trafilatura, readability-lxml, lxml, Jinja2, PyYAML, MarkupSafe, `mcp[cli]`, SQLite (FTS5), the local `claude` CLI, and `outlook-cli` for delivery. Full pin set in `pyproject.toml` and `uv.lock`.
+Python 3.12+, feedparser, httpx, trafilatura, readability-lxml, lxml, Jinja2, PyYAML, MarkupSafe, `mcp[cli]>=2` (the MCP server uses the v2 `MCPServer` API; v1 will not import), SQLite (FTS5), the local `claude` CLI, and `outlook-cli` for delivery. Full pin set in `pyproject.toml` and `uv.lock`.
 
 ## License
 
