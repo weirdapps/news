@@ -232,7 +232,7 @@ def test_invoke_claude_opus_falls_back_to_correct_default_when_env_absent(mock_r
 
     cmd = mock_run.call_args[0][0]
     run_env = mock_run.call_args[1]["env"]
-    assert "claude-opus-4-8[1m]" in cmd
+    assert "claude-opus-5[1m]" in cmd
     assert "opus" not in cmd
     assert run_env["CLOUD_ML_REGION"] == "eu"
 
