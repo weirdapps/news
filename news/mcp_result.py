@@ -1,10 +1,10 @@
-"""Canonical error model for FastMCP MCP tools (trading-data / news-reader).
+"""Canonical error model for MCPServer MCP tools (trading-data / news-reader).
 
 Every tool failure surfaces as a structured, machine-readable error with the
 same shape across the MCP fleet, so callers never hit the silent "tool returned
 success but never ran" / empty-vs-failed ambiguity.
 
-Wire behaviour: a decorated tool raises on failure. FastMCP converts the
+Wire behaviour: a decorated tool raises on failure. MCPServer converts the
 exception into a CallToolResult with isError=True whose text is
 
     "Error executing tool <name>: <str(exc)>"
@@ -130,7 +130,7 @@ def _coerce(exc: Exception) -> MCPError:
 
 
 def tool(fn: Callable[..., Any]) -> Callable[..., Any]:
-    """Wrap a FastMCP tool so every failure emits the canonical error shape.
+    """Wrap an MCPServer tool so every failure emits the canonical error shape.
 
     Apply directly under ``@mcp.tool()``::
 
@@ -141,9 +141,9 @@ def tool(fn: Callable[..., Any]) -> Callable[..., Any]:
 
     An ``MCPError`` raised inside the tool propagates unchanged; any other
     exception is coerced (``FileNotFoundError`` -> ``NotFound``, everything else
-    -> ``Internal``) so nothing ever leaves a tool unstructured. FastMCP then
+    -> ``Internal``) so nothing ever leaves a tool unstructured. MCPServer then
     turns the raised error into an ``isError`` response (see module docstring).
-    ``functools.wraps`` preserves name/docstring/signature so FastMCP's schema
+    ``functools.wraps`` preserves name/docstring/signature so MCPServer's schema
     and tool registration are unchanged.
     """
 

@@ -12,8 +12,11 @@ jobs:
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.12'
-      # Safe: ruff is a trusted package from the Python Packaging Authority
-      - run: pip install ruff
+      # Safe: ruff is a trusted package from the Python Packaging Authority.
+      # Pinned so a ruff release cannot turn master red on its own: 0.16.0 began
+      # formatting Markdown code blocks by default and did exactly that.
+      # Keep in sync with the ruff rev in .pre-commit-config.yaml.
+      - run: pip install ruff==0.16.1
       - run: ruff check .
       - run: ruff format --check .
   test:

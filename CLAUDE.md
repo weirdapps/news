@@ -16,7 +16,7 @@ Personal news intelligence platform with three profiles sharing a five-stage pip
 python3 main.py --adhoc                                      # digest (forced run)
 python3 main.py --profile monitor --adhoc                    # monitor
 python3 main.py --profile topic --query 'ECB rates' --print  # topic brief to stdout
-pytest                                                        # 173 tests
+pytest                                                        # 223 tests
 bash run_mcp.sh                                              # start MCP server
 ```
 
@@ -42,7 +42,7 @@ LLM calls go through the local `claude` CLI subprocess (Vertex AI, NBG-billed) â
 
 ## Tech Stack
 
-Python 3.12+, feedparser, httpx, trafilatura, Jinja2, SQLite (FTS5), mcp[cli], claude CLI.
+Python 3.12+, feedparser, httpx, trafilatura, Jinja2, SQLite (FTS5), mcp[cli]>=2, claude CLI.
 
 ## Configuration
 
@@ -67,8 +67,8 @@ config/topic/               # topic profile
 All tests use in-memory SQLite and mock all HTTP + `claude` subprocess calls â€” no real LLM calls.
 
 ```bash
-pytest -v          # run all 173 tests
-ruff check .       # lint (also runs in CI)
+pytest -v          # run all 223 tests
+ruff check .       # lint (also runs in CI, pinned to ruff 0.16.1)
 ruff format .      # format
 ```
 
