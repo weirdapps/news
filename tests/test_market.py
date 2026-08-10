@@ -2,6 +2,7 @@
 
 from datetime import UTC, datetime
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 from news.config import VALID_PROFILES, get_categories, get_settings, get_sources
 
@@ -86,3 +87,92 @@ def test_synthesize_market_falls_back_on_no_output(monkeypatch):
     result, ok = ms.synthesize_market([_mk_article("x")], max_retries=1)
     assert ok is False
     assert isinstance(result, str)  # fallback text, not a dict
+
+
+# --- FIX 1: market must stop pretending to send -----------------------------------
+
+
+def test_log_run_with_none_sent_ok_writes_no_email(tmp_path):
+    """When sent_ok is None (store-only, no send attempted), the log must not say
+    'send FAILED' — that implies a failed attempt, not an intentional skip.
+
+    Mutation-resistance: removing the None branch and treating None as False would
+    write 'send FAILED', failing the assertion on the left side of the 'not in' check.
+    """
+    from main import log_run
+
+    log_path = tmp_path / "runs.log"
+    log_run(str(log_path), "market-scheduled", 50, 30, True, None, 5.0)
+    content = log_path.read_text()
+    assert "send FAILED" not in content
+    assert "no email" in content
+
+
+def test_log_run_with_false_sent_ok_still_writes_send_failed(tmp_path):
+    """Existing behaviour for other pipelines is unchanged: False => 'send FAILED'."""
+    from main import log_run
+
+    log_path = tmp_path / "runs.log"
+    log_run(str(log_path), "scheduled", 10, 5, True, False, 2.0)
+    assert "send FAILED" in log_path.read_text()
+
+
+def test_market_pipeline_does_not_log_send_failed_when_recipient_not_configured(
+    tmp_path, monkeypatch
+):
+    """When NEWS_MARKET_RECIPIENT is absent, the run log must not say 'send FAILED'.
+
+    The market pipeline is store-only.  Before this fix every run logged 'send FAILED'
+    because sent_ok was hardcoded False, even though no send was ever attempted.
+
+    Mutation-resistance: hardcoding sent_ok=False (reverting the fix) makes log_run
+    write 'send FAILED', which fails the 'not in' assertion.
+    """
+    import asyncio
+
+    import main as m
+
+    monkeypatch.delenv("NEWS_MARKET_RECIPIENT", raising=False)
+    monkeypatch.setattr(
+        m,
+        "get_settings",
+        lambda profile: {
+            "pipeline": {
+                "max_digest_articles": 5,
+                "max_articles_per_source": 5,
+                "min_article_length_words": 5,
+                "max_article_age_hours": 48,
+                "digest_window_hours": 48,
+            },
+            "email": {"recipient": "user@example.com"},
+            "storage": {
+                "db_path": str(tmp_path / "test.db"),
+                "run_log_path": str(tmp_path / "run.log"),
+                "archive_dir": str(tmp_path / "archive"),
+                "archive_after_days": 30,
+            },
+            "schedule": {"timezone": "Europe/Athens", "runs": ["09:00"]},
+            "synthesis": {
+                "timeout": 10,
+                "max_retries": 1,
+                "claude_command": "claude",
+                "claude_args": [],
+            },
+            "scoring": {},
+        },
+    )
+    monkeypatch.setattr(m, "get_sources", lambda profile: {"rss_feeds": []})
+    monkeypatch.setattr(m, "get_categories", lambda profile: {"categories": {}})
+    monkeypatch.setattr(m, "fetch_all_sources", AsyncMock(return_value=([], [])))
+    monkeypatch.setattr(
+        m,
+        "process_articles",
+        lambda **kw: ([], {"output_count": 0, "duplicates": 0, "quality_dropped": 0}),
+    )
+    monkeypatch.setattr(m, "_preflight_auth_ok", lambda _: False)
+    monkeypatch.setattr(m, "install_llm_deadline", lambda *a, **k: None)
+
+    asyncio.run(m.run_market_pipeline(run_type="scheduled"))
+
+    log_content = (tmp_path / "run.log").read_text()
+    assert "send FAILED" not in log_content

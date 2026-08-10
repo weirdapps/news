@@ -370,7 +370,7 @@ def log_run(
     article_count: int,
     new_count: int,
     synthesis_ok: bool,
-    sent_ok: bool,
+    sent_ok: bool | None,
     duration_seconds: float,
 ) -> None:
     """Append run summary to log file.
@@ -381,7 +381,7 @@ def log_run(
         article_count: Total articles processed
         new_count: New articles (not duplicates)
         synthesis_ok: Whether synthesis succeeded
-        sent_ok: Whether email sent successfully
+        sent_ok: True=sent OK, False=send FAILED, None=no email (store-only run)
         duration_seconds: Total execution time
     """
     log_file = Path(log_path).expanduser()
@@ -391,7 +391,12 @@ def log_run(
     timestamp = now.isoformat()
 
     synthesis_status = "synthesis OK" if synthesis_ok else "synthesis FAILED"
-    email_status = "sent OK" if sent_ok else "send FAILED"
+    if sent_ok is None:
+        email_status = "no email"
+    elif sent_ok:
+        email_status = "sent OK"
+    else:
+        email_status = "send FAILED"
 
     line = (
         f"{timestamp} | {run_type} | "
@@ -1337,13 +1342,20 @@ async def run_market_pipeline(run_type: str = "scheduled") -> None:
     conn.close()
 
     duration = (datetime.now(UTC) - start_time).total_seconds()
+    # Market is store-only by default. NEWS_MARKET_RECIPIENT opts in to a standalone
+    # email. "Not configured" is detected by the env var being absent rather than by
+    # comparing against the YAML placeholder string ("user@example.com"), which would
+    # break if someone happened to set the var to the placeholder value.
+    _market_recipient = os.environ.get("NEWS_MARKET_RECIPIENT")
+    # sent_ok=None signals "no email" to log_run (store-only run, no attempt made).
+    # sent_ok=False would log "send FAILED", implying an attempt was made and failed.
     log_run(
         log_path=str(config["run_log_path"]),
         run_type=f"market-{run_type}",
         article_count=len(processed_articles),
         new_count=process_stats["output_count"],
         synthesis_ok=synthesis_ok,
-        sent_ok=False,
+        sent_ok=None if not _market_recipient else False,
         duration_seconds=duration,
     )
 
