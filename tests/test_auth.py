@@ -25,9 +25,14 @@ def test_check_gcloud_auth_also_probes_adc(mock_run, mock_refresh):
 
 
 @patch("news.auth.refresh_auth")
+@patch("news.auth.running_on_linux", return_value=False)
 @patch("news.auth.subprocess.run")
-def test_check_gcloud_auth_refreshes_when_adc_stale(mock_run, mock_refresh):
-    """A valid user token but a stale ADC must still trigger a refresh."""
+def test_check_gcloud_auth_refreshes_when_adc_stale(mock_run, mock_linux, mock_refresh):
+    """A valid user token but a stale ADC must still trigger a refresh.
+
+    Pins the macOS path: on Linux the same credential failure hits the fast-fail
+    branch and returns False without calling refresh_auth.
+    """
 
     def _side(cmd, **_kwargs):
         is_adc = "application-default" in cmd
