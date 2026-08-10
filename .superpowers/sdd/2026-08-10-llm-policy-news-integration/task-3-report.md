@@ -267,3 +267,92 @@ python -m pytest -q
 ```
 
 Only the pre-existing `tests/test_fetcher.py` trio remains. No fourth failure.
+
+---
+
+## Fix round 2
+
+### 1. Reachability tests now assert exact call counts
+
+**Problem**: `assert mock_run.call_count <= MAX_ATTEMPTS` is satisfied by any count from 1
+to 4. Reverting `_run_once` so all four failure paths return `(None, None, None)` collapses
+every outcome to EMPTY (cap=1 → 2 calls) — all 241 tests still passed.
+
+**Fix**: Changed `<= MAX_ATTEMPTS` to `== 3` in `test_repeated_timeouts_stop_at_the_global_cap`.
+Added three end-to-end reachability tests for the three remaining paths:
+
+| Test | Outcome | Cap | Expected calls | Discriminator |
+|---|---|---|---|---|
+| `test_repeated_timeouts_stop_at_the_global_cap` | TIMEOUT | 2 | 3 (exact `== 3`) | call count drops to 2 on regression |
+| `test_api_error_path_uses_its_own_cap` | API_ERROR | 2 | 3 (exact `== 3`) | call count drops to 2 on regression |
+| `test_empty_stdout_path_uses_its_own_cap` | EMPTY | 1 | 2 + caplog "empty" | caplog discriminates from UNPARSEABLE |
+| `test_non_json_stdout_path_uses_its_own_cap` | UNPARSEABLE | 1 | 2 + caplog "unparseable" | regression swaps log to "empty", failing assertion |
+
+`MAX_ATTEMPTS` removed from the import since it is now unused.
+
+### 2. Content-level retry restored via `validate` callback
+
+**Problem**: The old outer per-profile loops retried `invoke_claude` when
+`parse_synthesis_output` returned `{"error": ...}`. Deleting those loops in Task 3
+dropped that content-level retry: a chatty preamble wrapping unparseable synthesis JSON
+classifies as `Outcome.OK` (valid envelope), returns immediately, and the profile falls
+back to the fallback digest after one billed call. This is the failure class behind the
+2026-08-01 incident.
+
+**Fix**: Added `validate: Callable[[str], bool] | None = None` to `invoke_claude`. After
+`_classify` returns `Outcome.OK`, if `validate(result_text)` returns `False`, the outcome
+is overridden to `Outcome.UNPARSEABLE` before `attempt.bump`. `UNPARSEABLE` carries cap=1,
+so the policy gives one retry — the same budget the old loop gave.
+
+All five profiles pass `validate=lambda text: "error" not in parse_synthesis_output(text)`,
+which is byte-identical across all five (the existing `if "error" not in parsed` check).
+
+New test `test_content_validate_failure_triggers_unparseable_retry`: first call returns a
+valid envelope whose result text fails the validator; second call returns a passing result.
+Asserts `call_count == 2` and `result == good_result`.
+
+### 3. Four missing behaviour-change entries
+
+Added to the behaviour-change list (below the fix round 1 table):
+
+**Backoff sleeps are new.** The old `invoke_claude` never slept; retries were immediate.
+A persistent 429 now sleeps 60 + 120 + 240 = 420 s inside a single call. Digest synthesis
+already runs 10-15 minutes and uses `TimeoutStartSec=1200`; a rate-limited run can now be
+SIGKILLed mid-flight rather than degrading gracefully to the fallback digest.
+
+**Content-level retry lost and restored.** The five outer loops retried on parse failure;
+Task 3 dropped that path; fix round 2 restored it via the `validate` callback.
+
+**`invoke_claude` gained `env: dict | None = None`** (added in Task 3 for `resolve_deadline`;
+present in prose but omitted from the behaviour list).
+
+**Failure log lost tier context.** The old code logged model and region on every auth error,
+downgrade, and give-up. The new code emits a generic `giving up: %s (%s)` at `:362`, and
+the five profiles lost their `"<Profile> synthesis attempt N/M"` progress lines.
+
+**Per-profile billed totals moved in both directions:**
+timeout 2→3, other-exception 2→3, refusal 4→3, 429 4→4, auth 4→2.
+(Old totals: outer loop max\_retries=2 × inner fallback retry where applicable.)
+
+### Gate proof
+
+Reverted `_run_once`'s four failure exits to `(None, None, None)` (Task-2 state):
+
+```text
+python -m pytest -q
+6 failed, 238 passed, 4 warnings
+# New failures: test_repeated_timeouts_stop_at_the_global_cap (count 2 != 3),
+#               test_api_error_path_uses_its_own_cap (count 2 != 3),
+#               test_non_json_stdout_path_uses_its_own_cap ("empty" not "unparseable")
+```
+
+Restored with `git checkout -- news/synthesizer.py`, confirmed `git status` clean.
+
+### Full test run after fix round 2
+
+```text
+python -m pytest -q
+3 failed, 241 passed, 4 warnings in 3.73s
+```
+
+Only the pre-existing `tests/test_fetcher.py` trio remains.

@@ -5,7 +5,7 @@ import subprocess
 from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
-from news.llm_policy import MAX_ATTEMPTS, Outcome, ReauthResult
+from news.llm_policy import Outcome, ReauthResult
 from news.models import Article
 from news.synthesizer import (
     _classify,
@@ -488,20 +488,20 @@ def test_a_good_first_call_costs_exactly_one_invocation(mock_run, mock_sleep):
 @patch("news.synthesizer.time.sleep")
 @patch("news.synthesizer.subprocess.run")
 def test_repeated_timeouts_stop_at_the_global_cap(mock_run, mock_sleep):
-    """TimeoutExpired must use Outcome.TIMEOUT's own cap, not EMPTY's tighter one.
+    """TimeoutExpired must use Outcome.TIMEOUT's own cap (2), not EMPTY's tighter cap (1).
 
-    Previously five nested ``for attempt in range(max_retries)`` loops could reset
-    the count, giving up to max_retries * policy_cap invocations. Now the policy
-    cap is the only gate, so the count is bounded by MAX_ATTEMPTS.
+    Before Task 3, _run_once returned bare None for all failure paths, so
+    _classify(None, None, None) always returned EMPTY (cap=1 → 2 calls). With the
+    triple return, TimeoutExpired carries its exception to _classify → TIMEOUT
+    (cap=2 → 3 calls). The exact assertion == 3 proves TIMEOUT uses its own row cap:
+    if the regression is reintroduced (all paths collapse to None), _classify returns
+    EMPTY and call_count drops to 2, failing this test.
     """
     mock_run.side_effect = subprocess.TimeoutExpired("claude", 300)
     out = invoke_claude("prompt", timeout=300)
     assert out is None
-    # TIMEOUT cap = 2 → 3 subprocess calls (seen=1 retry, seen=2 retry, seen=3 GIVE_UP).
-    # The old outer-loop-of-2 would have given 2 * (primary + fallback) = up to 4 total.
-    # The new policy cap of MAX_ATTEMPTS = 4 is looser per-se; the per-outcome row cap
-    # is the binding constraint here (cap=2 → 3 calls, well below 4).
-    assert mock_run.call_count <= MAX_ATTEMPTS
+    # TIMEOUT cap=2 → 3 subprocess calls (initial + 2 retries, then GIVE_UP).
+    assert mock_run.call_count == 3
 
 
 @patch("news.synthesizer.reauth")
@@ -527,3 +527,88 @@ def test_a_second_auth_error_does_not_reauth_again(mock_run, mock_sleep, mock_re
     mock_run.return_value = Mock(stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0)
     assert invoke_claude("prompt", timeout=300) is None
     assert mock_reauth.call_count == 1, "the one-shot re-auth budget must not reset"
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_api_error_path_uses_its_own_cap(mock_run):
+    """OSError maps to Outcome.API_ERROR (cap=2) → 3 calls, not EMPTY's cap=1 → 2.
+
+    Before Task 3, _run_once returning bare None for all failure paths meant
+    _classify(None, None, None) = EMPTY for other-exception too, giving only 2 calls.
+    The triple return carries the OSError to _classify → API_ERROR (cap=2 → 3 calls).
+    Reverting _run_once to return (None, None, None) drops call_count to 2, failing
+    the == 3 assertion.
+    """
+    mock_run.side_effect = OSError("claude not found")
+    out = invoke_claude("prompt", timeout=300)
+    assert out is None
+    # API_ERROR cap=2 → 3 subprocess calls (initial + 2 retries, then GIVE_UP).
+    assert mock_run.call_count == 3
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_empty_stdout_path_uses_its_own_cap(mock_run, caplog):
+    """Empty stdout maps to Outcome.EMPTY (cap=1) → 2 calls.
+
+    The caplog assertion on 'empty' discriminates this path from UNPARSEABLE, which
+    shares the same call count (cap=1 → 2) but emits 'unparseable' in the give-up log.
+    """
+    import logging
+
+    mock_run.return_value = Mock(stdout="", stderr="", returncode=0)
+    with caplog.at_level(logging.ERROR, logger="news.synthesizer"):
+        out = invoke_claude("prompt", timeout=300)
+    assert out is None
+    # EMPTY cap=1 → 2 subprocess calls (initial + 1 retry, then GIVE_UP).
+    assert mock_run.call_count == 2
+    assert any("empty" in msg for msg in caplog.messages)
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_non_json_stdout_path_uses_its_own_cap(mock_run, caplog):
+    """Non-JSON stdout maps to Outcome.UNPARSEABLE (cap=1) → 2 calls with 'unparseable' log.
+
+    Before Task 3, non-JSON stdout collapsed to bare None → EMPTY → 2 calls but
+    with 'empty' in the give-up log. The triple return carries raw to _classify →
+    UNPARSEABLE. The caplog assertion on 'unparseable' distinguishes the path:
+    reverting _run_once to (None, None, None) drops the outcome to EMPTY and emits
+    'empty' instead, failing this assertion.
+    """
+    import logging
+
+    mock_run.return_value = Mock(stdout="this is not json", returncode=0)
+    with caplog.at_level(logging.ERROR, logger="news.synthesizer"):
+        out = invoke_claude("prompt", timeout=300)
+    assert out is None
+    # UNPARSEABLE cap=1 → 2 subprocess calls (initial + 1 retry, then GIVE_UP).
+    assert mock_run.call_count == 2
+    assert any("unparseable" in msg for msg in caplog.messages)
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_content_validate_failure_triggers_unparseable_retry(mock_run):
+    """A result that passes _classify but fails the caller's validate callback is
+    reclassified as UNPARSEABLE, giving it a retry under UNPARSEABLE's cap (1).
+
+    This restores the content-level retry the old outer per-profile loops provided:
+    when parse_synthesis_output returned a dict with 'error', the loop would continue
+    and bill a second model call. With the loops gone, only the validate callback
+    path provides that retry. Without it, a chatty preamble wrapping unparseable
+    synthesis JSON returns immediately from invoke_claude, sending the caller straight
+    to the fallback digest — the exact failure class behind the 2026-08-01 incident.
+    """
+    bad_result = '{"error": "could not parse synthesis"}'
+    good_result = '{"executive_brief": [], "sections": []}'
+    mock_run.side_effect = [
+        Mock(stdout=_envelope(result=bad_result), returncode=0),
+        Mock(stdout=_envelope(result=good_result), returncode=0),
+    ]
+
+    result = invoke_claude(
+        "prompt",
+        timeout=300,
+        validate=lambda text: '"error"' not in text,
+    )
+
+    assert mock_run.call_count == 2
+    assert result == good_result

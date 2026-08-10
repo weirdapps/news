@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import time
+from collections.abc import Callable
 from typing import Any
 
 from news.llm_policy import (
@@ -222,6 +223,7 @@ def invoke_claude(
     claude_command: str = "claude",
     claude_args: list[str] | None = None,
     env: dict | None = None,
+    validate: Callable[[str], bool] | None = None,
 ) -> str | None:
     """Invoke the model under the shared LLM policy. Returns the text, or None.
 
@@ -236,6 +238,12 @@ def invoke_claude(
         claude_command: Path to claude command
         claude_args: Additional arguments to pass to claude
         env: Environment mapping for deadline resolution (defaults to os.environ)
+        validate: Optional content-level check. Called with the result text when
+            _classify returns OK. If it returns False, the result is reclassified as
+            UNPARSEABLE so the policy retries under that row's cap instead of returning
+            text the caller cannot use. Restores the content-level retry that the old
+            outer per-profile loops provided when parse_synthesis_output returned
+            a dict containing an "error" key.
     """
     if claude_args is None:
         claude_args = []
@@ -331,6 +339,18 @@ def invoke_claude(
     while True:
         envelope, raw, exc = _run_once()
         outcome = _classify(envelope, raw, exc)
+
+        # Content-level validation: the transport succeeded and the envelope parsed,
+        # but the caller's domain schema rejects the result text. Reclassify as
+        # UNPARSEABLE so the policy uses that row's cap instead of returning a value
+        # the caller cannot use. This restores the one content-level retry the old
+        # outer per-profile loops provided when parse_synthesis_output returned
+        # {"error": ...}.
+        if outcome is Outcome.OK and validate is not None:
+            result_text = str(envelope.get("result")) if envelope is not None else None
+            if result_text is not None and not validate(result_text):
+                outcome = Outcome.UNPARSEABLE
+
         attempt = attempt.bump(outcome)
         decision = decide(
             outcome, attempt, now(), deadline, float(timeout), is_linux=running_on_linux()
@@ -519,6 +539,7 @@ def synthesize(
         timeout=timeout,
         claude_command=claude_command,
         claude_args=claude_args,
+        validate=lambda text: "error" not in parse_synthesis_output(text),
     )
 
     if raw_output is None:

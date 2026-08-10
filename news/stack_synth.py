@@ -191,6 +191,7 @@ def synthesize_stack(
         timeout=timeout,
         claude_command=claude_command,
         claude_args=claude_args,
+        validate=lambda text: "error" not in parse_synthesis_output(text),
     )
 
     if raw_output is None:
