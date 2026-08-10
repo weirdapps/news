@@ -20,7 +20,8 @@ import time as real_time
 
 import pytest
 
-from main import _llm_budget_seconds, install_llm_deadline
+from main import _llm_budget_seconds, _may_wait_for_token_push, install_llm_deadline
+from news.llm_policy import PUSH_WAIT_SECONDS
 from news.synthesizer import invoke_claude
 
 # Production values, restated here so a change to either side of the comparison is
@@ -224,3 +225,81 @@ def test_the_real_clock_is_what_the_deadline_is_measured_against():
     deadline = install_llm_deadline("monitor")
     assert deadline is not None
     assert abs(deadline - (real_time.time() + _TEN_MINUTE_BUDGET)) < 5
+
+
+# --- F6: who may wait for the Mac's token push, and why ---------------------------
+
+
+@pytest.mark.parametrize(
+    ("profile", "permitted"),
+    [("digest", True), ("monitor", False), ("market", False), ("stack", False)],
+)
+def test_only_a_unit_whose_budget_affords_the_wait_may_take_it(profile, permitted):
+    """Derived from the budget, never from the profile name.
+
+    On today's numbers only news-digest passes — 2010s of budget against the
+    1020 + 300 the wait needs — and the three 600s units at 210s never do. Change a
+    unit's TimeoutStartSec and this follows automatically, which a hardcoded profile
+    list would not.
+    """
+    t0 = 1_700_000_000.0
+    install_llm_deadline(profile, now=t0)
+
+    assert _may_wait_for_token_push(_CALL_TIMEOUT, now=t0) is permitted
+
+
+def test_the_wait_permission_flips_exactly_at_the_budget_boundary(monkeypatch):
+    """Same arithmetic decide() uses, so pre-flight and reactive path cannot disagree.
+
+    Boundary pinned in both directions: an off-by-one here either strands the digest
+    or SIGKILLs a unit mid-wait.
+    """
+    t0 = 1_700_000_000.0
+    need = PUSH_WAIT_SECONDS + _CALL_TIMEOUT
+
+    monkeypatch.setenv("PTS_LLM_DEADLINE", repr(t0 + need))
+    assert _may_wait_for_token_push(_CALL_TIMEOUT, now=t0) is True
+
+    monkeypatch.setenv("PTS_LLM_DEADLINE", repr(t0 + need - 1))
+    assert _may_wait_for_token_push(_CALL_TIMEOUT, now=t0) is False
+
+
+def test_the_digest_stops_permitting_the_wait_once_the_run_has_spent_its_budget():
+    """The permission is evaluated against the clock, not granted once at startup.
+
+    Fetching and tagging run before the pre-flight, so a slow fetch can consume the
+    room the wait needed. 2010 - (1020 + 300) = 690s of prior work is the limit.
+    """
+    t0 = 1_700_000_000.0
+    install_llm_deadline("digest", now=t0)
+
+    assert _may_wait_for_token_push(_CALL_TIMEOUT, now=t0 + 690) is True
+    assert _may_wait_for_token_push(_CALL_TIMEOUT, now=t0 + 691) is False
+
+
+def test_a_full_push_wait_still_leaves_the_digest_room_to_synthesise_and_to_alert():
+    """The owner's question: does the wait solve the missed-email problem or move it?
+
+    Walked at the worst instant the wait can be granted, so every later grant has
+    strictly more room. It solves it — the reserve that makes the answer yes is the
+    same max_call + grace F1 already holds back from the deadline.
+    """
+    t0 = 1_700_000_000.0
+    sigterm = t0 + 2400  # news-digest TimeoutStartSec
+    deadline = install_llm_deadline("digest", now=t0)
+    assert deadline == t0 + _DIGEST_BUDGET
+
+    latest_grant = t0 + 690
+    assert _may_wait_for_token_push(_CALL_TIMEOUT, now=latest_grant) is True
+    after_wait = latest_grant + PUSH_WAIT_SECONDS
+
+    # Branch 1 — the wait FAILS. Pre-flight returns False, synthesis is skipped, and
+    # the run goes straight to the alert email with 690s to spare.
+    assert sigterm - after_wait == 690
+
+    # Branch 2 — the wait SUCCEEDS. One worst-case synthesis call still fits inside
+    # the deadline exactly, and the deadline then refuses a retry.
+    assert after_wait + _CALL_TIMEOUT == deadline
+    # Whatever happens next, render + send_email own the whole F1 reserve: one
+    # max_call plus the systemd stop grace.
+    assert sigterm - deadline == _CALL_TIMEOUT + _GRACE == 390

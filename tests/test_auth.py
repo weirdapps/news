@@ -101,3 +101,88 @@ def test_check_gcloud_auth_macos_attempts_refresh_when_expired(mock_run, mock_li
 
     assert result is True
     mock_refresh.assert_called_once()
+
+
+# --- F6: the fast-fail is budget-derived, not unconditional ----------------------
+#
+# The Linux fast-fail was right for the three 600s units and wrong for news-digest.
+# At 2400s the digest is squarely in the group spec §6 says qualifies for a token-push
+# wait, and its next slot is four hours away, so a RAPT lapse at 08:55 used to cost the
+# whole morning. The permission is derived from the run's remaining budget — the same
+# test decide() applies before WAIT_FOR_PUSH — never from the profile's name.
+
+
+@patch("news.auth.shared_reauth")
+@patch("news.auth.running_on_linux", return_value=True)
+@patch("news.auth.subprocess.run")
+def test_a_budget_that_funds_the_wait_reaches_the_shared_reauth(mock_run, mock_linux, mock_reauth):
+    """With budget, Linux delegates to reauth(), which owns the waiting."""
+    mock_run.return_value = Mock(returncode=1, stdout="")
+    mock_reauth.return_value = ReauthResult.SUCCEEDED
+
+    assert check_gcloud_auth(may_wait_for_push=True) is True
+    mock_reauth.assert_called_once()
+
+
+@patch("news.auth.shared_reauth")
+@patch("news.auth.running_on_linux", return_value=True)
+@patch("news.auth.subprocess.run")
+def test_a_budget_that_cannot_fund_the_wait_never_calls_reauth(mock_run, mock_linux, mock_reauth):
+    """Task 5's anti-SIGKILL property, which must survive F6.
+
+    A 600s unit cannot afford a 1020s wait, so the pre-flight must return without
+    ever reaching reauth() — otherwise the unit is SIGKILLed mid-wait and its
+    per-slot alert email never goes out.
+    """
+    mock_run.return_value = Mock(returncode=1, stdout="")
+
+    assert check_gcloud_auth(may_wait_for_push=False) is False
+    mock_reauth.assert_not_called()
+
+
+@patch("news.auth.shared_reauth")
+@patch("news.auth.running_on_linux", return_value=True)
+@patch("news.auth.subprocess.run")
+def test_the_wait_is_off_by_default(mock_run, mock_linux, mock_reauth):
+    """The parameter defaults to the old fast-fail, so no caller changes by accident."""
+    mock_run.return_value = Mock(returncode=1, stdout="")
+
+    assert check_gcloud_auth() is False
+    mock_reauth.assert_not_called()
+
+
+@patch("news.auth.shared_reauth")
+@patch("news.auth.running_on_linux", return_value=True)
+@patch("news.auth.subprocess.run")
+def test_a_skipped_reauth_during_the_wait_is_not_a_green_pre_flight(
+    mock_run, mock_linux, mock_reauth
+):
+    """SKIPPED means the remedy did nothing. Treating it as success ships a dead run."""
+    mock_run.return_value = Mock(returncode=1, stdout="")
+    mock_reauth.return_value = ReauthResult.SKIPPED
+
+    assert check_gcloud_auth(may_wait_for_push=True) is False
+
+
+@patch("news.auth.shared_reauth")
+@patch("news.auth.running_on_linux", return_value=True)
+@patch("news.auth.subprocess.run")
+def test_a_failed_wait_is_a_failed_pre_flight(mock_run, mock_linux, mock_reauth):
+    mock_run.return_value = Mock(returncode=1, stdout="")
+    mock_reauth.return_value = ReauthResult.FAILED
+
+    assert check_gcloud_auth(may_wait_for_push=True) is False
+
+
+@patch("news.auth.refresh_auth")
+@patch("news.auth.running_on_linux", return_value=False)
+@patch("news.auth.subprocess.run")
+def test_macos_still_refreshes_regardless_of_the_wait_permission(
+    mock_run, mock_linux, mock_refresh
+):
+    """The permission gates the Linux branch only. macOS has a local remedy either way."""
+    mock_run.return_value = Mock(returncode=1, stdout="")
+    mock_refresh.return_value = True
+
+    assert check_gcloud_auth(may_wait_for_push=False) is True
+    mock_refresh.assert_called_once()

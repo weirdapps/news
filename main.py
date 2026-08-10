@@ -39,7 +39,13 @@ from news.deliver import (
     send_email,
 )
 from news.fetcher import fetch_all_sources, fetch_rss_feeds
-from news.llm_policy import MAX_ATTEMPTS, ROW_CAPS, backoff
+from news.llm_policy import (
+    MAX_ATTEMPTS,
+    PUSH_WAIT_SECONDS,
+    ROW_CAPS,
+    backoff,
+    resolve_deadline,
+)
 from news.models import Digest
 from news.monitor_synth import synthesize_monitor
 from news.processor import process_articles
@@ -247,6 +253,34 @@ def install_llm_deadline(profile: str, now: float | None = None) -> float | None
         _MAX_REACHABLE_BACKOFF_SECONDS,
     )
     return deadline
+
+
+def _may_wait_for_token_push(max_call_seconds: float, now: float | None = None) -> bool:
+    """True when this run's remaining budget can fund a wait for the Mac's token push.
+
+    Deliberately the same test ``decide()`` applies before it returns WAIT_FOR_PUSH
+    (``now + wait + max_call_seconds > deadline`` -> UNRECOVERABLE_AUTH), so the
+    pre-flight and the reactive path inside the policy loop cannot disagree about what
+    the budget affords.
+
+    Derived from the budget, never from the profile's name. On today's numbers only
+    news-digest passes — 2010s of budget against the 1020 + 300 the wait needs — while
+    the three 600s units sit at 210s and never do. Written this way, changing a unit's
+    TimeoutStartSec changes the behaviour automatically, where a hardcoded profile list
+    would go stale and silently contradict ``_llm_budget_seconds``.
+
+    Evaluated against the clock rather than granted once at startup, because fetching
+    and tagging run first: a slow fetch can consume the room the wait needed, and the
+    honest answer then is no.
+    """
+    now = time.time() if now is None else now
+    return now + PUSH_WAIT_SECONDS + max_call_seconds <= resolve_deadline(now, os.environ)
+
+
+def _preflight_auth_ok(synthesis_config: dict) -> bool:
+    """Pre-flight gcloud check, permitting a token-push wait only if the budget funds it."""
+    max_call_seconds = float(synthesis_config.get("timeout", 300))
+    return check_gcloud_auth(may_wait_for_push=_may_wait_for_token_push(max_call_seconds))
 
 
 def get_time_window(now: datetime, last_digest_at: datetime | None, tz_name: str) -> str:
@@ -517,7 +551,7 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     )
 
     # SYNTHESIZE: Check auth first — skip synthesis if expired (avoid wasted retries)
-    auth_ok = check_gcloud_auth()
+    auth_ok = _preflight_auth_ok(config["synthesis"])
     if auth_ok:
         synthesis_result, synthesis_ok = synthesize(
             articles=capped_articles,
@@ -770,7 +804,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     logger.info(f"Monitor pool: {len(all_recent)} articles, selected top {len(capped_articles)}")
 
     # SYNTHESIZE: Check auth first — skip synthesis if expired (avoid wasted retries)
-    auth_ok = check_gcloud_auth()
+    auth_ok = _preflight_auth_ok(config["synthesis"])
     if auth_ok:
         synthesis_result, synthesis_ok = synthesize_monitor(
             articles=capped_articles,
@@ -1002,7 +1036,7 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
     # SYNTHESIZE
     from news.stack_synth import build_stack_fallback, synthesize_stack
 
-    auth_ok = check_gcloud_auth()
+    auth_ok = _preflight_auth_ok(config["synthesis"])
     if auth_ok and capped_articles:
         synthesis_result, synthesis_ok = synthesize_stack(
             articles=capped_articles,
@@ -1223,7 +1257,7 @@ async def run_market_pipeline(run_type: str = "scheduled") -> None:
     # SYNTHESIZE
     from news.market_synth import build_market_fallback, synthesize_market
 
-    auth_ok = check_gcloud_auth()
+    auth_ok = _preflight_auth_ok(config["synthesis"])
     if auth_ok and capped_articles:
         synthesis_result, synthesis_ok = synthesize_market(
             articles=capped_articles,
@@ -1376,7 +1410,7 @@ async def run_topic_pipeline(
     ]
 
     # SYNTHESIZE
-    auth_ok = check_gcloud_auth()
+    auth_ok = _preflight_auth_ok(synthesis_config)
     if auth_ok and candidates:
         synthesis_result, synthesis_ok = synthesize_topic(
             articles=candidates,
