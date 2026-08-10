@@ -5,8 +5,10 @@ import subprocess
 from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
+from news.llm_policy import Outcome
 from news.models import Article
 from news.synthesizer import (
+    _classify,
     build_fallback_digest,
     build_prompt,
     invoke_claude,
@@ -371,3 +373,53 @@ def test_invoke_claude_429_does_not_trigger_reauth(mock_run, mock_reauth, monkey
     mock_reauth.assert_not_called()
     assert "claude-opus-4-6[1m]" in mock_run.call_args_list[1][0][0]  # downgraded
     assert result == "RECOVERED"
+
+
+# --- _classify: nine failure paths → Outcome -----------------------------------
+
+
+def test_timeout_is_its_own_outcome():
+    assert _classify(None, None, subprocess.TimeoutExpired("claude", 300)) is Outcome.TIMEOUT
+
+
+def test_other_subprocess_exceptions_are_api_errors():
+    assert _classify(None, None, OSError("claude not found")) is Outcome.API_ERROR
+
+
+def test_empty_stdout_is_empty_not_unparseable():
+    assert _classify(None, "   ", None) is Outcome.EMPTY
+
+
+def test_non_json_stdout_is_unparseable():
+    assert _classify(None, "API Error: invalid_grant", None) is Outcome.UNPARSEABLE
+
+
+def test_an_auth_marker_in_the_envelope_is_auth():
+    env = {"is_error": True, "result": "API Error: invalid_grant"}
+    assert _classify(env, None, None) is Outcome.AUTH_REAUTH_REQUIRED
+
+
+def test_a_quota_error_is_not_auth():
+    # _is_auth_error is deliberately narrow: a 429 must not trigger a re-auth.
+    env = {"is_error": True, "result": "429 RESOURCE_EXHAUSTED quota exceeded"}
+    assert _classify(env, None, None) is Outcome.RATE_LIMIT
+
+
+def test_a_refusal_is_a_refusal():
+    env = {"stop_reason": "refusal", "result": "I cannot help with that"}
+    assert _classify(env, None, None) is Outcome.REFUSAL
+
+
+def test_a_generic_error_envelope_is_an_api_error():
+    env = {"is_error": True, "result": "500 internal"}
+    assert _classify(env, None, None) is Outcome.API_ERROR
+
+
+def test_an_empty_result_field_is_empty():
+    env = {"result": "   "}
+    assert _classify(env, None, None) is Outcome.EMPTY
+
+
+def test_a_good_envelope_is_ok():
+    env = {"result": "the synthesis"}
+    assert _classify(env, None, None) is Outcome.OK

@@ -8,6 +8,7 @@ import subprocess
 from typing import Any
 
 from news.auth import refresh_auth
+from news.llm_policy import Outcome
 from news.roster import build_roster
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,53 @@ def _is_auth_error(env: dict[str, Any] | None) -> bool:
         return False
     result = str(env.get("result", "")).lower()
     return any(marker in result for marker in _AUTH_ERROR_MARKERS)
+
+
+_RATE_LIMIT_MARKERS = ("429", "resource_exhausted", "quota", "rate limit")
+
+
+def _classify(
+    envelope: dict | None,
+    raw_stdout: str | None,
+    exc: BaseException | None,
+) -> Outcome:
+    """Map one transport result to a policy Outcome.
+
+    Exactly one of the three arguments is meaningful per call: an exception if
+    the subprocess raised, raw stdout if it ran but produced nothing usable, or
+    a parsed envelope otherwise.
+
+    This function is the whole behavioural risk of the port. Before it, nine
+    distinct failure paths collapsed into a bare ``return None`` and the retry
+    budget treated them identically. Each mapping below is a deliberate
+    decision, not a translation.
+    """
+    if exc is not None:
+        if isinstance(exc, subprocess.TimeoutExpired):
+            return Outcome.TIMEOUT
+        return Outcome.API_ERROR
+
+    if envelope is None:
+        if raw_stdout is None or not raw_stdout.strip():
+            return Outcome.EMPTY
+        return Outcome.UNPARSEABLE
+
+    if _is_auth_error(envelope):
+        return Outcome.AUTH_REAUTH_REQUIRED
+
+    if envelope.get("stop_reason") == "refusal":
+        return Outcome.REFUSAL
+
+    if envelope.get("is_error"):
+        blob = str(envelope.get("result", "")).lower()
+        if any(marker in blob for marker in _RATE_LIMIT_MARKERS):
+            return Outcome.RATE_LIMIT
+        return Outcome.API_ERROR
+
+    if not str(envelope.get("result", "")).strip():
+        return Outcome.EMPTY
+
+    return Outcome.OK
 
 
 _SYSTEM_PROMPT = (
