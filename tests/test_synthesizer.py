@@ -329,9 +329,10 @@ _RAPT_ERR = (
 
 
 @patch("news.synthesizer.reauth")
+@patch("news.synthesizer.running_on_linux", return_value=False)
 @patch("news.synthesizer.subprocess.run")
 def test_invoke_claude_reauths_on_invalid_rapt_then_retries_same_tier(
-    mock_run, mock_reauth, monkeypatch
+    mock_run, mock_linux, mock_reauth, monkeypatch
 ):
     """An invalid_rapt auth error must trigger reauth() and retry the SAME
     model/region — NOT a model downgrade (credential failure, not quota).
@@ -362,8 +363,11 @@ def test_invoke_claude_reauths_on_invalid_rapt_then_retries_same_tier(
 
 
 @patch("news.synthesizer.reauth")
+@patch("news.synthesizer.running_on_linux", return_value=False)
 @patch("news.synthesizer.subprocess.run")
-def test_invoke_claude_returns_none_when_reauth_fails(mock_run, mock_reauth, monkeypatch):
+def test_invoke_claude_returns_none_when_reauth_fails(
+    mock_run, mock_linux, mock_reauth, monkeypatch
+):
     """If reauth() fails the one-shot budget is still spent, so the next auth
     error produces UNRECOVERABLE_AUTH and synthesis returns None.
 
@@ -505,9 +509,12 @@ def test_repeated_timeouts_stop_at_the_global_cap(mock_run, mock_sleep):
 
 
 @patch("news.synthesizer.reauth")
+@patch("news.synthesizer.running_on_linux", return_value=False)
 @patch("news.synthesizer.time.sleep")
 @patch("news.synthesizer.subprocess.run")
-def test_an_auth_error_triggers_exactly_one_reauth_then_succeeds(mock_run, mock_sleep, mock_reauth):
+def test_an_auth_error_triggers_exactly_one_reauth_then_succeeds(
+    mock_run, mock_sleep, mock_linux, mock_reauth
+):
     """AUTH_REAUTH_REQUIRED must trigger reauth() and retry the same tier."""
     mock_reauth.return_value = ReauthResult.SUCCEEDED
     mock_run.side_effect = [
@@ -519,14 +526,36 @@ def test_an_auth_error_triggers_exactly_one_reauth_then_succeeds(mock_run, mock_
 
 
 @patch("news.synthesizer.reauth")
+@patch("news.synthesizer.running_on_linux", return_value=False)
 @patch("news.synthesizer.time.sleep")
 @patch("news.synthesizer.subprocess.run")
-def test_a_second_auth_error_does_not_reauth_again(mock_run, mock_sleep, mock_reauth):
+def test_a_second_auth_error_does_not_reauth_again(mock_run, mock_sleep, mock_linux, mock_reauth):
     """The one-shot re-auth latch must not reset between retries."""
     mock_reauth.return_value = ReauthResult.SUCCEEDED
     mock_run.return_value = Mock(stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0)
     assert invoke_claude("prompt", timeout=300) is None
     assert mock_reauth.call_count == 1, "the one-shot re-auth budget must not reset"
+
+
+@patch("news.synthesizer.reauth")
+@patch("news.synthesizer.running_on_linux", return_value=True)
+@patch("news.synthesizer.subprocess.run")
+def test_linux_auth_error_gives_up_without_calling_reauth(mock_run, mock_linux, mock_reauth):
+    """On Linux, an auth error produces UNRECOVERABLE_AUTH and reauth() is never called.
+
+    The WAIT_FOR_PUSH path requires PUSH_WAIT_SECONDS = 900 + 120 = 1020s. With the
+    default 300s timeout the remaining budget cannot fund that wait, so decide() returns
+    UNRECOVERABLE_AUTH immediately. This is the correct behaviour: the VPS cannot push
+    a token to itself, and blocking for 17 minutes would exceed news-monitor's
+    TimeoutStartSec=600 and be SIGKILLed anyway. If the budget arithmetic ever changes
+    so that a 300s job can afford the push wait, this test will break loudly.
+    """
+    mock_run.return_value = Mock(stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0)
+
+    result = invoke_claude("prompt", timeout=300)
+
+    assert result is None
+    mock_reauth.assert_not_called()
 
 
 @patch("news.synthesizer.subprocess.run")
