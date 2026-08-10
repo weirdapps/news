@@ -641,3 +641,66 @@ def test_content_validate_failure_triggers_unparseable_retry(mock_run):
 
     assert mock_run.call_count == 2
     assert result == good_result
+
+
+# A top-level JSON array. json.loads succeeds, so parse_synthesis_output reaches
+# _validate_synthesis, which calls .get on a list and raises AttributeError. This is
+# the exact shape the reviewer executed; it is a plausible model output, not a
+# contrived one, since the schema asks for a JSON object containing arrays.
+_TOP_LEVEL_ARRAY = '[{"executive_brief": [], "sections": []}]'
+
+
+# Byte-identical to the callback all five profiles pass (synthesizer.py,
+# monitor_synth.py, market_synth.py, stack_synth.py, topic_synth.py). Using the real
+# one matters: a hand-written raising stub would prove the guard works without
+# proving that production can reach it.
+def _production_validate(text):
+    return "error" not in parse_synthesis_output(text)
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_a_raising_validate_becomes_unparseable_not_a_dead_run(mock_run, caplog):
+    """A validate callback that RAISES must be a policy outcome, not an escaped exception.
+
+    invoke_claude is declared ``-> str | None``. Before this guard, an AttributeError
+    from the caller's validate callback unwound out of it, past synthesize(), to
+    main.py:1441's ``except Exception`` and sys.exit(1) — killing the run at the
+    synthesis step, which precedes the alert-email path at main.py:479. So the one
+    failure the per-slot alert exists for produced no email at all.
+
+    UNPARSEABLE is the right reclassification: a validator that cannot even inspect
+    the text is telling us the text is not usable, which is what UNPARSEABLE means.
+    """
+    import logging
+
+    mock_run.return_value = Mock(stdout=_envelope(result=_TOP_LEVEL_ARRAY), returncode=0)
+
+    with caplog.at_level(logging.ERROR, logger="news.synthesizer"):
+        result = invoke_claude("prompt", timeout=300, validate=_production_validate)
+
+    assert result is None
+    # UNPARSEABLE cap=1 → 2 subprocess calls, then GIVE_UP. The log discriminates it
+    # from EMPTY, which shares the call count.
+    assert mock_run.call_count == 2
+    assert any("unparseable" in msg for msg in caplog.messages)
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_a_raising_validate_still_allows_the_retry_to_succeed(mock_run):
+    """The reclassification is a retry, not a swallow: a good second call still returns.
+
+    Pins that the guard routes through the policy rather than short-circuiting to
+    None. Without this, a guard implemented as ``except Exception: return None``
+    would pass the test above and silently lose the retry the validate path exists
+    to provide.
+    """
+    good_result = '{"executive_brief": [], "sections": []}'
+    mock_run.side_effect = [
+        Mock(stdout=_envelope(result=_TOP_LEVEL_ARRAY), returncode=0),
+        Mock(stdout=_envelope(result=good_result), returncode=0),
+    ]
+
+    result = invoke_claude("prompt", timeout=300, validate=_production_validate)
+
+    assert mock_run.call_count == 2
+    assert result == good_result

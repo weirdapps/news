@@ -85,6 +85,32 @@ def _classify(
     return Outcome.OK
 
 
+def _validate_or_reject(validate: Callable[[str], bool], text: str) -> bool:
+    """Run a caller's content check. A raising validator means "not valid", never a crash.
+
+    All five profiles pass ``lambda text: "error" not in parse_synthesis_output(text)``,
+    and that callback is not total: a model returning a top-level JSON array parses
+    fine, then makes ``_validate_synthesis`` call ``.get`` on a list. The resulting
+    AttributeError used to unwind out of ``invoke_claude`` — which is declared
+    ``-> str | None`` — past ``synthesize()`` to main.py's top-level handler and
+    ``sys.exit(1)``. Synthesis runs before the alert-email step, so the run died in
+    exactly the failure mode the per-slot alert contract exists to cover.
+
+    The catch is deliberately broad. A validator that cannot inspect the text at all
+    is making the same statement as one that inspected it and said no, and the loop's
+    job is to survive whatever the model returns. Narrowing this to the AttributeError
+    observed today would just wait for the next output shape. ``Exception``, not
+    ``BaseException``: a KeyboardInterrupt or SystemExit must still end the run.
+    """
+    try:
+        return validate(text)
+    except Exception as exc:  # noqa: BLE001 - a broken check means unusable text, not a dead run
+        logger.warning(
+            "validate callback raised %s: %s — treating as UNPARSEABLE", type(exc).__name__, exc
+        )
+        return False
+
+
 _SYSTEM_PROMPT = (
     """You are a senior news analyst preparing a daily briefing for a senior executive in financial services.
 
@@ -348,7 +374,7 @@ def invoke_claude(
         # {"error": ...}.
         if outcome is Outcome.OK and validate is not None:
             result_text = str(envelope.get("result")) if envelope is not None else None
-            if result_text is not None and not validate(result_text):
+            if result_text is not None and not _validate_or_reject(validate, result_text):
                 outcome = Outcome.UNPARSEABLE
 
         attempt = attempt.bump(outcome)
