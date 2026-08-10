@@ -232,3 +232,38 @@ PASSED
 
 git status: clean (no uncommitted changes after restore)
 ```
+
+---
+
+## Fix round 1
+
+Five tests were updated to assert the new behaviour; one dead import was removed.
+
+### Changes made
+
+**`news/synthesizer.py`**: Removed `from news.auth import refresh_auth  # noqa: F401`.
+The import was kept in the initial commit so old patch targets would still bind, which
+made stale tests look like they were testing something. Now deleted.
+
+**`tests/test_synthesizer.py`**: Five tests rewritten:
+
+| Test | Old behaviour (one line) | New behaviour (one line) |
+|---|---|---|
+| `test_invoke_claude_retries_refusal_on_same_tier` (was `…downgrades_to_fallback_on_policy_refusal`) | second call used `VERTEX_MODEL_FALLBACK` / `VERTEX_REGION_FALLBACK` | second call uses same tier as first; `VERTEX_MODEL_FALLBACK` not consulted |
+| `test_invoke_claude_retries_rate_limit_on_same_tier` (was `…downgrades_to_fallback_on_api_error`) | second call used `VERTEX_MODEL_FALLBACK` | second call uses same tier; `VERTEX_MODEL_FALLBACK` not consulted |
+| `test_invoke_claude_reauths_on_invalid_rapt_then_retries_same_tier` | patched `refresh_auth` returning `True` | patches `reauth` returning `ReauthResult.SUCCEEDED` |
+| `test_invoke_claude_returns_none_when_reauth_fails` | patched `refresh_auth` returning `False`; 1 subprocess call | patches `reauth` returning `ReauthResult.FAILED`; 2 subprocess calls (auth → reauth → retry → UNRECOVERABLE\_AUTH) |
+| `test_invoke_claude_429_does_not_trigger_reauth` | patched `refresh_auth`; asserted fallback-model downgrade | patches `reauth`; asserts same-tier retry; `reauth.assert_not_called()` pins 429 never triggers auth path |
+
+**`tests/conftest.py`**: Fixture comment expanded to explain why FAILED is the
+correct default for the `reauth` stub (a test that accidentally relies on reauth
+succeeding must fail, not pass silently).
+
+### Full test run after fix
+
+```text
+python -m pytest -q
+3 failed, 237 passed, 4 warnings in 4.03s
+```
+
+Only the pre-existing `tests/test_fetcher.py` trio remains. No fourth failure.

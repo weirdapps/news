@@ -8,7 +8,6 @@ import subprocess
 import time
 from typing import Any
 
-from news.auth import refresh_auth  # noqa: F401 — kept so test patches still resolve
 from news.llm_policy import (
     Action,
     Attempt,

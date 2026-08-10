@@ -18,10 +18,16 @@ from news.storage import init_db
 def _fast_synthesizer_policy(request, monkeypatch):
     """Suppress real backoff sleeps and gcloud reauth calls in synthesizer tests.
 
-    Tests that explicitly patch ``news.synthesizer.reauth`` (via ``@patch``) override
-    this fixture's monkeypatch because ``@patch`` runs inside the fixture scope and
-    wins. Tests that do not patch it get ``ReauthResult.FAILED``, which is a fast,
-    deterministic stand-in that exercises the latch logic without running gcloud.
+    ``time.sleep`` is stubbed so TIMEOUT/RATE_LIMIT backoff does not make the
+    suite take three minutes (182 s observed without this fixture).
+
+    ``reauth`` defaults to FAILED, the pessimistic choice: a test that accidentally
+    passes because reauth quietly succeeds would be testing an assumption its author
+    never intended. FAILED exercises the latch (``with_reauth_used``) immediately, so
+    a second auth error hits UNRECOVERABLE_AUTH and the test goes red — the correct
+    outcome for a test that does not explicitly control auth. Tests that need a
+    successful reauth must say so with ``@patch("news.synthesizer.reauth")``, which
+    runs inside the fixture scope and wins over this monkeypatch.
     """
     if "test_synthesizer" not in getattr(request.module, "__name__", ""):
         return

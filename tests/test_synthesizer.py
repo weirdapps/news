@@ -240,12 +240,20 @@ def test_invoke_claude_opus_falls_back_to_correct_default_when_env_absent(mock_r
 
 
 @patch("news.synthesizer.subprocess.run")
-def test_invoke_claude_downgrades_to_fallback_on_policy_refusal(mock_run, monkeypatch):
-    """A spurious 'anthropic policy' refusal must auto-retry on the Opus 4.6 /
-    europe-west1 fallback tier (model AND region together)."""
+def test_invoke_claude_retries_refusal_on_same_tier(mock_run, monkeypatch):
+    """A policy refusal triggers PLAIN_RETRY on the same tier — no model downgrade.
+
+    Before the policy port, a refusal caused a hard retry on VERTEX_MODEL_FALLBACK
+    (which was byte-identical to VERTEX_MODEL_HEAVY: both claude-opus-5[1m] at eu,
+    per the 2026-08-09 owner decision). The shared policy's REFUSAL row (cap=2)
+    now owns the retry; VERTEX_MODEL_FALLBACK is no longer consulted.
+
+    Old behaviour: second call used ``VERTEX_MODEL_FALLBACK`` / ``VERTEX_REGION_FALLBACK``.
+    New behaviour: second call uses the same tier as the first (PLAIN_RETRY, cap=2).
+    """
     monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
     monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
-    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")
+    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")  # no longer consulted
     monkeypatch.setenv("VERTEX_REGION_FALLBACK", "europe-west1")
     mock_run.side_effect = [
         Mock(
@@ -260,17 +268,26 @@ def test_invoke_claude_downgrades_to_fallback_on_policy_refusal(mock_run, monkey
     assert mock_run.call_count == 2
     second_cmd = mock_run.call_args_list[1][0][0]
     second_env = mock_run.call_args_list[1][1]["env"]
-    assert "claude-opus-4-6[1m]" in second_cmd
-    assert second_env["CLOUD_ML_REGION"] == "europe-west1"
+    assert "claude-opus-4-8[1m]" in second_cmd  # same tier, not fallback
+    assert "claude-opus-4-6[1m]" not in second_cmd
+    assert second_env["CLOUD_ML_REGION"] == "eu"
     assert result == "SYNTH_OK"
 
 
 @patch("news.synthesizer.subprocess.run")
-def test_invoke_claude_downgrades_to_fallback_on_api_error(mock_run, monkeypatch):
-    """An is_error envelope (e.g. a 429) on the primary must also retry on the fallback."""
+def test_invoke_claude_retries_rate_limit_on_same_tier(mock_run, monkeypatch):
+    """A 429/rate-limit error triggers PLAIN_RETRY on the same tier — no model downgrade.
+
+    Before the policy port, an is_error envelope caused a hard retry on
+    VERTEX_MODEL_FALLBACK. The shared policy's RATE_LIMIT row (cap=3) now owns
+    the retry; VERTEX_MODEL_FALLBACK is no longer consulted.
+
+    Old behaviour: second call used ``VERTEX_MODEL_FALLBACK`` / ``VERTEX_REGION_FALLBACK``.
+    New behaviour: second call uses the same tier as the first (PLAIN_RETRY, cap=3).
+    """
     monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
     monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
-    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")
+    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")  # no longer consulted
     monkeypatch.setenv("VERTEX_REGION_FALLBACK", "europe-west1")
     mock_run.side_effect = [
         Mock(
@@ -287,7 +304,9 @@ def test_invoke_claude_downgrades_to_fallback_on_api_error(mock_run, monkeypatch
     result = invoke_claude("p", claude_args=["--print", "--model", "opus"])
 
     assert mock_run.call_count == 2
-    assert "claude-opus-4-6[1m]" in mock_run.call_args_list[1][0][0]
+    second_cmd = mock_run.call_args_list[1][0][0]
+    assert "claude-opus-4-8[1m]" in second_cmd  # same tier, not fallback
+    assert "claude-opus-4-6[1m]" not in second_cmd
     assert result == "RECOVERED"
 
 
@@ -309,22 +328,26 @@ _RAPT_ERR = (
 )
 
 
-@patch("news.synthesizer.refresh_auth")
+@patch("news.synthesizer.reauth")
 @patch("news.synthesizer.subprocess.run")
 def test_invoke_claude_reauths_on_invalid_rapt_then_retries_same_tier(
     mock_run, mock_reauth, monkeypatch
 ):
-    """An invalid_rapt auth error must trigger a gcloud re-auth and retry the
-    SAME model/region — NOT a model downgrade (creds, not quota)."""
+    """An invalid_rapt auth error must trigger reauth() and retry the SAME
+    model/region — NOT a model downgrade (credential failure, not quota).
+
+    Old behaviour: called ``news.auth.refresh_auth()`` returning bool.
+    New behaviour: calls ``news.llm_policy.reauth()`` returning ReauthResult.
+    """
     monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
     monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
-    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")
+    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")  # no longer consulted
     monkeypatch.setenv("VERTEX_REGION_FALLBACK", "europe-west1")
     mock_run.side_effect = [
         Mock(stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0),
         Mock(stdout=_envelope(result="SYNTH_OK"), returncode=0),
     ]
-    mock_reauth.return_value = True
+    mock_reauth.return_value = ReauthResult.SUCCEEDED
 
     result = invoke_claude("p", claude_args=["--print", "--model", "opus"])
 
@@ -338,30 +361,45 @@ def test_invoke_claude_reauths_on_invalid_rapt_then_retries_same_tier(
     assert result == "SYNTH_OK"
 
 
-@patch("news.synthesizer.refresh_auth")
+@patch("news.synthesizer.reauth")
 @patch("news.synthesizer.subprocess.run")
 def test_invoke_claude_returns_none_when_reauth_fails(mock_run, mock_reauth, monkeypatch):
-    """If re-auth itself fails, synthesis must return None (so the pipeline can
-    alert) — and must NOT waste a model downgrade on an auth failure."""
+    """If reauth() fails the one-shot budget is still spent, so the next auth
+    error produces UNRECOVERABLE_AUTH and synthesis returns None.
+
+    Old behaviour: called ``refresh_auth()`` (bool); 1 subprocess call, returned None.
+    New behaviour: calls ``reauth()`` (ReauthResult); 2 subprocess calls (one before
+    reauth, one after the failed reauth), then UNRECOVERABLE_AUTH → None.
+    """
     monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
     monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
     mock_run.return_value = Mock(stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0)
-    mock_reauth.return_value = False
+    mock_reauth.return_value = ReauthResult.FAILED
 
     result = invoke_claude("p", claude_args=["--print", "--model", "opus"])
 
     assert result is None
     mock_reauth.assert_called_once()
-    assert mock_run.call_count == 1  # no retry, no downgrade
+    # 2 calls: auth error → reauth (FAILED, budget spent) → retry → auth error again →
+    # reauth_used=True → UNRECOVERABLE_AUTH → give up
+    assert mock_run.call_count == 2
 
 
-@patch("news.synthesizer.refresh_auth")
+@patch("news.synthesizer.reauth")
 @patch("news.synthesizer.subprocess.run")
 def test_invoke_claude_429_does_not_trigger_reauth(mock_run, mock_reauth, monkeypatch):
-    """A 429/quota error is NOT auth-class: it must downgrade, never re-auth."""
+    """A 429/quota error is NOT auth-class: it must PLAIN_RETRY, never re-auth.
+
+    This test guards ``_is_auth_error`` staying narrow: if "429" ever matched an
+    auth marker, rate-limit errors would trigger a pointless gcloud reauth instead
+    of the RATE_LIMIT retry row.
+
+    Old behaviour: patched ``refresh_auth``; asserted fallback-model downgrade.
+    New behaviour: patches ``reauth``; asserts same-tier retry (no downgrade).
+    """
     monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
     monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
-    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")
+    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")  # no longer consulted
     monkeypatch.setenv("VERTEX_REGION_FALLBACK", "europe-west1")
     mock_run.side_effect = [
         Mock(stdout=_envelope(result="API Error: 429 quota", is_error=True), returncode=0),
@@ -371,7 +409,9 @@ def test_invoke_claude_429_does_not_trigger_reauth(mock_run, mock_reauth, monkey
     result = invoke_claude("p", claude_args=["--print", "--model", "opus"])
 
     mock_reauth.assert_not_called()
-    assert "claude-opus-4-6[1m]" in mock_run.call_args_list[1][0][0]  # downgraded
+    second_cmd = mock_run.call_args_list[1][0][0]
+    assert "claude-opus-4-8[1m]" in second_cmd  # same tier, not fallback
+    assert "claude-opus-4-6[1m]" not in second_cmd
     assert result == "RECOVERED"
 
 
