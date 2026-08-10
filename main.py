@@ -183,7 +183,7 @@ def _deadline_reserve_seconds(max_call_seconds: float) -> float:
     production units. Owner signed off on dropping it, 2026-08-10.
 
     ``max_call_seconds`` is NOT double-counted and must stay. ``invoke_claude`` calls
-    ``_run_once()`` unconditionally at the top of its loop (synthesizer.py:340) with no
+    ``_run_once()`` unconditionally at the top of its loop (synthesizer.py:366) with no
     deadline test before the FIRST call, so if fetching and tagging have eaten the
     budget that call still starts and can run its whole timeout past the deadline.
     This term is the only thing covering that hole.
@@ -257,6 +257,19 @@ def install_llm_deadline(profile: str, now: float | None = None) -> float | None
 
     deadline = (time.time() if now is None else now) + budget
     os.environ.setdefault("PTS_LLM_DEADLINE", repr(deadline))
+    installed = float(os.environ["PTS_LLM_DEADLINE"])
+    if installed != deadline:
+        # setdefault kept an inherited value. Report what is actually in effect:
+        # announcing the computed budget here would describe a policy the run is
+        # not running under.
+        logger.info(
+            "PTS_LLM_DEADLINE was already set to %g and is kept; the computed "
+            "budget for '%s' would have been %gs.",
+            installed,
+            profile,
+            budget,
+        )
+        return installed
     logger.info(
         "LLM budget for '%s': %gs (TimeoutStartSec=%gs - max_call=%gs - grace=%gs). "
         "Largest backoff the policy can emit is %gs.",

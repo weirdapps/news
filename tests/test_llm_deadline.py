@@ -84,9 +84,19 @@ def test_each_scheduled_profile_gets_its_own_units_deadline(profile, expected_bu
 
 
 def test_the_digest_and_the_ten_minute_units_do_not_share_a_deadline():
-    """Guards the whole point of F1: one flat number for every profile was the bug."""
+    """Guards the whole point of F1: one flat number for every profile was the bug.
+
+    The pop between the two calls is load-bearing, not tidiness. install_llm_deadline
+    installs with ``setdefault``, so a second call in the same process keeps the first
+    profile's value and returns it. Production never does that, one profile per
+    process, so clearing between the calls is what makes this model a real run instead
+    of an impossible one.
+    """
     now = 1_700_000_000.0
-    assert install_llm_deadline("digest", now=now) != install_llm_deadline("monitor", now=now)
+    digest = install_llm_deadline("digest", now=now)
+    os.environ.pop("PTS_LLM_DEADLINE", None)
+    monitor = install_llm_deadline("monitor", now=now)
+    assert digest != monitor
 
 
 def test_an_ad_hoc_profile_gets_no_deadline_at_all():
