@@ -1,24 +1,12 @@
-"""Regression guard for the gcloud auto-login script path (news/auth.py).
-
-When the marketplace repos were renamed (trading-marketplace -> plessas-trading),
-this path went stale. The auto-refresh then couldn't find the script, so an
-expired token silently skipped LLM synthesis and shipped a fallback (unprocessed)
-digest instead of failing loudly. Pin the path so a future rename trips a test
-rather than degrading mail quality in production.
-"""
+"""Tests for news/auth.py — proactive pre-flight and reactive re-auth delegation."""
 
 from unittest.mock import Mock, patch
 
-from news.auth import _AUTO_LOGIN_SCRIPT, check_gcloud_auth
+from news.auth import check_gcloud_auth, refresh_auth
+from news.llm_policy import ReauthResult
 
 
-def test_auto_login_script_path_is_current():
-    path = str(_AUTO_LOGIN_SCRIPT)
-    assert "trading-marketplace" not in path, "stale pre-rename repo path"
-    assert path.endswith("claude-config/scripts/local-bin/gcloud-auto-login.sh")
-
-
-@patch("news.auth._refresh_auth")
+@patch("news.auth.refresh_auth")
 @patch("news.auth.subprocess.run")
 def test_check_gcloud_auth_also_probes_adc(mock_run, mock_refresh):
     """Pre-flight must verify BOTH the user token AND ADC, not just the user token.
@@ -36,7 +24,7 @@ def test_check_gcloud_auth_also_probes_adc(mock_run, mock_refresh):
     )
 
 
-@patch("news.auth._refresh_auth")
+@patch("news.auth.refresh_auth")
 @patch("news.auth.subprocess.run")
 def test_check_gcloud_auth_refreshes_when_adc_stale(mock_run, mock_refresh):
     """A valid user token but a stale ADC must still trigger a refresh."""
@@ -53,3 +41,23 @@ def test_check_gcloud_auth_refreshes_when_adc_stale(mock_run, mock_refresh):
 
     assert check_gcloud_auth() is True
     mock_refresh.assert_called_once()
+
+
+@patch("news.auth.shared_reauth")
+def test_refresh_auth_delegates_and_maps_succeeded_to_true(mock_reauth):
+    mock_reauth.return_value = ReauthResult.SUCCEEDED
+    assert refresh_auth() is True
+
+
+@patch("news.auth.shared_reauth")
+def test_a_skipped_reauth_is_not_a_success(mock_reauth):
+    # SKIPPED means the script took a no-op path: lock held, cooldown, or already
+    # authed. Reporting it as success burns the caller's one-shot budget on nothing.
+    mock_reauth.return_value = ReauthResult.SKIPPED
+    assert refresh_auth() is False
+
+
+@patch("news.auth.shared_reauth")
+def test_a_failed_reauth_is_false(mock_reauth):
+    mock_reauth.return_value = ReauthResult.FAILED
+    assert refresh_auth() is False

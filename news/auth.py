@@ -1,16 +1,16 @@
 """Google Cloud authentication checking and auto-refresh.
 
-Delegates browser automation to the centralized gcloud-auto-login.sh script
-shared across all Claude Code projects and the news pipeline.
+Proactive pre-flight (`check_gcloud_auth`) lives here; reactive re-auth
+(`refresh_auth`) delegates to the shared policy in `news.llm_policy`.
 """
 
 import logging
 import subprocess
-from pathlib import Path
+
+from news.llm_policy import ReauthResult
+from news.llm_policy import reauth as shared_reauth
 
 logger = logging.getLogger(__name__)
-
-_AUTO_LOGIN_SCRIPT = Path.home() / "SourceCode/claude-config/scripts/local-bin/gcloud-auto-login.sh"
 
 
 def _token_valid() -> bool:
@@ -48,54 +48,15 @@ def _adc_valid() -> bool:
         return False
 
 
-def _refresh_auth(timeout: int = 120) -> bool:
-    """Refresh gcloud auth using the centralized auto-login script."""
-    logger.info("Attempting gcloud auth refresh via auto-login script")
-
-    if not _AUTO_LOGIN_SCRIPT.exists():
-        logger.error(f"Auto-login script not found: {_AUTO_LOGIN_SCRIPT}")
-        return False
-
-    try:
-        result = subprocess.run(
-            [str(_AUTO_LOGIN_SCRIPT)],
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            check=False,
-        )
-
-        for line in result.stdout.strip().splitlines():
-            logger.info(line)
-
-        if result.returncode == 0 and _token_valid():
-            logger.info("gcloud auth refresh: OK")
-            return True
-
-        logger.warning(f"gcloud auth refresh failed (rc={result.returncode})")
-        if result.stderr:
-            logger.warning(result.stderr[:300])
-        return False
-
-    except subprocess.TimeoutExpired:
-        logger.warning(f"gcloud auth refresh timed out after {timeout}s")
-        return False
-    except Exception as e:
-        logger.error(f"gcloud auth refresh failed: {e}")
-        return False
-
-
 def refresh_auth() -> bool:
-    """Force a gcloud re-auth (user creds + ADC) via the centralized auto-login script.
+    """Force a re-auth via the shared policy. True only on a verified success.
 
-    Used reactively when a Vertex call fails with an auth-class error (e.g.
-    invalid_rapt) — the access token can look valid while the RAPT reauth proof
-    has lapsed, which only the live call reveals.
-
-    Returns:
-        True if re-auth succeeded, False otherwise
+    SKIPPED maps to False deliberately: the script exits 0 on three no-op paths
+    (another run holds its lock, a four-failure cooldown, or already authed), and
+    reporting those as success spends the caller's one-shot re-auth budget on a
+    script that did nothing.
     """
-    return _refresh_auth()
+    return shared_reauth() is ReauthResult.SUCCEEDED
 
 
 def check_gcloud_auth() -> bool:
@@ -109,4 +70,4 @@ def check_gcloud_auth() -> bool:
         return True
 
     logger.warning("gcloud auth expired (user token or ADC) — attempting auto-refresh")
-    return _refresh_auth()
+    return refresh_auth()
