@@ -1,6 +1,9 @@
 """Tests for orchestrator (main.py)."""
 
+import asyncio
+import sqlite3
 from datetime import UTC, datetime
+from unittest.mock import AsyncMock, patch
 
 from main import (
     acquire_lock,
@@ -8,6 +11,7 @@ from main import (
     get_time_window,
     log_run,
     release_lock,
+    run_digest_pipeline,
 )
 
 
@@ -44,3 +48,74 @@ def test_log_run(tmp_path):
     assert "scheduled" in content
     assert "42" in content
     assert "synthesis OK" in content
+
+
+def test_a_failed_digest_still_sends_exactly_one_alert_email(tmp_path):
+    """When synthesis fails, exactly one alert email is sent — the owner's contract.
+
+    The digest pipeline must send exactly one email per slot: the digest when
+    synthesis works, or build_alert_html() carrying _SYNTH_FAIL_REASON when it
+    does not. This test verifies the branch is wired to the policy's give-up
+    (synthesize returning False) rather than to loop exhaustion that no longer
+    exists after Task 3.
+    """
+    settings = {
+        "pipeline": {
+            "max_digest_articles": 100,
+            "max_articles_per_source": 10,
+            "min_article_length_words": 50,
+            "max_article_age_hours": 48,
+            "digest_window_hours": 48,
+        },
+        "email": {"recipient": "test@example.com"},
+        "storage": {
+            "db_path": str(tmp_path / "test.db"),
+            "run_log_path": str(tmp_path / "runs.log"),
+        },
+        "schedule": {
+            "timezone": "Europe/Athens",
+            "runs": ["09:00", "13:00", "17:00", "21:00"],
+        },
+        "synthesis": {
+            "max_retries": 2,
+            "timeout": 60,
+            "claude_command": "claude",
+            "claude_args": [],
+        },
+        "scoring": {},
+    }
+
+    # Use a real in-memory connection so storage calls behave correctly.
+    mem_conn = sqlite3.connect(":memory:")
+    mem_conn.row_factory = sqlite3.Row
+
+    with (
+        patch("main.get_settings", return_value=settings),
+        patch("main.get_sources", return_value={"rss_feeds": []}),
+        patch("main.get_categories", return_value={}),
+        patch("main.get_connection", return_value=mem_conn),
+        patch("main.init_db"),
+        patch("main.get_last_digest", return_value=None),
+        patch("main.fetch_all_sources", new_callable=AsyncMock, return_value=([], [])),
+        patch(
+            "main.process_articles",
+            return_value=([], {"output_count": 0, "duplicates": 0, "quality_dropped": 0}),
+        ),
+        patch("main.get_articles_since", return_value=[]),
+        patch("main.check_gcloud_auth", return_value=True),
+        # synthesize() returning (str, False) is the policy's give-up signal —
+        # invoke_claude returned None, fallback text was substituted, ok=False.
+        patch("main.synthesize", return_value=("fallback text", False)),
+        patch("main.send_email", return_value=True) as mock_send,
+        patch("main.insert_digest", return_value=1),
+        patch("main.update_digest_sent"),
+    ):
+        asyncio.run(run_digest_pipeline())
+
+    assert mock_send.call_count == 1, (
+        f"expected exactly one email per slot; got {mock_send.call_count}"
+    )
+    body = mock_send.call_args.kwargs.get("html_body", "")
+    assert "AI synthesis could not be produced" in body, (
+        "alert email must carry _SYNTH_FAIL_REASON; got: " + body[:200]
+    )

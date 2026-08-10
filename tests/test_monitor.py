@@ -724,3 +724,21 @@ def test_monitor_prompt_requires_article_ids_citations():
 
     assert "article_ids" in prompt
     assert "CITATION REQUIREMENT" in prompt
+
+
+def test_the_backoff_stub_reaches_this_module_too():
+    """The conftest sleep stub must cover every module, not just test_synthesizer.
+
+    It used to be gated on ``"test_synthesizer" in request.module.__name__``. The gate
+    was removed because a future test HERE that drives the policy loop would otherwise
+    sleep for real: 30, 60, 120 and 240 seconds are all reachable backoffs. Removing a
+    gate is preventive, so nothing else can observe it; this pins it directly, and
+    costs nothing when green.
+    """
+    import time as real_time
+
+    import news.synthesizer
+
+    started = real_time.monotonic()
+    news.synthesizer.time.sleep(5)
+    assert real_time.monotonic() - started < 1, "the conftest sleep stub is not active here"

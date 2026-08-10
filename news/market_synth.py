@@ -146,28 +146,27 @@ def synthesize_market(
     prompt = build_market_prompt(articles, previous_highlights, time_window)
     logger.info(f"Market prompt: {len(prompt)} chars for {len(articles)} articles")
 
-    for attempt in range(max_retries):
-        logger.info(f"Market synthesis attempt {attempt + 1}/{max_retries}")
+    raw_output = invoke_claude(
+        prompt,
+        timeout=timeout,
+        claude_command=claude_command,
+        claude_args=claude_args,
+        validate=lambda text: "error" not in parse_synthesis_output(text),
+    )
 
-        raw_output = invoke_claude(
-            prompt,
-            timeout=timeout,
-            claude_command=claude_command,
-            claude_args=claude_args,
-        )
+    if raw_output is None:
+        logger.warning("Market synthesis failed: no output")
+        logger.error("All market synthesis attempts failed, using fallback")
+        fallback = build_market_fallback(articles)
+        return (fallback, False)
 
-        if raw_output is None:
-            logger.warning(f"Attempt {attempt + 1} failed: no output")
-            continue
+    parsed = parse_synthesis_output(raw_output)
 
-        parsed = parse_synthesis_output(raw_output)
+    if "error" not in parsed:
+        logger.info("Market synthesis succeeded")
+        return (parsed, True)
 
-        if "error" not in parsed:
-            logger.info("Market synthesis succeeded")
-            return (parsed, True)
-
-        logger.warning(f"Attempt {attempt + 1} failed: parse error")
-
+    logger.warning("Market synthesis failed: parse error")
     logger.error("All market synthesis attempts failed, using fallback")
     fallback = build_market_fallback(articles)
     return (fallback, False)

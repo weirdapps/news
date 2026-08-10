@@ -31,7 +31,24 @@ synthesis:
     - "--print"
     - "--model"
     - "opus"
-  timeout: 300
+  # 150, not 300, and the unit timeout is why. This profile's unit is 600s, so the
+  # runner's deadline budget is 600 - timeout - 90 (shutdown grace). At 300 that left
+  # 210s and decide()'s forward-looking budget test could never fund a retry on any
+  # failure shape; at 150 it leaves 360s and a fast error (429, API error, empty,
+  # unparseable) gets its second attempt. Measured on the VPS over ~7 weeks: across
+  # 589 successful synthesis calls on monitor/market/stack the median was 77s, p95
+  # 108s, p99 125s and the maximum ever seen 250s. So 150 costs 4 calls that succeed
+  # today (0.68%) -- two monitor, two stack, none market -- and it costs them
+  # outright: a call that is slow because the work is slow truncates on the retry
+  # too, so those four end in the synthesis-failure path, not in a retried success.
+  # On monitor and stack that path sends a ONE-LINE ALERT with the article list
+  # deliberately withheld ("send a one-line alert, NOT the unsynthesized dump"), so
+  # the reader gets no news at all rather than a degraded digest; on market, which is
+  # store-only, the Investment Brief consumes an unsynthesised fallback. What is
+  # bought is a funded second attempt on every FAST failure, which today gets none at
+  # all. Owner ruling 2026-08-10; full distribution in the Task 7 report. Do not raise
+  # this without re-checking the budget arithmetic in main._llm_budget_seconds.
+  timeout: 150
   max_retries: 2
 
 scoring:

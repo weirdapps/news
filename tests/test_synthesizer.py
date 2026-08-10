@@ -5,8 +5,10 @@ import subprocess
 from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
+from news.llm_policy import Outcome, ReauthResult
 from news.models import Article
 from news.synthesizer import (
+    _classify,
     build_fallback_digest,
     build_prompt,
     invoke_claude,
@@ -238,12 +240,20 @@ def test_invoke_claude_opus_falls_back_to_correct_default_when_env_absent(mock_r
 
 
 @patch("news.synthesizer.subprocess.run")
-def test_invoke_claude_downgrades_to_fallback_on_policy_refusal(mock_run, monkeypatch):
-    """A spurious 'anthropic policy' refusal must auto-retry on the Opus 4.6 /
-    europe-west1 fallback tier (model AND region together)."""
+def test_invoke_claude_retries_refusal_on_same_tier(mock_run, monkeypatch):
+    """A policy refusal triggers PLAIN_RETRY on the same tier — no model downgrade.
+
+    Before the policy port, a refusal caused a hard retry on VERTEX_MODEL_FALLBACK
+    (which was byte-identical to VERTEX_MODEL_HEAVY: both claude-opus-5[1m] at eu,
+    per the 2026-08-09 owner decision). The shared policy's REFUSAL row (cap=2)
+    now owns the retry; VERTEX_MODEL_FALLBACK is no longer consulted.
+
+    Old behaviour: second call used ``VERTEX_MODEL_FALLBACK`` / ``VERTEX_REGION_FALLBACK``.
+    New behaviour: second call uses the same tier as the first (PLAIN_RETRY, cap=2).
+    """
     monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
     monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
-    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")
+    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")  # no longer consulted
     monkeypatch.setenv("VERTEX_REGION_FALLBACK", "europe-west1")
     mock_run.side_effect = [
         Mock(
@@ -258,17 +268,26 @@ def test_invoke_claude_downgrades_to_fallback_on_policy_refusal(mock_run, monkey
     assert mock_run.call_count == 2
     second_cmd = mock_run.call_args_list[1][0][0]
     second_env = mock_run.call_args_list[1][1]["env"]
-    assert "claude-opus-4-6[1m]" in second_cmd
-    assert second_env["CLOUD_ML_REGION"] == "europe-west1"
+    assert "claude-opus-4-8[1m]" in second_cmd  # same tier, not fallback
+    assert "claude-opus-4-6[1m]" not in second_cmd
+    assert second_env["CLOUD_ML_REGION"] == "eu"
     assert result == "SYNTH_OK"
 
 
 @patch("news.synthesizer.subprocess.run")
-def test_invoke_claude_downgrades_to_fallback_on_api_error(mock_run, monkeypatch):
-    """An is_error envelope (e.g. a 429) on the primary must also retry on the fallback."""
+def test_invoke_claude_retries_rate_limit_on_same_tier(mock_run, monkeypatch):
+    """A 429/rate-limit error triggers PLAIN_RETRY on the same tier — no model downgrade.
+
+    Before the policy port, an is_error envelope caused a hard retry on
+    VERTEX_MODEL_FALLBACK. The shared policy's RATE_LIMIT row (cap=3) now owns
+    the retry; VERTEX_MODEL_FALLBACK is no longer consulted.
+
+    Old behaviour: second call used ``VERTEX_MODEL_FALLBACK`` / ``VERTEX_REGION_FALLBACK``.
+    New behaviour: second call uses the same tier as the first (PLAIN_RETRY, cap=3).
+    """
     monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
     monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
-    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")
+    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")  # no longer consulted
     monkeypatch.setenv("VERTEX_REGION_FALLBACK", "europe-west1")
     mock_run.side_effect = [
         Mock(
@@ -285,7 +304,9 @@ def test_invoke_claude_downgrades_to_fallback_on_api_error(mock_run, monkeypatch
     result = invoke_claude("p", claude_args=["--print", "--model", "opus"])
 
     assert mock_run.call_count == 2
-    assert "claude-opus-4-6[1m]" in mock_run.call_args_list[1][0][0]
+    second_cmd = mock_run.call_args_list[1][0][0]
+    assert "claude-opus-4-8[1m]" in second_cmd  # same tier, not fallback
+    assert "claude-opus-4-6[1m]" not in second_cmd
     assert result == "RECOVERED"
 
 
@@ -307,22 +328,27 @@ _RAPT_ERR = (
 )
 
 
-@patch("news.synthesizer.refresh_auth")
+@patch("news.synthesizer.reauth")
+@patch("news.synthesizer.running_on_linux", return_value=False)
 @patch("news.synthesizer.subprocess.run")
 def test_invoke_claude_reauths_on_invalid_rapt_then_retries_same_tier(
-    mock_run, mock_reauth, monkeypatch
+    mock_run, mock_linux, mock_reauth, monkeypatch
 ):
-    """An invalid_rapt auth error must trigger a gcloud re-auth and retry the
-    SAME model/region — NOT a model downgrade (creds, not quota)."""
+    """An invalid_rapt auth error must trigger reauth() and retry the SAME
+    model/region — NOT a model downgrade (credential failure, not quota).
+
+    Old behaviour: called ``news.auth.refresh_auth()`` returning bool.
+    New behaviour: calls ``news.llm_policy.reauth()`` returning ReauthResult.
+    """
     monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
     monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
-    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")
+    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")  # no longer consulted
     monkeypatch.setenv("VERTEX_REGION_FALLBACK", "europe-west1")
     mock_run.side_effect = [
         Mock(stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0),
         Mock(stdout=_envelope(result="SYNTH_OK"), returncode=0),
     ]
-    mock_reauth.return_value = True
+    mock_reauth.return_value = ReauthResult.SUCCEEDED
 
     result = invoke_claude("p", claude_args=["--print", "--model", "opus"])
 
@@ -336,30 +362,48 @@ def test_invoke_claude_reauths_on_invalid_rapt_then_retries_same_tier(
     assert result == "SYNTH_OK"
 
 
-@patch("news.synthesizer.refresh_auth")
+@patch("news.synthesizer.reauth")
+@patch("news.synthesizer.running_on_linux", return_value=False)
 @patch("news.synthesizer.subprocess.run")
-def test_invoke_claude_returns_none_when_reauth_fails(mock_run, mock_reauth, monkeypatch):
-    """If re-auth itself fails, synthesis must return None (so the pipeline can
-    alert) — and must NOT waste a model downgrade on an auth failure."""
+def test_invoke_claude_returns_none_when_reauth_fails(
+    mock_run, mock_linux, mock_reauth, monkeypatch
+):
+    """If reauth() fails the one-shot budget is still spent, so the next auth
+    error produces UNRECOVERABLE_AUTH and synthesis returns None.
+
+    Old behaviour: called ``refresh_auth()`` (bool); 1 subprocess call, returned None.
+    New behaviour: calls ``reauth()`` (ReauthResult); 2 subprocess calls (one before
+    reauth, one after the failed reauth), then UNRECOVERABLE_AUTH → None.
+    """
     monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
     monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
     mock_run.return_value = Mock(stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0)
-    mock_reauth.return_value = False
+    mock_reauth.return_value = ReauthResult.FAILED
 
     result = invoke_claude("p", claude_args=["--print", "--model", "opus"])
 
     assert result is None
     mock_reauth.assert_called_once()
-    assert mock_run.call_count == 1  # no retry, no downgrade
+    # 2 calls: auth error → reauth (FAILED, budget spent) → retry → auth error again →
+    # reauth_used=True → UNRECOVERABLE_AUTH → give up
+    assert mock_run.call_count == 2
 
 
-@patch("news.synthesizer.refresh_auth")
+@patch("news.synthesizer.reauth")
 @patch("news.synthesizer.subprocess.run")
 def test_invoke_claude_429_does_not_trigger_reauth(mock_run, mock_reauth, monkeypatch):
-    """A 429/quota error is NOT auth-class: it must downgrade, never re-auth."""
+    """A 429/quota error is NOT auth-class: it must PLAIN_RETRY, never re-auth.
+
+    This test guards ``_is_auth_error`` staying narrow: if "429" ever matched an
+    auth marker, rate-limit errors would trigger a pointless gcloud reauth instead
+    of the RATE_LIMIT retry row.
+
+    Old behaviour: patched ``refresh_auth``; asserted fallback-model downgrade.
+    New behaviour: patches ``reauth``; asserts same-tier retry (no downgrade).
+    """
     monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-4-8[1m]")
     monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
-    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")
+    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", "claude-opus-4-6[1m]")  # no longer consulted
     monkeypatch.setenv("VERTEX_REGION_FALLBACK", "europe-west1")
     mock_run.side_effect = [
         Mock(stdout=_envelope(result="API Error: 429 quota", is_error=True), returncode=0),
@@ -369,5 +413,294 @@ def test_invoke_claude_429_does_not_trigger_reauth(mock_run, mock_reauth, monkey
     result = invoke_claude("p", claude_args=["--print", "--model", "opus"])
 
     mock_reauth.assert_not_called()
-    assert "claude-opus-4-6[1m]" in mock_run.call_args_list[1][0][0]  # downgraded
+    second_cmd = mock_run.call_args_list[1][0][0]
+    assert "claude-opus-4-8[1m]" in second_cmd  # same tier, not fallback
+    assert "claude-opus-4-6[1m]" not in second_cmd
     assert result == "RECOVERED"
+
+
+# --- _classify: nine failure paths → Outcome -----------------------------------
+
+
+def test_timeout_is_its_own_outcome():
+    assert _classify(None, None, subprocess.TimeoutExpired("claude", 300)) is Outcome.TIMEOUT
+
+
+def test_other_subprocess_exceptions_are_api_errors():
+    assert _classify(None, None, OSError("claude not found")) is Outcome.API_ERROR
+
+
+def test_empty_stdout_is_empty_not_unparseable():
+    assert _classify(None, "   ", None) is Outcome.EMPTY
+
+
+def test_non_json_stdout_is_unparseable():
+    assert _classify(None, "API Error: invalid_grant", None) is Outcome.UNPARSEABLE
+
+
+def test_an_auth_marker_in_the_envelope_is_auth():
+    env = {"is_error": True, "result": "API Error: invalid_grant"}
+    assert _classify(env, None, None) is Outcome.AUTH_REAUTH_REQUIRED
+
+
+def test_a_quota_error_is_not_auth():
+    # _is_auth_error is deliberately narrow: a 429 must not trigger a re-auth.
+    env = {"is_error": True, "result": "429 RESOURCE_EXHAUSTED quota exceeded"}
+    assert _classify(env, None, None) is Outcome.RATE_LIMIT
+
+
+def test_a_refusal_is_a_refusal():
+    env = {"stop_reason": "refusal", "result": "I cannot help with that"}
+    assert _classify(env, None, None) is Outcome.REFUSAL
+
+
+def test_a_generic_error_envelope_is_an_api_error():
+    env = {"is_error": True, "result": "500 internal"}
+    assert _classify(env, None, None) is Outcome.API_ERROR
+
+
+def test_an_empty_result_field_is_empty():
+    env = {"result": "   "}
+    assert _classify(env, None, None) is Outcome.EMPTY
+
+
+def test_a_good_envelope_is_ok():
+    env = {"result": "the synthesis"}
+    assert _classify(env, None, None) is Outcome.OK
+
+
+# --- Reachability: each _run_once failure path must reach the policy loop ----------
+#
+# These tests drive the full invoke_claude path. Before Task 3, _run_once collapsed
+# all four failure conditions into a bare None; _classify(None, None, None) returned
+# EMPTY, and EMPTY's tighter cap meant a timeout got fewer paid retries than the
+# decision table specified. The tests below assert on subprocess call counts that
+# DIFFER between outcome caps, proving each path reaches the policy independently.
+
+
+@patch("news.synthesizer.time.sleep")
+@patch("news.synthesizer.subprocess.run")
+def test_a_good_first_call_costs_exactly_one_invocation(mock_run, mock_sleep):
+    """Outcome.OK short-circuits the policy loop immediately."""
+    mock_run.return_value = Mock(stdout=_envelope(result="the synthesis"), returncode=0)
+    out = invoke_claude("prompt", timeout=300)
+    assert out == "the synthesis"
+    assert mock_run.call_count == 1
+    assert mock_sleep.call_count == 0
+
+
+@patch("news.synthesizer.time.sleep")
+@patch("news.synthesizer.subprocess.run")
+def test_repeated_timeouts_stop_at_the_global_cap(mock_run, mock_sleep):
+    """TimeoutExpired must use Outcome.TIMEOUT's own cap (2), not EMPTY's tighter cap (1).
+
+    Before Task 3, _run_once returned bare None for all failure paths, so
+    _classify(None, None, None) always returned EMPTY (cap=1 → 2 calls). With the
+    triple return, TimeoutExpired carries its exception to _classify → TIMEOUT
+    (cap=2 → 3 calls). The exact assertion == 3 proves TIMEOUT uses its own row cap:
+    if the regression is reintroduced (all paths collapse to None), _classify returns
+    EMPTY and call_count drops to 2, failing this test.
+    """
+    mock_run.side_effect = subprocess.TimeoutExpired("claude", 300)
+    out = invoke_claude("prompt", timeout=300)
+    assert out is None
+    # TIMEOUT cap=2 → 3 subprocess calls (initial + 2 retries, then GIVE_UP).
+    assert mock_run.call_count == 3
+
+
+@patch("news.synthesizer.reauth")
+@patch("news.synthesizer.running_on_linux", return_value=False)
+@patch("news.synthesizer.time.sleep")
+@patch("news.synthesizer.subprocess.run")
+def test_an_auth_error_triggers_exactly_one_reauth_then_succeeds(
+    mock_run, mock_sleep, mock_linux, mock_reauth
+):
+    """AUTH_REAUTH_REQUIRED must trigger reauth() and retry the same tier."""
+    mock_reauth.return_value = ReauthResult.SUCCEEDED
+    mock_run.side_effect = [
+        Mock(stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0),
+        Mock(stdout=_envelope(result="the synthesis"), returncode=0),
+    ]
+    assert invoke_claude("prompt", timeout=300) == "the synthesis"
+    assert mock_reauth.call_count == 1
+
+
+@patch("news.synthesizer.reauth")
+@patch("news.synthesizer.running_on_linux", return_value=False)
+@patch("news.synthesizer.time.sleep")
+@patch("news.synthesizer.subprocess.run")
+def test_a_second_auth_error_does_not_reauth_again(mock_run, mock_sleep, mock_linux, mock_reauth):
+    """The one-shot re-auth latch must not reset between retries."""
+    mock_reauth.return_value = ReauthResult.SUCCEEDED
+    mock_run.return_value = Mock(stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0)
+    assert invoke_claude("prompt", timeout=300) is None
+    assert mock_reauth.call_count == 1, "the one-shot re-auth budget must not reset"
+
+
+@patch("news.synthesizer.reauth")
+@patch("news.synthesizer.running_on_linux", return_value=True)
+@patch("news.synthesizer.subprocess.run")
+def test_linux_auth_error_gives_up_without_calling_reauth(mock_run, mock_linux, mock_reauth):
+    """On Linux, an auth error produces UNRECOVERABLE_AUTH and reauth() is never called.
+
+    The WAIT_FOR_PUSH path requires PUSH_WAIT_SECONDS = 900 + 120 = 1020s. With the
+    default 300s timeout the remaining budget cannot fund that wait, so decide() returns
+    UNRECOVERABLE_AUTH immediately. This is the correct behaviour: the VPS cannot push
+    a token to itself, and blocking for 17 minutes would exceed news-monitor's
+    TimeoutStartSec=600 and be SIGKILLed anyway. If the budget arithmetic ever changes
+    so that a 300s job can afford the push wait, this test will break loudly.
+    """
+    mock_run.return_value = Mock(stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0)
+
+    result = invoke_claude("prompt", timeout=300)
+
+    assert result is None
+    mock_reauth.assert_not_called()
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_api_error_path_uses_its_own_cap(mock_run):
+    """OSError maps to Outcome.API_ERROR (cap=2) → 3 calls, not EMPTY's cap=1 → 2.
+
+    Before Task 3, _run_once returning bare None for all failure paths meant
+    _classify(None, None, None) = EMPTY for other-exception too, giving only 2 calls.
+    The triple return carries the OSError to _classify → API_ERROR (cap=2 → 3 calls).
+    Reverting _run_once to return (None, None, None) drops call_count to 2, failing
+    the == 3 assertion.
+    """
+    mock_run.side_effect = OSError("claude not found")
+    out = invoke_claude("prompt", timeout=300)
+    assert out is None
+    # API_ERROR cap=2 → 3 subprocess calls (initial + 2 retries, then GIVE_UP).
+    assert mock_run.call_count == 3
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_empty_stdout_path_uses_its_own_cap(mock_run, caplog):
+    """Empty stdout maps to Outcome.EMPTY (cap=1) → 2 calls.
+
+    The caplog assertion on 'empty' discriminates this path from UNPARSEABLE, which
+    shares the same call count (cap=1 → 2) but emits 'unparseable' in the give-up log.
+    """
+    import logging
+
+    mock_run.return_value = Mock(stdout="", stderr="", returncode=0)
+    with caplog.at_level(logging.ERROR, logger="news.synthesizer"):
+        out = invoke_claude("prompt", timeout=300)
+    assert out is None
+    # EMPTY cap=1 → 2 subprocess calls (initial + 1 retry, then GIVE_UP).
+    assert mock_run.call_count == 2
+    assert any("empty" in msg for msg in caplog.messages)
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_non_json_stdout_path_uses_its_own_cap(mock_run, caplog):
+    """Non-JSON stdout maps to Outcome.UNPARSEABLE (cap=1) → 2 calls with 'unparseable' log.
+
+    Before Task 3, non-JSON stdout collapsed to bare None → EMPTY → 2 calls but
+    with 'empty' in the give-up log. The triple return carries raw to _classify →
+    UNPARSEABLE. The caplog assertion on 'unparseable' distinguishes the path:
+    reverting _run_once to (None, None, None) drops the outcome to EMPTY and emits
+    'empty' instead, failing this assertion.
+    """
+    import logging
+
+    mock_run.return_value = Mock(stdout="this is not json", returncode=0)
+    with caplog.at_level(logging.ERROR, logger="news.synthesizer"):
+        out = invoke_claude("prompt", timeout=300)
+    assert out is None
+    # UNPARSEABLE cap=1 → 2 subprocess calls (initial + 1 retry, then GIVE_UP).
+    assert mock_run.call_count == 2
+    assert any("unparseable" in msg for msg in caplog.messages)
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_content_validate_failure_triggers_unparseable_retry(mock_run):
+    """A result that passes _classify but fails the caller's validate callback is
+    reclassified as UNPARSEABLE, giving it a retry under UNPARSEABLE's cap (1).
+
+    This restores the content-level retry the old outer per-profile loops provided:
+    when parse_synthesis_output returned a dict with 'error', the loop would continue
+    and bill a second model call. With the loops gone, only the validate callback
+    path provides that retry. Without it, a chatty preamble wrapping unparseable
+    synthesis JSON returns immediately from invoke_claude, sending the caller straight
+    to the fallback digest — the exact failure class behind the 2026-08-01 incident.
+    """
+    bad_result = '{"error": "could not parse synthesis"}'
+    good_result = '{"executive_brief": [], "sections": []}'
+    mock_run.side_effect = [
+        Mock(stdout=_envelope(result=bad_result), returncode=0),
+        Mock(stdout=_envelope(result=good_result), returncode=0),
+    ]
+
+    result = invoke_claude(
+        "prompt",
+        timeout=300,
+        validate=lambda text: '"error"' not in text,
+    )
+
+    assert mock_run.call_count == 2
+    assert result == good_result
+
+
+# A top-level JSON array. json.loads succeeds, so parse_synthesis_output reaches
+# _validate_synthesis, which calls .get on a list and raises AttributeError. This is
+# the exact shape the reviewer executed; it is a plausible model output, not a
+# contrived one, since the schema asks for a JSON object containing arrays.
+_TOP_LEVEL_ARRAY = '[{"executive_brief": [], "sections": []}]'
+
+
+# Byte-identical to the callback all five profiles pass (synthesizer.py,
+# monitor_synth.py, market_synth.py, stack_synth.py, topic_synth.py). Using the real
+# one matters: a hand-written raising stub would prove the guard works without
+# proving that production can reach it.
+def _production_validate(text):
+    return "error" not in parse_synthesis_output(text)
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_a_raising_validate_becomes_unparseable_not_a_dead_run(mock_run, caplog):
+    """A validate callback that RAISES must be a policy outcome, not an escaped exception.
+
+    invoke_claude is declared ``-> str | None``. Before this guard, an AttributeError
+    from the caller's validate callback unwound out of it, past synthesize(), to
+    main.py:1441's ``except Exception`` and sys.exit(1) — killing the run at the
+    synthesis step, which precedes the alert-email path at main.py:479. So the one
+    failure the per-slot alert exists for produced no email at all.
+
+    UNPARSEABLE is the right reclassification: a validator that cannot even inspect
+    the text is telling us the text is not usable, which is what UNPARSEABLE means.
+    """
+    import logging
+
+    mock_run.return_value = Mock(stdout=_envelope(result=_TOP_LEVEL_ARRAY), returncode=0)
+
+    with caplog.at_level(logging.ERROR, logger="news.synthesizer"):
+        result = invoke_claude("prompt", timeout=300, validate=_production_validate)
+
+    assert result is None
+    # UNPARSEABLE cap=1 → 2 subprocess calls, then GIVE_UP. The log discriminates it
+    # from EMPTY, which shares the call count.
+    assert mock_run.call_count == 2
+    assert any("unparseable" in msg for msg in caplog.messages)
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_a_raising_validate_still_allows_the_retry_to_succeed(mock_run):
+    """The reclassification is a retry, not a swallow: a good second call still returns.
+
+    Pins that the guard routes through the policy rather than short-circuiting to
+    None. Without this, a guard implemented as ``except Exception: return None``
+    would pass the test above and silently lose the retry the validate path exists
+    to provide.
+    """
+    good_result = '{"executive_brief": [], "sections": []}'
+    mock_run.side_effect = [
+        Mock(stdout=_envelope(result=_TOP_LEVEL_ARRAY), returncode=0),
+        Mock(stdout=_envelope(result=good_result), returncode=0),
+    ]
+
+    result = invoke_claude("prompt", timeout=300, validate=_production_validate)
+
+    assert mock_run.call_count == 2
+    assert result == good_result
