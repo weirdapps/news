@@ -12,12 +12,16 @@ cost low while improving recall on names not in the dictionary.
 from __future__ import annotations
 
 import json
+import logging
 import re
 import subprocess
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 import yaml
+
+logger = logging.getLogger(__name__)
 
 CASHTAG_RE = re.compile(r"\$([A-Z][A-Z0-9.\-]{0,5})\b")
 
@@ -110,6 +114,26 @@ def extract_tickers_rules(text: str, ticker_dict: dict[str, str]) -> list[str]:
     return sorted(found)
 
 
+class TaggerAuthError(Exception):
+    """Raised when the LLM CLI reports a credential failure.
+
+    Distinct from a parse error or empty result: an auth failure cannot be
+    retried without re-authentication, and returning [] would make it
+    indistinguishable from an article that genuinely mentions no tickers.
+    """
+
+
+_AUTH_ERROR_MARKERS = ("invalid_rapt", "invalid_grant", "reauth", "unauthenticated")
+
+
+def _is_auth_error(env: dict[str, Any] | None) -> bool:
+    """True if the envelope is an error AND looks like a gcloud auth-class failure."""
+    if not env or not env.get("is_error"):
+        return False
+    result = str(env.get("result", "")).lower()
+    return any(marker in result for marker in _AUTH_ERROR_MARKERS)
+
+
 _TAGGER_PROMPT = """Extract stock tickers explicitly mentioned in this news article.
 
 Rules:
@@ -135,9 +159,12 @@ def extract_tickers_llm(
 
     Routes via Vertex AI (corporate-billed) — never the anthropic SDK with a personal API key.
     Returns [] on any error (CLI missing, non-zero exit, malformed JSON, timeout).
+    Raises TaggerAuthError on a credential failure so the caller can surface it
+    rather than silently returning [] which is indistinguishable from a genuine
+    empty result.
     """
     prompt = _TAGGER_PROMPT + text[:max_chars]
-    cmd = ["claude", "--model", model, "--print"]
+    cmd = ["claude", "--model", model, "--print", "--output-format", "json"]
     try:
         proc = subprocess.run(
             cmd,
@@ -149,14 +176,28 @@ def extract_tickers_llm(
         if proc.returncode != 0:
             return []
         raw = (proc.stdout or "").strip()
+        try:
+            envelope = json.loads(raw)
+        except (json.JSONDecodeError, ValueError):
+            return []
+        if _is_auth_error(envelope):
+            raise TaggerAuthError(str(envelope.get("result", "")))
+        if envelope.get("is_error"):
+            return []
+        result = str(envelope.get("result", "")).strip()
         # Be lenient: strip markdown fences if the model wraps the JSON
-        if raw.startswith("```"):
-            raw = raw.strip("`").lstrip("json").strip()
-        data = json.loads(raw)
+        if result.startswith("```"):
+            result = result.strip("`").lstrip("json").strip()
+        try:
+            data = json.loads(result)
+        except (json.JSONDecodeError, ValueError):
+            return []
         tickers = data.get("tickers", [])
         if not isinstance(tickers, list):
             return []
         return sorted({t.upper() for t in tickers if isinstance(t, str)})
+    except TaggerAuthError:
+        raise
     except Exception:
         return []
 
@@ -181,6 +222,10 @@ def tag_article(
 
     fallback = llm_fallback_categories or DEFAULT_LLM_FALLBACK_CATEGORIES
     if any(c in fallback for c in (article.categories or [])):
-        article.tickers = extract_tickers_llm(text)
+        try:
+            article.tickers = extract_tickers_llm(text)
+        except TaggerAuthError:
+            logger.error("LLM ticker extraction failed: credential error")
+            raise
     else:
         article.tickers = []
