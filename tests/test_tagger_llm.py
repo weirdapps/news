@@ -1,5 +1,6 @@
 import json
 import logging
+import subprocess
 from unittest.mock import MagicMock, Mock, patch
 
 from news.tagger import extract_tickers_llm
@@ -170,3 +171,87 @@ def test_auth_give_up_logs_at_error_level(mock_run, mock_refresh, mock_linux, ca
     with caplog.at_level(logging.ERROR, logger="news.tagger"):
         extract_tickers_llm("Apple news")
     assert any(r.levelno == logging.ERROR for r in caplog.records)
+
+
+# --- Every give-up path must leave a record -----------------------------------
+#
+# Task 6 exists to end "the tagger returns [] and you cannot tell why". Its auth
+# branch does that for auth errors, but spec §15 measured the CLI taking 200.6 s to
+# report invalid_grant, because it retries the credential refresh internally. At the
+# 30 s default the subprocess raises TimeoutExpired first, _invoke_once swallowed it
+# to None, _is_auth_error(None) was False, and the function returned [] with ZERO log
+# records — byte-for-byte the pre-branch behaviour. The timeout, not the auth
+# envelope, is the observable shape of a credential outage on this host, so it is the
+# one that has to be loud.
+
+
+@patch("news.tagger.refresh_auth")
+@patch("news.tagger.subprocess.run")
+def test_a_cli_timeout_is_logged_at_error_and_does_not_look_like_an_auth_error(
+    mock_run, mock_refresh, caplog
+):
+    """A TimeoutExpired must be a distinct, ERROR-level signal — and only a signal.
+
+    It must not be inferred to be an auth error: a slow model produces the same
+    exception, and guessing would burn the one-shot re-auth budget on a hunch.
+    """
+    mock_run.side_effect = subprocess.TimeoutExpired(cmd="claude", timeout=30)
+
+    with caplog.at_level(logging.ERROR, logger="news.tagger"):
+        result = extract_tickers_llm("some article text")
+
+    assert result == []
+    assert any("timed out" in r.message and r.levelno == logging.ERROR for r in caplog.records)
+    # The timeout must name its own duration: at 30 s this is the ONLY evidence an
+    # operator gets that a 200.6 s auth failure is in progress.
+    assert any("30" in r.message for r in caplog.records)
+    mock_refresh.assert_not_called()
+
+
+@patch("news.tagger.subprocess.run")
+def test_a_nonzero_exit_is_logged_at_error(mock_run, caplog):
+    """Non-auth failures used to give up silently. Closes review finding M3."""
+    mock_run.return_value = _mock_proc("boom", returncode=1)
+
+    with caplog.at_level(logging.ERROR, logger="news.tagger"):
+        assert extract_tickers_llm("text") == []
+
+    assert any(r.levelno == logging.ERROR for r in caplog.records)
+
+
+@patch("news.tagger.subprocess.run")
+def test_unlaunchable_cli_is_logged_at_error(mock_run, caplog):
+    mock_run.side_effect = OSError("command not found")
+
+    with caplog.at_level(logging.ERROR, logger="news.tagger"):
+        assert extract_tickers_llm("text") == []
+
+    assert any(r.levelno == logging.ERROR for r in caplog.records)
+
+
+@patch("news.tagger.subprocess.run")
+def test_non_json_stdout_is_logged_at_error(mock_run, caplog):
+    mock_run.return_value = _mock_proc("I'm afraid I can't do that")
+
+    with caplog.at_level(logging.ERROR, logger="news.tagger"):
+        assert extract_tickers_llm("text") == []
+
+    assert any(r.levelno == logging.ERROR for r in caplog.records)
+
+
+@patch("news.tagger.subprocess.run")
+def test_the_default_timeout_is_the_documented_thirty_seconds(mock_run):
+    """Pins the ruling, so a future raise is a deliberate edit and not a drift.
+
+    30 s is kept on purpose. Raising it past spec §15's measured 200.6 s would make
+    the auth branch reachable, but all five news pipelines run only on the VPS, where
+    that branch's entire effect is one log line — running_on_linux() fast-fails
+    without re-authing. The cost is paid per article: 20 LLM-tagged articles in one
+    run is ordinary (measured 10-81/day across runs), so an auth outage would go from
+    ~600 s of timeouts to ~4000 s of them, guaranteeing SIGTERM before the alert
+    email on every profile including the 2400 s digest. The distinct ERROR log above
+    delivers Task 6's "stop degrading silently" mandate at 1/7th the wall clock.
+    """
+    mock_run.return_value = _mock_proc(json.dumps({"result": json.dumps({"tickers": []})}))
+    extract_tickers_llm("text")
+    assert mock_run.call_args[1]["timeout"] == 30

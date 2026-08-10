@@ -130,7 +130,21 @@ def _reset_reauth_latch() -> None:
 
 
 def _invoke_once(cmd: list[str], prompt: str, timeout: int) -> dict[str, Any] | None:
-    """Run the claude CLI once. Returns the parsed JSON envelope, or None on failure."""
+    """Run the claude CLI once. Returns the parsed JSON envelope, or None on failure.
+
+    Every None return logs at ERROR, and the four causes are distinguishable in the
+    log. A blanket ``except Exception: return None`` used to collapse them, which
+    mattered most for TimeoutExpired: spec §15 measured the CLI taking 200.6 s to
+    report ``invalid_grant``, because it retries the credential refresh internally.
+    At this module's 30 s default the subprocess therefore times out long before the
+    auth envelope arrives, so a credential outage reached the caller as a silent []
+    and never touched the auth branch below. The timeout IS the observable shape of
+    that outage here, and it is the record an operator has to be able to find.
+
+    A timeout is deliberately NOT inferred to be an auth error. A slow model raises
+    the identical exception, and acting on the guess would spend the one-shot re-auth
+    budget on a hunch.
+    """
     try:
         proc = subprocess.run(
             cmd,
@@ -139,14 +153,31 @@ def _invoke_once(cmd: list[str], prompt: str, timeout: int) -> dict[str, Any] | 
             text=True,
             timeout=timeout,
         )
-    except Exception:
+    except subprocess.TimeoutExpired:
+        logger.error(
+            "tagger: claude CLI timed out after %ss — article tagged empty. "
+            "Repeated across articles this is the signature of a credential outage, "
+            "which the CLI takes ~200s to report.",
+            timeout,
+        )
+        return None
+    except Exception as exc:  # noqa: BLE001 - log and degrade, never raise
+        logger.error("tagger: could not invoke claude CLI (%s) — article tagged empty", exc)
         return None
     if proc.returncode != 0:
+        logger.error(
+            "tagger: claude CLI exited %s — article tagged empty. stderr: %s",
+            proc.returncode,
+            (proc.stderr or "")[:300] or "(none)",
+        )
         return None
     raw = (proc.stdout or "").strip()
     try:
         return json.loads(raw)
     except (json.JSONDecodeError, ValueError):
+        logger.error(
+            "tagger: claude CLI output was not JSON (%r) — article tagged empty", raw[:200]
+        )
         return None
 
 
@@ -206,7 +237,21 @@ def extract_tickers_llm(
     Returns [] on any error. On a credential failure, attempts one re-auth on macOS (using the
     module-level one-shot latch) before giving up. On Linux, the wait for the Mac's token push
     would exceed TimeoutStartSec (600 s) and trigger SIGKILL, so re-auth is skipped and the
-    article is tagged empty. The give-up path always logs at ERROR so the run is not silent.
+    article is tagged empty. Every give-up path logs at ERROR so the run is not silent.
+
+    ``timeout`` stays at 30 s, and that is a ruling rather than a leftover. Spec §15
+    measured the CLI taking 200.6 s to report ``invalid_grant``, so at 30 s the auth
+    branch below is unreachable for the failure that actually occurs: the subprocess
+    times out first. Raising the timeout past ~210 s would make it reachable, and is
+    still wrong. All five news pipelines run only on the VPS, where that branch does
+    nothing but log — ``running_on_linux()`` fast-fails without re-authing — while the
+    cost is paid per article on every host. This function is called once per
+    market-adjacent article with no rules hit, measured at 10-81 per day and routinely
+    ~20 in a single digest run, so an outage would grow from ~600 s of timeouts to
+    ~4000 s, which SIGTERMs even the 2400 s digest before its alert email. Task 6's
+    mandate was to stop degrading silently; ``_invoke_once``'s ERROR log delivers that
+    for a seventh of the wall clock. Re-auth on a credential outage remains synthesis's
+    job, where the policy loop and the per-slot alert live.
     """
     global _reauth_attempted
 
