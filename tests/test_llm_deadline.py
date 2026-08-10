@@ -27,6 +27,7 @@ from main import (
     _may_wait_for_token_push,
     install_llm_deadline,
 )
+from news.config import get_settings
 from news.llm_policy import PUSH_WAIT_SECONDS
 from news.synthesizer import invoke_claude
 
@@ -256,6 +257,14 @@ def test_the_600s_profiles_now_fund_a_second_attempt(profile, pre_synthesis_seco
     A fast 429 is the retry worth having. A timeout retried under the same ceiling
     rarely behaves differently, which is why 150 was chosen over 120.
     """
+    # The pinned timeout must be the one production actually passes, or this test
+    # would keep passing against a config that no longer funds the retry: the deadline
+    # comes from the config while the call ceiling comes from the pin, and a drift
+    # between them is exactly the case worth catching here.
+    assert (
+        get_settings(profile=profile).get("synthesis", {}).get("timeout") == _CALL_TIMEOUT[profile]
+    )
+
     t0 = 1_700_000_000.0
     clock = _FakeClock(t0)
     run = _rate_limited(clock, latency=5)
