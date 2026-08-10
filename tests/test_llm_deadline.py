@@ -465,6 +465,28 @@ def test_systemd_nonzero_exit_falls_back_silently(monkeypatch):
     assert _query_systemd_timeout("monitor") is None
 
 
+def test_an_unknown_unit_is_ignored_even_though_systemctl_succeeds(monkeypatch):
+    """`systemctl show` does NOT fail on an unknown unit: it exits 0 with the defaults.
+
+    This is what turned CI red. On the ubuntu runner systemd exists but the news units do
+    not, so the query returned the manager default of 1min 30s with exit 0. The code took
+    min(table, 90), the margin went negative, and the startup assertion refused to run
+    every profile. Verified on the VPS: an invented unit name returns "1min 30s" with
+    LoadState=not-found, while news-digest returns "40min" with LoadState=loaded. Only a
+    loaded unit's timeout means anything, so LoadState is the gate.
+    """
+    import subprocess
+    from unittest.mock import MagicMock
+
+    from main import _query_systemd_timeout
+
+    proc = MagicMock()
+    proc.returncode = 0
+    proc.stdout = "LoadState=not-found\nTimeoutStartUSec=1min 30s\n"
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: proc)
+    assert _query_systemd_timeout("digest") is None
+
+
 def test_systemd_timeout_microseconds_parsed_correctly(monkeypatch):
     """TimeoutStartUSec returns raw microseconds; the parser must convert to seconds.
 
@@ -478,7 +500,7 @@ def test_systemd_timeout_microseconds_parsed_correctly(monkeypatch):
 
     proc = MagicMock()
     proc.returncode = 0
-    proc.stdout = "600000000\n"  # 600s in microseconds
+    proc.stdout = "LoadState=loaded\nTimeoutStartUSec=600000000\n"  # 600s in microseconds
     monkeypatch.setattr(subprocess, "run", lambda *a, **k: proc)
     assert _query_systemd_timeout("monitor") == 600
 
@@ -492,7 +514,7 @@ def test_systemd_timeout_minute_string_parsed_correctly(monkeypatch):
 
     proc = MagicMock()
     proc.returncode = 0
-    proc.stdout = "10min\n"
+    proc.stdout = "LoadState=loaded\nTimeoutStartUSec=10min\n"
     monkeypatch.setattr(subprocess, "run", lambda *a, **k: proc)
     assert _query_systemd_timeout("monitor") == 600
 
@@ -513,7 +535,7 @@ def test_systemd_below_table_uses_smaller_and_warns(monkeypatch, caplog):
 
     proc = MagicMock()
     proc.returncode = 0
-    proc.stdout = "1800000000\n"  # 1800s in microseconds, vs table 2400s for digest
+    proc.stdout = "LoadState=loaded\nTimeoutStartUSec=1800000000\n"  # 1800s vs table 2400s
     monkeypatch.setattr(subprocess, "run", lambda *a, **k: proc)
 
     now = 1_700_000_000.0
@@ -542,7 +564,7 @@ def test_systemd_above_table_uses_table_and_warns(monkeypatch, caplog):
 
     proc = MagicMock()
     proc.returncode = 0
-    proc.stdout = "3600000000\n"  # 3600s in microseconds, vs table 2400s for digest
+    proc.stdout = "LoadState=loaded\nTimeoutStartUSec=3600000000\n"  # 3600s vs table 2400s
     monkeypatch.setattr(subprocess, "run", lambda *a, **k: proc)
 
     now = 1_700_000_000.0
@@ -563,7 +585,7 @@ def test_systemd_agrees_with_table_no_warning(monkeypatch, caplog):
 
     proc = MagicMock()
     proc.returncode = 0
-    proc.stdout = "2400000000\n"  # matches table value for digest
+    proc.stdout = "LoadState=loaded\nTimeoutStartUSec=2400000000\n"  # matches the table
     monkeypatch.setattr(subprocess, "run", lambda *a, **k: proc)
 
     now = 1_700_000_000.0

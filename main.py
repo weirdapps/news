@@ -199,14 +199,32 @@ def _query_systemd_timeout(profile: str) -> int | None:
         return None
     try:
         result = subprocess.run(
-            ["systemctl", "--user", "show", f"{unit}.service", "-p", "TimeoutStartUSec", "--value"],
+            # LoadState first: `systemctl show` does NOT fail on an unknown unit, it
+            # exits 0 and prints the manager's defaults. Verified on the VPS: an invented
+            # unit name returns "1min 30s" with LoadState=not-found, while news-digest
+            # returns "40min" with LoadState=loaded. Trusting the exit code alone made CI
+            # adopt 90s as every profile's budget, drive the margin negative, and refuse
+            # to run. Only a loaded unit's timeout means anything.
+            [
+                "systemctl",
+                "--user",
+                "show",
+                f"{unit}.service",
+                "-p",
+                "LoadState",
+                "-p",
+                "TimeoutStartUSec",
+            ],
             capture_output=True,
             text=True,
             timeout=5,
         )
         if result.returncode != 0:
             return None
-        return _parse_systemd_duration(result.stdout)
+        fields = dict(line.split("=", 1) for line in result.stdout.splitlines() if "=" in line)
+        if fields.get("LoadState") != "loaded":
+            return None
+        return _parse_systemd_duration(fields.get("TimeoutStartUSec", ""))
     except Exception:  # noqa: BLE001 - FileNotFoundError, TimeoutExpired, etc.
         return None
 
