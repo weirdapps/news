@@ -1,9 +1,16 @@
 import json
+import logging
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from news.tagger import TaggerAuthError, extract_tickers_llm
+from news.tagger import _reset_reauth_latch, extract_tickers_llm
+
+
+@pytest.fixture(autouse=True)
+def _reset_latch():
+    """Reset the per-process reauth latch before every test."""
+    _reset_reauth_latch()
 
 
 def _mock_proc(stdout_text, returncode=0):
@@ -83,17 +90,20 @@ def test_llm_passes_custom_model(mock_run):
     assert "opus" in cmd
 
 
+@patch("news.tagger.running_on_linux", return_value=False)
+@patch("news.tagger.refresh_auth", return_value=False)
 @patch("news.tagger.subprocess.run")
-def test_an_auth_failure_is_distinguishable_from_no_tickers(mock_run):
-    # Before: json.loads("API Error: invalid_grant") raised, the blanket handler
-    # swallowed it, and the caller could not tell a broken credential from an
-    # article that genuinely mentions no tickers.
+def test_an_auth_failure_is_distinguishable_from_no_tickers(mock_run, mock_refresh, mock_linux):
+    # Old behaviour: raised TaggerAuthError. New behaviour: attempts one re-auth,
+    # logs at ERROR, and returns [] so the run continues. The re-auth attempt (not
+    # silent absorption) is what distinguishes auth failure from a genuine empty result.
     mock_run.return_value = Mock(
         stdout='{"is_error": true, "result": "API Error: invalid_grant"}',
         returncode=0,
     )
-    with pytest.raises(TaggerAuthError):
-        extract_tickers_llm("some article text")
+    result = extract_tickers_llm("some article text")
+    assert result == []
+    mock_refresh.assert_called_once()
 
 
 @patch("news.tagger.subprocess.run")
@@ -111,3 +121,55 @@ def test_tickers_are_uppercased_deduped_and_sorted(mock_run):
         returncode=0,
     )
     assert extract_tickers_llm("text") == ["AAPL", "MSFT"]
+
+
+@patch("news.tagger.running_on_linux", return_value=False)
+@patch("news.tagger.refresh_auth", return_value=True)
+@patch("news.tagger.subprocess.run")
+def test_reauth_success_on_macos_retries_and_returns_tickers(mock_run, mock_refresh, mock_linux):
+    auth_envelope = '{"is_error": true, "result": "API Error: invalid_grant"}'
+    success_envelope = json.dumps({"result": json.dumps({"tickers": ["AAPL"]})})
+    mock_run.side_effect = [
+        Mock(stdout=auth_envelope, returncode=0),
+        Mock(stdout=success_envelope, returncode=0),
+    ]
+    assert extract_tickers_llm("Apple news") == ["AAPL"]
+    mock_refresh.assert_called_once()
+
+
+@patch("news.tagger.running_on_linux", return_value=True)
+@patch("news.tagger.refresh_auth")
+@patch("news.tagger.subprocess.run")
+def test_auth_error_on_linux_skips_reauth_and_returns_empty(mock_run, mock_refresh, mock_linux):
+    """On Linux, waiting for the Mac's token push can exceed TimeoutStartSec (600 s)
+    and SIGKILL the service. The tagger must not call refresh_auth on this host."""
+    mock_run.return_value = Mock(
+        stdout='{"is_error": true, "result": "API Error: invalid_grant"}',
+        returncode=0,
+    )
+    assert extract_tickers_llm("Apple news") == []
+    mock_refresh.assert_not_called()
+
+
+@patch("news.tagger.running_on_linux", return_value=False)
+@patch("news.tagger.refresh_auth", return_value=False)
+@patch("news.tagger.subprocess.run")
+def test_reauth_attempted_at_most_once_per_process(mock_run, mock_refresh, mock_linux):
+    auth_envelope = '{"is_error": true, "result": "API Error: invalid_grant"}'
+    mock_run.return_value = Mock(stdout=auth_envelope, returncode=0)
+    extract_tickers_llm("first article")
+    extract_tickers_llm("second article")
+    mock_refresh.assert_called_once()
+
+
+@patch("news.tagger.running_on_linux", return_value=False)
+@patch("news.tagger.refresh_auth", return_value=False)
+@patch("news.tagger.subprocess.run")
+def test_auth_give_up_logs_at_error_level(mock_run, mock_refresh, mock_linux, caplog):
+    mock_run.return_value = Mock(
+        stdout='{"is_error": true, "result": "API Error: invalid_grant"}',
+        returncode=0,
+    )
+    with caplog.at_level(logging.ERROR, logger="news.tagger"):
+        extract_tickers_llm("Apple news")
+    assert any(r.levelno == logging.ERROR for r in caplog.records)

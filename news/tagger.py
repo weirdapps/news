@@ -21,6 +21,9 @@ from typing import Any
 
 import yaml
 
+from news.auth import refresh_auth
+from news.llm_policy import running_on_linux
+
 logger = logging.getLogger(__name__)
 
 CASHTAG_RE = re.compile(r"\$([A-Z][A-Z0-9.\-]{0,5})\b")
@@ -114,13 +117,55 @@ def extract_tickers_rules(text: str, ticker_dict: dict[str, str]) -> list[str]:
     return sorted(found)
 
 
-class TaggerAuthError(Exception):
-    """Raised when the LLM CLI reports a credential failure.
+# One re-auth attempt per process. A per-article budget would call the login
+# script once per article during an outage — same problem as the five nested
+# retry loops that Task 3 removed. Resettable for tests.
+_reauth_attempted = False
 
-    Distinct from a parse error or empty result: an auth failure cannot be
-    retried without re-authentication, and returning [] would make it
-    indistinguishable from an article that genuinely mentions no tickers.
-    """
+
+def _reset_reauth_latch() -> None:
+    """Reset the per-process reauth latch. For tests only."""
+    global _reauth_attempted
+    _reauth_attempted = False
+
+
+def _invoke_once(cmd: list[str], prompt: str, timeout: int) -> dict[str, Any] | None:
+    """Run the claude CLI once. Returns the parsed JSON envelope, or None on failure."""
+    try:
+        proc = subprocess.run(
+            cmd,
+            input=prompt,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except Exception:
+        return None
+    if proc.returncode != 0:
+        return None
+    raw = (proc.stdout or "").strip()
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, ValueError):
+        return None
+
+
+def _tickers_from_envelope(envelope: dict[str, Any] | None) -> list[str]:
+    """Extract tickers from a parsed envelope. Returns [] on any failure."""
+    if envelope is None or envelope.get("is_error"):
+        return []
+    result = str(envelope.get("result", "")).strip()
+    # Be lenient: strip markdown fences if the model wraps the JSON
+    if result.startswith("```"):
+        result = result.strip("`").lstrip("json").strip()
+    try:
+        data = json.loads(result)
+    except (json.JSONDecodeError, ValueError):
+        return []
+    tickers = data.get("tickers", [])
+    if not isinstance(tickers, list):
+        return []
+    return sorted({t.upper() for t in tickers if isinstance(t, str)})
 
 
 _AUTH_ERROR_MARKERS = ("invalid_rapt", "invalid_grant", "reauth", "unauthenticated")
@@ -158,48 +203,45 @@ def extract_tickers_llm(
     """Call the local `claude` CLI to extract tickers. Returns sorted unique uppercase list.
 
     Routes via Vertex AI (corporate-billed) — never the anthropic SDK with a personal API key.
-    Returns [] on any error (CLI missing, non-zero exit, malformed JSON, timeout).
-    Raises TaggerAuthError on a credential failure so the caller can surface it
-    rather than silently returning [] which is indistinguishable from a genuine
-    empty result.
+    Returns [] on any error. On a credential failure, attempts one re-auth on macOS (using the
+    module-level one-shot latch) before giving up. On Linux, the wait for the Mac's token push
+    would exceed TimeoutStartSec (600 s) and trigger SIGKILL, so re-auth is skipped and the
+    article is tagged empty. The give-up path always logs at ERROR so the run is not silent.
     """
+    global _reauth_attempted
+
     prompt = _TAGGER_PROMPT + text[:max_chars]
     cmd = ["claude", "--model", model, "--print", "--output-format", "json"]
-    try:
-        proc = subprocess.run(
-            cmd,
-            input=prompt,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
+
+    envelope = _invoke_once(cmd, prompt, timeout)
+
+    if not _is_auth_error(envelope):
+        return _tickers_from_envelope(envelope)
+
+    # Auth failure path — mirrors check_gcloud_auth's Linux guard and refresh delegation
+    if running_on_linux():
+        # No remedy on the VPS: waiting for the Mac's 15-minute token push can exceed
+        # TimeoutStartSec (600 s) and SIGKILL the service.
+        logger.error(
+            "tagger: credential error on Linux — no re-auth possible, article tagged empty"
         )
-        if proc.returncode != 0:
-            return []
-        raw = (proc.stdout or "").strip()
-        try:
-            envelope = json.loads(raw)
-        except (json.JSONDecodeError, ValueError):
-            return []
-        if _is_auth_error(envelope):
-            raise TaggerAuthError(str(envelope.get("result", "")))
-        if envelope.get("is_error"):
-            return []
-        result = str(envelope.get("result", "")).strip()
-        # Be lenient: strip markdown fences if the model wraps the JSON
-        if result.startswith("```"):
-            result = result.strip("`").lstrip("json").strip()
-        try:
-            data = json.loads(result)
-        except (json.JSONDecodeError, ValueError):
-            return []
-        tickers = data.get("tickers", [])
-        if not isinstance(tickers, list):
-            return []
-        return sorted({t.upper() for t in tickers if isinstance(t, str)})
-    except TaggerAuthError:
-        raise
-    except Exception:
         return []
+
+    if _reauth_attempted:
+        logger.error("tagger: credential error; re-auth budget exhausted — article tagged empty")
+        return []
+
+    _reauth_attempted = True
+    if not refresh_auth():
+        logger.error("tagger: re-auth failed — article tagged empty")
+        return []
+
+    envelope = _invoke_once(cmd, prompt, timeout)
+    if _is_auth_error(envelope):
+        logger.error("tagger: credential error persists after re-auth — article tagged empty")
+        return []
+
+    return _tickers_from_envelope(envelope)
 
 
 DEFAULT_LLM_FALLBACK_CATEGORIES = {"business", "banking", "trading", "market"}
@@ -222,10 +264,6 @@ def tag_article(
 
     fallback = llm_fallback_categories or DEFAULT_LLM_FALLBACK_CATEGORIES
     if any(c in fallback for c in (article.categories or [])):
-        try:
-            article.tickers = extract_tickers_llm(text)
-        except TaggerAuthError:
-            logger.error("LLM ticker extraction failed: credential error")
-            raise
+        article.tickers = extract_tickers_llm(text)
     else:
         article.tickers = []
