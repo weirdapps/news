@@ -117,22 +117,23 @@ def test_log_run_with_false_sent_ok_still_writes_send_failed(tmp_path):
     assert "send FAILED" in log_path.read_text()
 
 
-def test_market_pipeline_does_not_log_send_failed_when_recipient_not_configured(
-    tmp_path, monkeypatch
-):
-    """When NEWS_MARKET_RECIPIENT is absent, the run log must not say 'send FAILED'.
+def test_market_pipeline_always_logs_no_email(tmp_path, monkeypatch):
+    """Market never logs 'send FAILED' — it has no send implementation at all.
 
-    The market pipeline is store-only.  Before this fix every run logged 'send FAILED'
-    because sent_ok was hardcoded False, even though no send was ever attempted.
+    run_market_pipeline has no send_email call in its body (lines 1195-1352 on master).
+    Regardless of whether NEWS_MARKET_RECIPIENT is set, sent_ok must be None so that
+    log_run writes 'no email' rather than implying a failed SMTP attempt.
 
     Mutation-resistance: hardcoding sent_ok=False (reverting the fix) makes log_run
-    write 'send FAILED', which fails the 'not in' assertion.
+    write 'send FAILED', which fails the 'not in' assertion. Setting the env var
+    explicitly here proves the branch is gone — if a branch were re-introduced that
+    returned False when the var is present, the assertion would still catch it.
     """
     import asyncio
 
     import main as m
 
-    monkeypatch.delenv("NEWS_MARKET_RECIPIENT", raising=False)
+    monkeypatch.setenv("NEWS_MARKET_RECIPIENT", "analyst@example.com")  # var IS set
     monkeypatch.setattr(
         m,
         "get_settings",

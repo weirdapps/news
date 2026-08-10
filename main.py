@@ -1418,20 +1418,18 @@ async def run_market_pipeline(run_type: str = "scheduled") -> None:
     conn.close()
 
     duration = (datetime.now(UTC) - start_time).total_seconds()
-    # Market is store-only by default. NEWS_MARKET_RECIPIENT opts in to a standalone
-    # email. "Not configured" is detected by the env var being absent rather than by
-    # comparing against the YAML placeholder string ("user@example.com"), which would
-    # break if someone happened to set the var to the placeholder value.
-    _market_recipient = os.environ.get("NEWS_MARKET_RECIPIENT")
-    # sent_ok=None signals "no email" to log_run (store-only run, no attempt made).
-    # sent_ok=False would log "send FAILED", implying an attempt was made and failed.
+    # Market is store-only; the standalone email described in the config comment
+    # ("set NEWS_MARKET_RECIPIENT to also receive a standalone email") is not yet
+    # implemented: there is no render_market_html() function or market HTML template.
+    # NEWS_MARKET_RECIPIENT is therefore unreferenced in this file. When a market
+    # email template is added, this should check the env var and call send_email().
     log_run(
         log_path=str(config["run_log_path"]),
         run_type=f"market-{run_type}",
         article_count=len(processed_articles),
         new_count=process_stats["output_count"],
         synthesis_ok=synthesis_ok,
-        sent_ok=None if not _market_recipient else False,
+        sent_ok=None,  # no email — store-only, no send attempted
         duration_seconds=duration,
     )
 
