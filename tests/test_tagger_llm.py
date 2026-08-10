@@ -255,3 +255,119 @@ def test_the_default_timeout_is_the_documented_thirty_seconds(mock_run):
     mock_run.return_value = _mock_proc(json.dumps({"result": json.dumps({"tickers": []})}))
     extract_tickers_llm("text")
     assert mock_run.call_args[1]["timeout"] == 30
+
+
+# --- FIX 3: auth-outage circuit breaker -------------------------------------------
+#
+# During an auth outage, every LLM-tagged article costs a full 30 s timeout because
+# the CLI takes ~200 s to surface invalid_grant and times out first. With ~20 such
+# articles per run on news-monitor/market/stack (600 s budget), the unit SIGKILL s
+# before synthesis or its alert email. After N=3 consecutive failures the shutoff
+# engages, remaining articles pass through with rules-based tags only, and the unit
+# reaches synthesis as intended.
+#
+# N=3 chosen because: 3 x 30 s = 90 s burned before cutoff, well inside any unit's
+# budget; three consecutive failures are unlikely to be random (low false-positive);
+# matches the pattern of the existing one-shot reauth latch.
+
+
+@patch("news.tagger.subprocess.run")
+def test_n_consecutive_failures_trigger_shutoff(mock_run):
+    """After exactly N consecutive CLI failures the shutoff activates.
+
+    Mutation-resistance: if the shutoff threshold were removed (never activates),
+    mock_run would still be called on the 4th invocation, and call_count would be
+    >= 4 rather than exactly 3, failing the equality check.
+    """
+    from news.tagger import _LLM_SHUTOFF_THRESHOLD
+
+    mock_run.side_effect = subprocess.TimeoutExpired(cmd="claude", timeout=30)
+
+    for _ in range(_LLM_SHUTOFF_THRESHOLD):
+        extract_tickers_llm(f"article {_}")
+
+    # Shutoff is now active. A further call must NOT hit subprocess.
+    extra_call_count = mock_run.call_count
+    extract_tickers_llm("article after shutoff")
+    assert mock_run.call_count == extra_call_count, (
+        "subprocess.run was called after the shutoff engaged — "
+        "the circuit breaker did not prevent the call"
+    )
+
+
+@patch("news.tagger.subprocess.run")
+def test_success_resets_consecutive_failure_counter(mock_run):
+    """A successful CLI call after N-1 failures resets the counter; shutoff does not trip.
+
+    Mutation-resistance: if the counter is never reset, N-1 failures followed by a
+    success followed by one more failure would total N, tripping the shutoff. With a
+    proper reset the counter after the success is 1, so the shutoff stays off and the
+    next article reaches subprocess. The call_count would then differ.
+    """
+    from news.tagger import _LLM_SHUTOFF_THRESHOLD
+
+    timeout_resp = subprocess.TimeoutExpired(cmd="claude", timeout=30)
+    success_resp = _mock_proc(json.dumps({"result": json.dumps({"tickers": []})}))
+
+    # N-1 failures, then a success, then one more failure
+    calls = [timeout_resp] * (_LLM_SHUTOFF_THRESHOLD - 1) + [success_resp, timeout_resp]
+    mock_run.side_effect = calls
+
+    for i in range(_LLM_SHUTOFF_THRESHOLD - 1):
+        extract_tickers_llm(f"fail {i}")
+    extract_tickers_llm("success resets the counter")
+    extract_tickers_llm("one failure after reset")
+
+    # Shutoff must NOT be active: subsequent call still hits subprocess.
+    pre = mock_run.call_count
+    mock_run.side_effect = [timeout_resp]
+    extract_tickers_llm("another failure")
+    assert mock_run.call_count == pre + 1
+
+
+@patch("news.tagger.subprocess.run")
+def test_shutoff_logs_at_error_when_tripped(mock_run, caplog):
+    """When the shutoff trips it must log at ERROR naming the failure count.
+
+    Mutation-resistance: removing the shutoff ERROR log makes this test fail on the
+    'not any(ERROR)' check; removing only the failure count from the message makes
+    it fail on the count assertion.
+    """
+    from news.tagger import _LLM_SHUTOFF_THRESHOLD
+
+    mock_run.side_effect = subprocess.TimeoutExpired(cmd="claude", timeout=30)
+
+    with caplog.at_level(logging.ERROR, logger="news.tagger"):
+        for _ in range(_LLM_SHUTOFF_THRESHOLD):
+            extract_tickers_llm(f"article {_}")
+
+    shutoff_records = [
+        r for r in caplog.records if r.levelno == logging.ERROR and "disabling" in r.message.lower()
+    ]
+    assert shutoff_records, "expected an ERROR log when the shutoff trips"
+    # The message must name the count so an operator knows how many articles were affected.
+    assert str(_LLM_SHUTOFF_THRESHOLD) in shutoff_records[-1].message
+
+
+@patch("news.tagger.subprocess.run")
+def test_shutoff_active_skips_subprocess_entirely(mock_run):
+    """Once the shutoff is active, subprocess.run is never called.
+
+    Mutation-resistance: if the early-return guard were removed, subprocess.run would
+    be called on every post-shutoff article, incrementing call_count.
+    """
+    from news.tagger import _LLM_SHUTOFF_THRESHOLD
+
+    mock_run.side_effect = subprocess.TimeoutExpired(cmd="claude", timeout=30)
+    for _ in range(_LLM_SHUTOFF_THRESHOLD):
+        extract_tickers_llm(f"fail {_}")
+
+    call_count_at_shutoff = mock_run.call_count
+    mock_run.side_effect = None  # would succeed if called
+    mock_run.return_value = _mock_proc(json.dumps({"result": json.dumps({"tickers": ["AAPL"]})}))
+
+    for _ in range(5):
+        result = extract_tickers_llm("post-shutoff article")
+        assert result == []  # shutoff returns empty, not the mocked tickers
+
+    assert mock_run.call_count == call_count_at_shutoff, "subprocess called after shutoff"
