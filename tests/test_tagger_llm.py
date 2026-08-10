@@ -2,15 +2,11 @@ import json
 import logging
 from unittest.mock import MagicMock, Mock, patch
 
-import pytest
+from news.tagger import extract_tickers_llm
 
-from news.tagger import _reset_reauth_latch, extract_tickers_llm
-
-
-@pytest.fixture(autouse=True)
-def _reset_latch():
-    """Reset the per-process reauth latch before every test."""
-    _reset_reauth_latch()
+# The reauth latch is reset by the suite-wide _reset_tagger_reauth_latch fixture in
+# conftest.py. It lives there, not here, because the latch is a module global and a
+# file-scoped fixture leaves it dirty for tests in any other file.
 
 
 def _mock_proc(stdout_text, returncode=0):
@@ -93,10 +89,11 @@ def test_llm_passes_custom_model(mock_run):
 @patch("news.tagger.running_on_linux", return_value=False)
 @patch("news.tagger.refresh_auth", return_value=False)
 @patch("news.tagger.subprocess.run")
-def test_an_auth_failure_is_distinguishable_from_no_tickers(mock_run, mock_refresh, mock_linux):
+def test_an_auth_failure_triggers_one_reauth_then_returns_empty(mock_run, mock_refresh, mock_linux):
     # Old behaviour: raised TaggerAuthError. New behaviour: attempts one re-auth,
-    # logs at ERROR, and returns [] so the run continues. The re-auth attempt (not
-    # silent absorption) is what distinguishes auth failure from a genuine empty result.
+    # logs at ERROR, and returns [] so the run continues. Both an auth failure and a
+    # genuine empty answer return [], so the re-auth call — not the return value — is
+    # the observable that tells them apart. The name says so.
     mock_run.return_value = Mock(
         stdout='{"is_error": true, "result": "API Error: invalid_grant"}',
         returncode=0,

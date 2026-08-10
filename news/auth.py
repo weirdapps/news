@@ -74,8 +74,15 @@ def check_gcloud_auth() -> bool:
         # waiting for the Mac's 15-minute token push takes longer than some units
         # are allowed to run (news-monitor's TimeoutStartSec is 600s). Fail fast so
         # the pipeline still sends its per-slot alert instead of being SIGKILLed
-        # mid-wait. The reactive path inside invoke_claude does the waiting, where
-        # the deadline budget is known.
+        # mid-wait.
+        #
+        # Returning False here ENDS the run's LLM work: main.py:402 gates synthesize()
+        # on this result, so on a pre-flight failure the pipeline goes straight to the
+        # fallback and the alert email. invoke_claude's reactive WAIT_FOR_PUSH path is
+        # never reached, because no model call is ever made. That is the intended
+        # trade for the 600s units, and it is a real cost for news-digest at 2400s,
+        # which could afford the 1020s wait. Whether digest should be exempted from
+        # this fast-fail is an open owner decision, not an oversight here.
         logger.warning("gcloud auth expired and no pre-flight remedy on this host")
         return False
 

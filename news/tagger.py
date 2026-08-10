@@ -231,6 +231,15 @@ def extract_tickers_llm(
         logger.error("tagger: credential error; re-auth budget exhausted — article tagged empty")
         return []
 
+    # The latch is burned BEFORE the call, so a SKIPPED re-auth spends it too. That
+    # is deliberate, not an oversight: refresh_auth() collapses SKIPPED into False
+    # (news/auth.py:51-59), and each of the three SKIPPED causes is fine with a spent
+    # latch. Cooldown — every later attempt in this process hits the same cooldown, so
+    # the latch correctly prevents futile calls. Credentials already valid, or another
+    # process mid-auth — the next article's call simply succeeds and never reaches this
+    # path, so the latch is irrelevant. Telling the cases apart would mean calling
+    # llm_policy.reauth() directly and reading the enum, which breaks the refresh_auth()
+    # abstraction that exists to hide exactly that. Do not "fix" this.
     _reauth_attempted = True
     if not refresh_auth():
         logger.error("tagger: re-auth failed — article tagged empty")
