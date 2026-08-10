@@ -154,14 +154,41 @@ _UNIT_TIMEOUT_SECONDS: dict[str, int] = {
 # render and send the per-slot alert email before systemd's SIGTERM.
 _SHUTDOWN_GRACE_SECONDS = 90
 
-# Largest single backoff decide() can actually emit: RATE_LIMIT at n=3. Derived, not
-# written down, so it tracks ROW_CAPS and MAX_ATTEMPTS. n >= 4 is unreachable because
-# decide() tests `attempt.total >= MAX_ATTEMPTS` before it consults the row and
-# total >= n always holds, which is why backoff()'s own 600s ceiling never applies.
-# Reported in the startup log rather than reserved — see _llm_budget_seconds.
+# Largest single backoff decide() can actually emit: RATE_LIMIT at n=3, so 240s.
+# Derived, not written down, so it tracks ROW_CAPS and MAX_ATTEMPTS. n >= 4 is
+# unreachable because decide() tests `attempt.total >= MAX_ATTEMPTS` before it consults
+# the row and total >= n always holds, which is why backoff()'s own 600s ceiling never
+# applies. Reported in the startup log; deliberately NOT part of the reserve below.
 _MAX_REACHABLE_BACKOFF_SECONDS = max(
     backoff(n, outcome) for outcome in ROW_CAPS for n in range(1, MAX_ATTEMPTS)
 )
+
+
+def _deadline_reserve_seconds(max_call_seconds: float) -> float:
+    """Seconds held back from a unit's TimeoutStartSec. 390s on today's config.
+
+    390 = max_call 300 + shutdown_grace 90. It is a function rather than a literal
+    because max_call is each profile's own ``synthesis.timeout``: pinning 390 would
+    silently go wrong the moment one profile's timeout differed from another's.
+
+    WHY ``max_backoff`` IS ABSENT, and why restoring it would be a regression rather
+    than a correction. Spec §8 writes the reserve as
+    ``max_call_seconds + max_backoff + shutdown_grace``. That term is double-counted.
+    ``decide()``'s budget test is FORWARD-LOOKING — ``now + sleep_s + max_call_seconds
+    > deadline`` at llm_policy.py:278 — so it already refuses any backoff whose sleep
+    plus the following call would not fit, and no backoff can push the loop past the
+    deadline. Subtracting the maximum again charges for it twice. Literally, the
+    reserve is 630s and the margin for news-monitor, news-market and news-stack is
+    MINUS 30s, so the startup assertion below would refuse to run three of the four
+    production units. Owner signed off on dropping it, 2026-08-10.
+
+    ``max_call_seconds`` is NOT double-counted and must stay. ``invoke_claude`` calls
+    ``_run_once()`` unconditionally at the top of its loop (synthesizer.py:340) with no
+    deadline test before the FIRST call, so if fetching and tagging have eaten the
+    budget that call still starts and can run its whole timeout past the deadline.
+    This term is the only thing covering that hole.
+    """
+    return max_call_seconds + _SHUTDOWN_GRACE_SECONDS
 
 
 def _llm_budget_seconds(
@@ -171,40 +198,28 @@ def _llm_budget_seconds(
 ) -> float | None:
     """Seconds of LLM budget this profile's unit can fund. None if it has no unit.
 
-    Spec §8 states the reserve as
-    ``max_call_seconds + max_backoff + shutdown_grace``. This implements it with
-    max_backoff DROPPED, which is a deliberate deviation and the reason is arithmetic
-    rather than convenience. decide() already refuses any backoff whose sleep plus the
-    following call would not fit — `now + sleep_s + max_call_seconds > deadline` in
-    llm_policy — so no backoff can push the loop past the deadline, and reserving the
-    maximum a second time subtracts it twice. Kept literal, the reserve is 630s and
-    the margin for news-monitor, news-market and news-stack is MINUS 30s, so the
-    startup assertion would refuse to run three of the four production units.
-
-    max_call_seconds is NOT dropped, and the reason is specific rather than
-    conservatism: invoke_claude calls the CLI unconditionally at the top of its loop
-    with no deadline test before the FIRST call. If fetching and tagging have already
-    eaten the budget, that call still starts and can run its whole timeout past the
-    deadline. This term is exactly what covers it.
+    The reserve, and the reasoning behind which terms it does and does not contain,
+    lives in ``_deadline_reserve_seconds``.
 
     Raises RuntimeError when the margin is not positive. A unit that cannot fund one
     worst-case call plus its shutdown grace cannot produce output at all, and an
     immediate loud failure — nonzero exit, which fires OnFailure=hc-fail@ — beats a
-    SIGTERM later with no email.
+    SIGTERM later with no email. The threshold lands at 391s, which is where spec §8's
+    own remedy (raise TimeoutStartSec, as it did for sb-calendar-sync) already applies.
     """
     if unit_timeout_seconds is None:
         unit_timeout_seconds = _UNIT_TIMEOUT_SECONDS.get(profile)
     if unit_timeout_seconds is None:
         return None
 
-    budget = unit_timeout_seconds - max_call_seconds - _SHUTDOWN_GRACE_SECONDS
+    budget = unit_timeout_seconds - _deadline_reserve_seconds(max_call_seconds)
     if budget <= 0:
         raise RuntimeError(
             f"profile '{profile}' cannot fund a single LLM call: TimeoutStartSec="
             f"{unit_timeout_seconds:g}s minus max_call={max_call_seconds:g}s minus "
             f"shutdown_grace={_SHUTDOWN_GRACE_SECONDS}s leaves {budget:g}s. Raise the "
             f"unit's TimeoutStartSec above "
-            f"{max_call_seconds + _SHUTDOWN_GRACE_SECONDS:g}s, or lower "
+            f"{_deadline_reserve_seconds(max_call_seconds):g}s, or lower "
             f"synthesis.timeout for this profile. Refusing to run."
         )
     return budget

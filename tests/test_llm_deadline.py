@@ -20,7 +20,13 @@ import time as real_time
 
 import pytest
 
-from main import _llm_budget_seconds, _may_wait_for_token_push, install_llm_deadline
+from main import (
+    _MAX_REACHABLE_BACKOFF_SECONDS,
+    _deadline_reserve_seconds,
+    _llm_budget_seconds,
+    _may_wait_for_token_push,
+    install_llm_deadline,
+)
 from news.llm_policy import PUSH_WAIT_SECONDS
 from news.synthesizer import invoke_claude
 
@@ -127,6 +133,20 @@ def test_the_assertion_is_not_tripped_by_the_real_units():
             profile, max_call_seconds=300, unit_timeout_seconds=unit_timeout
         )
         assert budget > 0
+
+
+def test_the_reserve_is_max_call_plus_grace_and_nothing_else():
+    """390s on today's config, and the omission of max_backoff is the point.
+
+    decide()'s budget test is forward-looking, so reserving the largest backoff a
+    second time in the deadline charges for it twice. Adding it back would take the
+    reserve to 630s and give the three 600s units a margin of -30s, refusing to run
+    them. This asserts the omission directly, so a future "correction" goes red here
+    with the reason next to it rather than in production.
+    """
+    assert _deadline_reserve_seconds(_CALL_TIMEOUT) == _CALL_TIMEOUT + _GRACE == 390
+    assert _MAX_REACHABLE_BACKOFF_SECONDS == 240
+    assert _deadline_reserve_seconds(_CALL_TIMEOUT) < _CALL_TIMEOUT + 240 + _GRACE
 
 
 def test_a_margin_of_exactly_zero_is_refused():
