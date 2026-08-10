@@ -343,6 +343,9 @@ def extract_tickers_llm(
         logger.error("tagger: credential error persists after re-auth — article tagged empty")
         return []
 
+    # Re-auth succeeded and the CLI worked — clear the consecutive-failure counter so
+    # the next auth outage starts from zero rather than inheriting the pre-reauth count.
+    _llm_consecutive_failures = 0
     return _tickers_from_envelope(envelope)
 
 

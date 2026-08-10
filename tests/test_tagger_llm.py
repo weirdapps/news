@@ -373,6 +373,57 @@ def test_shutoff_active_skips_subprocess_entirely(mock_run):
     assert mock_run.call_count == call_count_at_shutoff, "subprocess called after shutoff"
 
 
+@patch("news.tagger.running_on_linux", return_value=False)
+@patch("news.tagger.refresh_auth", return_value=True)
+@patch("news.tagger.subprocess.run")
+def test_successful_reauth_resets_consecutive_failure_counter(mock_run, mock_refresh, mock_linux):
+    """A successful re-auth must reset the consecutive-failure counter to zero.
+
+    Without the reset, N-1 timeout failures followed by an auth error + successful
+    re-auth leave the counter at N-1. One further timeout then reaches N, tripping
+    the shutoff. With the reset the counter is 0 after re-auth, so the next failure
+    only brings it to 1 and the shutoff stays off.
+
+    Mutation-resistance: removing ``_llm_consecutive_failures = 0`` on the re-auth
+    success path leaves the counter at N-1 after re-auth. The next timeout reaches N
+    and trips the shutoff. The final assertion then fails because a subsequent call
+    does NOT reach subprocess.run (the shutoff returns [] immediately).
+    """
+    import json
+    from unittest.mock import Mock
+
+    from news.tagger import _LLM_SHUTOFF_THRESHOLD
+
+    auth_envelope = json.dumps({"is_error": True, "result": "API Error: invalid_grant"})
+    success_after_reauth = _mock_proc(json.dumps({"result": json.dumps({"tickers": []})}))
+    timeout_resp = subprocess.TimeoutExpired(cmd="claude", timeout=30)
+
+    # Build the call sequence:
+    #   N-1 timeouts → counter = N-1
+    #   auth error → re-auth → second CLI call succeeds → counter resets to 0
+    #   one more timeout → counter = 1 (shutoff must NOT trip)
+    calls = (
+        [timeout_resp] * (_LLM_SHUTOFF_THRESHOLD - 1)
+        + [Mock(stdout=auth_envelope, returncode=0), success_after_reauth]
+        + [timeout_resp]
+    )
+    mock_run.side_effect = calls
+
+    for i in range(_LLM_SHUTOFF_THRESHOLD - 1):
+        extract_tickers_llm(f"timeout fail {i}")
+    extract_tickers_llm("auth error triggers reauth")
+    extract_tickers_llm("one timeout after reauth — counter should be 1, not N")
+
+    # Shutoff must NOT be active — another call must still reach subprocess.run.
+    pre = mock_run.call_count
+    mock_run.side_effect = [timeout_resp]
+    extract_tickers_llm("check shutoff is not active")
+    assert mock_run.call_count == pre + 1, (
+        "subprocess.run was NOT called — shutoff is active after re-auth success, "
+        "which means the consecutive-failure counter was not reset on that path."
+    )
+
+
 def test_threshold_times_timeout_leaves_room_for_synthesis_on_smallest_unit():
     """Pins the ARITHMETIC BOUND that motivated N=3, not the constant itself.
 
