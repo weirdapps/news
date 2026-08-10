@@ -427,3 +427,147 @@ def test_a_full_push_wait_still_leaves_the_digest_room_to_synthesise_and_to_aler
     # Whatever happens next, render + send_email own the whole F1 reserve: one
     # max_call plus the systemd stop grace.
     assert sigterm - deadline == _CALL_TIMEOUT["digest"] + _GRACE == 390
+
+
+# --- FIX 2: unit-timeout table cross-check against live systemd -------------------
+
+
+def test_systemd_unavailable_falls_back_to_table_silently(monkeypatch):
+    """On macOS/CI where systemctl doesn't exist, the table value is used unchanged.
+
+    Mutation-resistance: if the fallback were removed and FileNotFoundError propagated,
+    install_llm_deadline would raise, causing this test to fail rather than return a
+    budget.
+    """
+    import subprocess
+
+    from main import _query_systemd_timeout
+
+    monkeypatch.setattr(
+        subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError("no systemctl"))
+    )
+    # Must return None (degrade silently) rather than raising.
+    result = _query_systemd_timeout("monitor")
+    assert result is None
+
+
+def test_systemd_nonzero_exit_falls_back_silently(monkeypatch):
+    """A unit not found or a non-user-session query returns non-zero; must not raise."""
+    import subprocess
+    from unittest.mock import MagicMock
+
+    from main import _query_systemd_timeout
+
+    proc = MagicMock()
+    proc.returncode = 1
+    proc.stdout = ""
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: proc)
+    assert _query_systemd_timeout("monitor") is None
+
+
+def test_systemd_timeout_microseconds_parsed_correctly(monkeypatch):
+    """TimeoutStartUSec returns raw microseconds; the parser must convert to seconds.
+
+    Mutation-resistance: if the parser returned microseconds raw (not dividing by 1e6),
+    the returned value would be 600000000 rather than 600, failing the equality check.
+    """
+    import subprocess
+    from unittest.mock import MagicMock
+
+    from main import _query_systemd_timeout
+
+    proc = MagicMock()
+    proc.returncode = 0
+    proc.stdout = "600000000\n"  # 600s in microseconds
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: proc)
+    assert _query_systemd_timeout("monitor") == 600
+
+
+def test_systemd_timeout_minute_string_parsed_correctly(monkeypatch):
+    """Duration strings like '10min' must be parsed to seconds."""
+    import subprocess
+    from unittest.mock import MagicMock
+
+    from main import _query_systemd_timeout
+
+    proc = MagicMock()
+    proc.returncode = 0
+    proc.stdout = "10min\n"
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: proc)
+    assert _query_systemd_timeout("monitor") == 600
+
+
+def test_systemd_below_table_uses_smaller_and_warns(monkeypatch, caplog):
+    """When systemd reports a LOWER timeout than the table, the smaller wins.
+
+    This is the dangerous direction: the table over-budgets, can grant a wait the
+    unit cannot survive, and the run is SIGKILLed with no alert email.
+
+    Mutation-resistance: if install_llm_deadline ignored the systemd value and always
+    used the table, the deadline would be t0 + (2400 - 300 - 90) = t0 + 2010, not
+    the smaller systemd-derived value, and the assertion would fail.
+    """
+    import logging
+    import subprocess
+    from unittest.mock import MagicMock
+
+    proc = MagicMock()
+    proc.returncode = 0
+    proc.stdout = "1800000000\n"  # 1800s in microseconds, vs table 2400s for digest
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: proc)
+
+    now = 1_700_000_000.0
+    with caplog.at_level(logging.WARNING, logger="main"):
+        deadline = install_llm_deadline("digest", now=now)
+
+    # Budget must use the smaller systemd value (1800), not the table (2400).
+    expected_budget = 1800 - _CALL_TIMEOUT["digest"] - _GRACE  # 1800 - 300 - 90 = 1410
+    assert deadline == now + expected_budget
+    # Operator must be warned with both values.
+    assert any("1800" in r.message and "2400" in r.message for r in caplog.records)
+
+
+def test_systemd_above_table_uses_table_and_warns(monkeypatch, caplog):
+    """When systemd reports a HIGHER timeout than the table, the table wins.
+
+    This direction is conservative (safe): using the table under-budgets relative to
+    reality, but that is never dangerous.
+
+    Mutation-resistance: if the larger systemd value were used, the deadline would be
+    t0 + (3600 - 300 - 90) = t0 + 3210, not t0 + 2010, failing the equality check.
+    """
+    import logging
+    import subprocess
+    from unittest.mock import MagicMock
+
+    proc = MagicMock()
+    proc.returncode = 0
+    proc.stdout = "3600000000\n"  # 3600s in microseconds, vs table 2400s for digest
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: proc)
+
+    now = 1_700_000_000.0
+    with caplog.at_level(logging.WARNING, logger="main"):
+        deadline = install_llm_deadline("digest", now=now)
+
+    # Budget must use the table value (2400), not the larger systemd value.
+    expected_budget = 2400 - _CALL_TIMEOUT["digest"] - _GRACE  # 2010
+    assert deadline == now + expected_budget
+    assert any("3600" in r.message and "2400" in r.message for r in caplog.records)
+
+
+def test_systemd_agrees_with_table_no_warning(monkeypatch, caplog):
+    """When systemd matches the table exactly, no warning is logged."""
+    import logging
+    import subprocess
+    from unittest.mock import MagicMock
+
+    proc = MagicMock()
+    proc.returncode = 0
+    proc.stdout = "2400000000\n"  # matches table value for digest
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: proc)
+
+    now = 1_700_000_000.0
+    with caplog.at_level(logging.WARNING, logger="main"):
+        install_llm_deadline("digest", now=now)
+
+    assert not any(r.levelno == logging.WARNING for r in caplog.records)

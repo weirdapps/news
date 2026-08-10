@@ -5,6 +5,8 @@ import asyncio
 import json
 import logging
 import os
+import re
+import subprocess
 import sys
 import time
 from datetime import UTC, datetime, timedelta
@@ -149,10 +151,65 @@ _UNIT_TIMEOUT_SECONDS: dict[str, int] = {
     "stack": 600,
 }
 
+_PROFILE_TO_UNIT: dict[str, str] = {profile: f"news-{profile}" for profile in _UNIT_TIMEOUT_SECONDS}
+
 # TimeoutStopSec on all four units, which is also the user manager's
 # DefaultTimeoutStopUSec. Reserved out of the budget so a GIVE_UP still has room to
 # render and send the per-slot alert email before systemd's SIGTERM.
 _SHUTDOWN_GRACE_SECONDS = 90
+
+
+def _parse_systemd_duration(s: str) -> int | None:
+    """Parse a systemd duration to seconds. Returns None if unrecognised.
+
+    Handles the two forms TimeoutStartUSec can return:
+    - Raw microsecond integer: "2400000000" -> 2400
+    - Human-readable suffixes from some systemd builds: "40min", "10min", "600s",
+      "1h 30min", "1h". Infinity and zero are treated as "no timeout" (None).
+    """
+    s = s.strip()
+    if not s or s in ("infinity", "0"):
+        return None
+    # Raw microseconds: all digits, no spaces or letters
+    if re.fullmatch(r"\d+", s):
+        us = int(s)
+        return us // 1_000_000 if us >= 1_000_000 else None
+    # Duration with suffix(es): accumulate seconds
+    total = 0
+    _UNIT_RE = re.compile(r"(\d+)\s*(h|min|s)\b", re.IGNORECASE)
+    for m in _UNIT_RE.finditer(s):
+        n, unit = int(m.group(1)), m.group(2).lower()
+        if unit == "h":
+            total += n * 3600
+        elif unit == "min":
+            total += n * 60
+        else:
+            total += n
+    return total if total > 0 else None
+
+
+def _query_systemd_timeout(profile: str) -> int | None:
+    """Ask systemd for a unit's TimeoutStartUSec. Returns seconds, or None on any failure.
+
+    Degrades silently on macOS, CI, and anywhere systemctl is absent or the unit is
+    unknown. A cross-check that raises is worse than the table drift it guards against.
+    """
+    unit = _PROFILE_TO_UNIT.get(profile)
+    if not unit:
+        return None
+    try:
+        result = subprocess.run(
+            ["systemctl", "--user", "show", f"{unit}.service", "-p", "TimeoutStartUSec", "--value"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode != 0:
+            return None
+        return _parse_systemd_duration(result.stdout)
+    except Exception:  # noqa: BLE001 - FileNotFoundError, TimeoutExpired, etc.
+        return None
+
 
 # Largest single backoff decide() can actually emit: RATE_LIMIT at n=3, so 240s.
 # Derived, not written down, so it tracks ROW_CAPS and MAX_ATTEMPTS. n >= 4 is
@@ -246,7 +303,26 @@ def install_llm_deadline(profile: str, now: float | None = None) -> float | None
     logger = logging.getLogger(__name__)
     max_call_seconds = float(get_settings(profile=profile).get("synthesis", {}).get("timeout", 300))
 
-    budget = _llm_budget_seconds(profile, max_call_seconds)
+    # Cross-check the table against the live systemd value. The dangerous direction is
+    # LOWERED: if the unit's TimeoutStartSec was reduced and the table was not, the code
+    # over-budgets and can grant a token-push wait the unit cannot survive, resulting in
+    # SIGKILL with no alert email. Querying at startup catches that silently and safely.
+    table_timeout = _UNIT_TIMEOUT_SECONDS.get(profile)
+    effective_timeout: float | None = table_timeout
+    if table_timeout is not None:
+        systemd_timeout = _query_systemd_timeout(profile)
+        if systemd_timeout is not None and systemd_timeout != table_timeout:
+            effective_timeout = min(table_timeout, systemd_timeout)
+            logger.warning(
+                "unit 'news-%s': live TimeoutStartSec=%gs disagrees with table value=%gs; "
+                "using the smaller (%gs). Update _UNIT_TIMEOUT_SECONDS to silence this.",
+                profile,
+                systemd_timeout,
+                table_timeout,
+                effective_timeout,
+            )
+
+    budget = _llm_budget_seconds(profile, max_call_seconds, unit_timeout_seconds=effective_timeout)
     if budget is None:
         logger.info(
             "profile '%s' has no systemd unit; leaving PTS_LLM_DEADLINE unset "
@@ -275,7 +351,7 @@ def install_llm_deadline(profile: str, now: float | None = None) -> float | None
         "Largest backoff the policy can emit is %gs.",
         profile,
         budget,
-        _UNIT_TIMEOUT_SECONDS[profile],
+        effective_timeout,
         max_call_seconds,
         _SHUTDOWN_GRACE_SECONDS,
         _MAX_REACHABLE_BACKOFF_SECONDS,
