@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import sys
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,7 @@ from news.deliver import (
     send_email,
 )
 from news.fetcher import fetch_all_sources, fetch_rss_feeds
+from news.llm_policy import MAX_ATTEMPTS, ROW_CAPS, backoff
 from news.models import Digest
 from news.monitor_synth import synthesize_monitor
 from news.processor import process_articles
@@ -128,6 +130,123 @@ def release_lock(lock_path: str) -> None:
     lock_file = Path(lock_path)
     lock_file.unlink(missing_ok=True)
     logging.info(f"Lock released: {lock_path}")
+
+
+# Effective TimeoutStartSec of each scheduled news unit, read live from the VPS on
+# 2026-08-10 with `systemctl --user show news-<profile>.service -p TimeoutStartUSec`.
+# These four are the whole scheduled set; `topic` is run by hand and has no unit.
+# A profile missing from this map gets no deadline rather than a guessed one.
+_UNIT_TIMEOUT_SECONDS: dict[str, int] = {
+    "digest": 2400,
+    "monitor": 600,
+    "market": 600,
+    "stack": 600,
+}
+
+# TimeoutStopSec on all four units, which is also the user manager's
+# DefaultTimeoutStopUSec. Reserved out of the budget so a GIVE_UP still has room to
+# render and send the per-slot alert email before systemd's SIGTERM.
+_SHUTDOWN_GRACE_SECONDS = 90
+
+# Largest single backoff decide() can actually emit: RATE_LIMIT at n=3. Derived, not
+# written down, so it tracks ROW_CAPS and MAX_ATTEMPTS. n >= 4 is unreachable because
+# decide() tests `attempt.total >= MAX_ATTEMPTS` before it consults the row and
+# total >= n always holds, which is why backoff()'s own 600s ceiling never applies.
+# Reported in the startup log rather than reserved — see _llm_budget_seconds.
+_MAX_REACHABLE_BACKOFF_SECONDS = max(
+    backoff(n, outcome) for outcome in ROW_CAPS for n in range(1, MAX_ATTEMPTS)
+)
+
+
+def _llm_budget_seconds(
+    profile: str,
+    max_call_seconds: float,
+    unit_timeout_seconds: float | None = None,
+) -> float | None:
+    """Seconds of LLM budget this profile's unit can fund. None if it has no unit.
+
+    Spec §8 states the reserve as
+    ``max_call_seconds + max_backoff + shutdown_grace``. This implements it with
+    max_backoff DROPPED, which is a deliberate deviation and the reason is arithmetic
+    rather than convenience. decide() already refuses any backoff whose sleep plus the
+    following call would not fit — `now + sleep_s + max_call_seconds > deadline` in
+    llm_policy — so no backoff can push the loop past the deadline, and reserving the
+    maximum a second time subtracts it twice. Kept literal, the reserve is 630s and
+    the margin for news-monitor, news-market and news-stack is MINUS 30s, so the
+    startup assertion would refuse to run three of the four production units.
+
+    max_call_seconds is NOT dropped, and the reason is specific rather than
+    conservatism: invoke_claude calls the CLI unconditionally at the top of its loop
+    with no deadline test before the FIRST call. If fetching and tagging have already
+    eaten the budget, that call still starts and can run its whole timeout past the
+    deadline. This term is exactly what covers it.
+
+    Raises RuntimeError when the margin is not positive. A unit that cannot fund one
+    worst-case call plus its shutdown grace cannot produce output at all, and an
+    immediate loud failure — nonzero exit, which fires OnFailure=hc-fail@ — beats a
+    SIGTERM later with no email.
+    """
+    if unit_timeout_seconds is None:
+        unit_timeout_seconds = _UNIT_TIMEOUT_SECONDS.get(profile)
+    if unit_timeout_seconds is None:
+        return None
+
+    budget = unit_timeout_seconds - max_call_seconds - _SHUTDOWN_GRACE_SECONDS
+    if budget <= 0:
+        raise RuntimeError(
+            f"profile '{profile}' cannot fund a single LLM call: TimeoutStartSec="
+            f"{unit_timeout_seconds:g}s minus max_call={max_call_seconds:g}s minus "
+            f"shutdown_grace={_SHUTDOWN_GRACE_SECONDS}s leaves {budget:g}s. Raise the "
+            f"unit's TimeoutStartSec above "
+            f"{max_call_seconds + _SHUTDOWN_GRACE_SECONDS:g}s, or lower "
+            f"synthesis.timeout for this profile. Refusing to run."
+        )
+    return budget
+
+
+def install_llm_deadline(profile: str, now: float | None = None) -> float | None:
+    """Export PTS_LLM_DEADLINE for this run so the policy's budget test is real.
+
+    Nothing in the estate exports this variable, so resolve_deadline() falls back to
+    a flat ``now + 900`` for every profile — 1.5x the entire 600s budget of three of
+    the four news units. Spec §5 rule 2 exists precisely to keep the retry loop inside
+    its unit, and against that default it can only fire once the unit is already dead.
+    The port made that consequential: it introduced real backoff sleeps where the old
+    nested loops had none, so a persistent 429 now costs 428-780s of in-loop time
+    against roughly 8s before.
+
+    ``setdefault``, not assignment: an operator running the pipeline by hand, or a
+    future runner that computes a better value, must still win.
+
+    Wall clock, not monotonic. PTS_LLM_DEADLINE is an absolute POSIX time and
+    resolve_deadline compares it against ``time.time()``; a monotonic value here would
+    switch the whole mechanism off silently.
+    """
+    logger = logging.getLogger(__name__)
+    max_call_seconds = float(get_settings(profile=profile).get("synthesis", {}).get("timeout", 300))
+
+    budget = _llm_budget_seconds(profile, max_call_seconds)
+    if budget is None:
+        logger.info(
+            "profile '%s' has no systemd unit; leaving PTS_LLM_DEADLINE unset "
+            "(the policy applies its own default budget)",
+            profile,
+        )
+        return None
+
+    deadline = (time.time() if now is None else now) + budget
+    os.environ.setdefault("PTS_LLM_DEADLINE", repr(deadline))
+    logger.info(
+        "LLM budget for '%s': %gs (TimeoutStartSec=%gs - max_call=%gs - grace=%gs). "
+        "Largest backoff the policy can emit is %gs.",
+        profile,
+        budget,
+        _UNIT_TIMEOUT_SECONDS[profile],
+        max_call_seconds,
+        _SHUTDOWN_GRACE_SECONDS,
+        _MAX_REACHABLE_BACKOFF_SECONDS,
+    )
+    return deadline
 
 
 def get_time_window(now: datetime, last_digest_at: datetime | None, tz_name: str) -> str:
@@ -1418,6 +1537,14 @@ def main() -> None:
         parser.error("--query is only valid with --profile topic")
     if args.profile == "topic" and not (1 <= args.hours <= 168):
         parser.error("--hours must be between 1 and 168 (1 week max)")
+
+    # Bound the policy loop to this unit's budget BEFORE any LLM call. Ahead of the
+    # lock, so a refusal exits without having taken one.
+    try:
+        install_llm_deadline(args.profile)
+    except RuntimeError as e:
+        logger.error(str(e))
+        sys.exit(1)
 
     # Use profile-specific lock to allow digest and monitor to run concurrently
     lock_path = _PROJECT_ROOT / "data" / f"pipeline-{args.profile}.lock"
