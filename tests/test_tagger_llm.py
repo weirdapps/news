@@ -371,3 +371,49 @@ def test_shutoff_active_skips_subprocess_entirely(mock_run):
         assert result == []  # shutoff returns empty, not the mocked tickers
 
     assert mock_run.call_count == call_count_at_shutoff, "subprocess called after shutoff"
+
+
+def test_threshold_times_timeout_leaves_room_for_synthesis_on_smallest_unit():
+    """Pins the ARITHMETIC BOUND that motivated N=3, not the constant itself.
+
+    The four tests above loop with _LLM_SHUTOFF_THRESHOLD, making them structurally
+    blind to the value: setting it to 9999 leaves them green while the breaker becomes
+    useless (9999 x 30s = 8.3 h on a 600s unit). This test catches that by asserting
+    the consequence directly.
+
+    Bound derived from the deadline arithmetic in main.py:
+      available = smallest_unit - synthesis_timeout - shutdown_grace
+    Worst-case tagger burn must not exceed that available window:
+      _LLM_SHUTOFF_THRESHOLD * tagger_default_timeout <= available
+
+    Current values: 3 x 30 = 90s <= (600 - 150 - 90) = 360s.  Pass.
+    Mutant N=9999:  9999 x 30 = 299,970s >> 360s.  Fail.
+    Mutant timeout=300s:  3 x 300 = 900s >> 360s.  Fail.
+    """
+    import inspect
+
+    from main import _SHUTDOWN_GRACE_SECONDS, _UNIT_TIMEOUT_SECONDS
+    from news.config import get_settings
+    from news.tagger import _LLM_SHUTOFF_THRESHOLD, extract_tickers_llm
+
+    # Read the tagger's own default from its signature — not hardcoded here.
+    tagger_timeout = inspect.signature(extract_tickers_llm).parameters["timeout"].default
+
+    # Smallest unit is the binding constraint (monitor/market/stack at 600s).
+    smallest_unit = min(_UNIT_TIMEOUT_SECONDS.values())
+    smallest_profiles = [p for p, v in _UNIT_TIMEOUT_SECONDS.items() if v == smallest_unit]
+    # Pessimistic: largest synthesis timeout among those profiles.
+    synthesis_timeout = max(
+        get_settings(profile=p).get("synthesis", {}).get("timeout", 300) for p in smallest_profiles
+    )
+
+    available = smallest_unit - synthesis_timeout - _SHUTDOWN_GRACE_SECONDS
+    worst_case_burn = _LLM_SHUTOFF_THRESHOLD * tagger_timeout
+
+    assert worst_case_burn <= available, (
+        f"Breaker too permissive: {_LLM_SHUTOFF_THRESHOLD} failures x {tagger_timeout}s"
+        f" = {worst_case_burn}s, but the smallest unit ({smallest_unit}s) leaves only"
+        f" {available}s before synthesis ({synthesis_timeout}s) + grace"
+        f" ({_SHUTDOWN_GRACE_SECONDS}s). Lower _LLM_SHUTOFF_THRESHOLD or"
+        f" synthesis.timeout, or raise the unit's TimeoutStartSec."
+    )
