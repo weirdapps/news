@@ -25,18 +25,20 @@ def test_llm_returns_tickers(mock_run):
     assert cmd[0] == "claude"
     assert "--model" in cmd
     assert "sonnet" in cmd
+    assert "--output-format" in cmd
+    assert "json" in cmd
 
 
 @patch("news.tagger.subprocess.run")
 def test_llm_returns_empty_when_no_tickers(mock_run):
-    mock_run.return_value = _mock_proc(json.dumps({"tickers": []}))
+    mock_run.return_value = _mock_proc(json.dumps({"result": json.dumps({"tickers": []})}))
     out = extract_tickers_llm("Weather report for Athens")
     assert out == []
 
 
 @patch("news.tagger.subprocess.run")
 def test_llm_handles_malformed_response(mock_run):
-    mock_run.return_value = _mock_proc('{"oops": "no tickers key"}')
+    mock_run.return_value = _mock_proc(json.dumps({"result": '{"oops": "no tickers key"}'}))
     out = extract_tickers_llm("Some article")
     assert out == []
 
@@ -75,7 +77,7 @@ def test_llm_returns_empty_on_nonzero_exit(mock_run):
 
 @patch("news.tagger.subprocess.run")
 def test_llm_passes_custom_model(mock_run):
-    mock_run.return_value = _mock_proc(json.dumps({"tickers": []}))
+    mock_run.return_value = _mock_proc(json.dumps({"result": json.dumps({"tickers": []})}))
     extract_tickers_llm("text", model="opus")
     cmd = mock_run.call_args[0][0]
     assert "opus" in cmd
@@ -98,6 +100,8 @@ def test_an_auth_failure_is_distinguishable_from_no_tickers(mock_run):
 def test_a_genuine_empty_answer_still_returns_an_empty_list(mock_run):
     mock_run.return_value = Mock(stdout='{"result": "{\\"tickers\\": []}"}', returncode=0)
     assert extract_tickers_llm("some article text") == []
+    cmd = mock_run.call_args[0][0]
+    assert "--output-format" in cmd
 
 
 @patch("news.tagger.subprocess.run")
