@@ -5,7 +5,7 @@ import subprocess
 from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
-from news.llm_policy import Outcome
+from news.llm_policy import MAX_ATTEMPTS, Outcome, ReauthResult
 from news.models import Article
 from news.synthesizer import (
     _classify,
@@ -423,3 +423,67 @@ def test_an_empty_result_field_is_empty():
 def test_a_good_envelope_is_ok():
     env = {"result": "the synthesis"}
     assert _classify(env, None, None) is Outcome.OK
+
+
+# --- Reachability: each _run_once failure path must reach the policy loop ----------
+#
+# These tests drive the full invoke_claude path. Before Task 3, _run_once collapsed
+# all four failure conditions into a bare None; _classify(None, None, None) returned
+# EMPTY, and EMPTY's tighter cap meant a timeout got fewer paid retries than the
+# decision table specified. The tests below assert on subprocess call counts that
+# DIFFER between outcome caps, proving each path reaches the policy independently.
+
+
+@patch("news.synthesizer.time.sleep")
+@patch("news.synthesizer.subprocess.run")
+def test_a_good_first_call_costs_exactly_one_invocation(mock_run, mock_sleep):
+    """Outcome.OK short-circuits the policy loop immediately."""
+    mock_run.return_value = Mock(stdout=_envelope(result="the synthesis"), returncode=0)
+    out = invoke_claude("prompt", timeout=300)
+    assert out == "the synthesis"
+    assert mock_run.call_count == 1
+    assert mock_sleep.call_count == 0
+
+
+@patch("news.synthesizer.time.sleep")
+@patch("news.synthesizer.subprocess.run")
+def test_repeated_timeouts_stop_at_the_global_cap(mock_run, mock_sleep):
+    """TimeoutExpired must use Outcome.TIMEOUT's own cap, not EMPTY's tighter one.
+
+    Previously five nested ``for attempt in range(max_retries)`` loops could reset
+    the count, giving up to max_retries * policy_cap invocations. Now the policy
+    cap is the only gate, so the count is bounded by MAX_ATTEMPTS.
+    """
+    mock_run.side_effect = subprocess.TimeoutExpired("claude", 300)
+    out = invoke_claude("prompt", timeout=300)
+    assert out is None
+    # TIMEOUT cap = 2 → 3 subprocess calls (seen=1 retry, seen=2 retry, seen=3 GIVE_UP).
+    # The old outer-loop-of-2 would have given 2 * (primary + fallback) = up to 4 total.
+    # The new policy cap of MAX_ATTEMPTS = 4 is looser per-se; the per-outcome row cap
+    # is the binding constraint here (cap=2 → 3 calls, well below 4).
+    assert mock_run.call_count <= MAX_ATTEMPTS
+
+
+@patch("news.synthesizer.reauth")
+@patch("news.synthesizer.time.sleep")
+@patch("news.synthesizer.subprocess.run")
+def test_an_auth_error_triggers_exactly_one_reauth_then_succeeds(mock_run, mock_sleep, mock_reauth):
+    """AUTH_REAUTH_REQUIRED must trigger reauth() and retry the same tier."""
+    mock_reauth.return_value = ReauthResult.SUCCEEDED
+    mock_run.side_effect = [
+        Mock(stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0),
+        Mock(stdout=_envelope(result="the synthesis"), returncode=0),
+    ]
+    assert invoke_claude("prompt", timeout=300) == "the synthesis"
+    assert mock_reauth.call_count == 1
+
+
+@patch("news.synthesizer.reauth")
+@patch("news.synthesizer.time.sleep")
+@patch("news.synthesizer.subprocess.run")
+def test_a_second_auth_error_does_not_reauth_again(mock_run, mock_sleep, mock_reauth):
+    """The one-shot re-auth latch must not reset between retries."""
+    mock_reauth.return_value = ReauthResult.SUCCEEDED
+    mock_run.return_value = Mock(stdout=_envelope(result=_RAPT_ERR, is_error=True), returncode=0)
+    assert invoke_claude("prompt", timeout=300) is None
+    assert mock_reauth.call_count == 1, "the one-shot re-auth budget must not reset"

@@ -283,28 +283,26 @@ def synthesize_monitor(
     )
     logger.info(f"Monitor prompt: {len(prompt)} chars for {len(articles)} articles")
 
-    for attempt in range(max_retries):
-        logger.info(f"Monitor synthesis attempt {attempt + 1}/{max_retries}")
+    raw_output = invoke_claude(
+        prompt,
+        timeout=timeout,
+        claude_command=claude_command,
+        claude_args=claude_args,
+    )
 
-        raw_output = invoke_claude(
-            prompt,
-            timeout=timeout,
-            claude_command=claude_command,
-            claude_args=claude_args,
-        )
+    if raw_output is None:
+        logger.warning("Monitor synthesis failed: no output")
+        logger.error("All monitor synthesis attempts failed, using fallback")
+        fallback = build_monitor_fallback(articles)
+        return (fallback, False)
 
-        if raw_output is None:
-            logger.warning(f"Attempt {attempt + 1} failed: no output")
-            continue
+    parsed = parse_synthesis_output(raw_output)
 
-        parsed = parse_synthesis_output(raw_output)
+    if "error" not in parsed:
+        logger.info("Monitor synthesis succeeded")
+        return (parsed, True)
 
-        if "error" not in parsed:
-            logger.info("Monitor synthesis succeeded")
-            return (parsed, True)
-
-        logger.warning(f"Attempt {attempt + 1} failed: parse error")
-
+    logger.warning("Monitor synthesis failed: parse error")
     logger.error("All monitor synthesis attempts failed, using fallback")
     fallback = build_monitor_fallback(articles)
     return (fallback, False)

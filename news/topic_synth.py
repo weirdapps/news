@@ -221,28 +221,26 @@ def synthesize_topic(
     prompt = build_topic_prompt(articles, query, hours)
     logger.info(f"Topic prompt: {len(prompt)} chars for {len(articles)} articles")
 
-    for attempt in range(max_retries):
-        logger.info(f"Topic synthesis attempt {attempt + 1}/{max_retries}")
+    raw_output = invoke_claude(
+        prompt,
+        timeout=timeout,
+        claude_command=claude_command,
+        claude_args=claude_args,
+    )
 
-        raw_output = invoke_claude(
-            prompt,
-            timeout=timeout,
-            claude_command=claude_command,
-            claude_args=claude_args,
-        )
+    if raw_output is None:
+        logger.warning("Topic synthesis failed: no output")
+        logger.error("All topic synthesis attempts failed, using fallback")
+        fallback = build_topic_fallback(articles)
+        return (fallback, False)
 
-        if raw_output is None:
-            logger.warning(f"Attempt {attempt + 1} failed: no output")
-            continue
+    parsed = parse_synthesis_output(raw_output)
 
-        parsed = parse_synthesis_output(raw_output)
+    if "error" not in parsed:
+        logger.info("Topic synthesis succeeded")
+        return (parsed, True)
 
-        if "error" not in parsed:
-            logger.info("Topic synthesis succeeded")
-            return (parsed, True)
-
-        logger.warning(f"Attempt {attempt + 1} failed: parse error")
-
+    logger.warning("Topic synthesis failed: parse error")
     logger.error("All topic synthesis attempts failed, using fallback")
     fallback = build_topic_fallback(articles)
     return (fallback, False)

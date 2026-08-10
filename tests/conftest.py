@@ -5,11 +5,28 @@ from pathlib import Path
 
 import pytest
 
+from news.llm_policy import ReauthResult
+
 # Ensure project root is on sys.path so 'main' can be imported
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from news.models import Article
 from news.storage import init_db
+
+
+@pytest.fixture(autouse=True)
+def _fast_synthesizer_policy(request, monkeypatch):
+    """Suppress real backoff sleeps and gcloud reauth calls in synthesizer tests.
+
+    Tests that explicitly patch ``news.synthesizer.reauth`` (via ``@patch``) override
+    this fixture's monkeypatch because ``@patch`` runs inside the fixture scope and
+    wins. Tests that do not patch it get ``ReauthResult.FAILED``, which is a fast,
+    deterministic stand-in that exercises the latch logic without running gcloud.
+    """
+    if "test_synthesizer" not in getattr(request.module, "__name__", ""):
+        return
+    monkeypatch.setattr("news.synthesizer.time.sleep", lambda _: None)
+    monkeypatch.setattr("news.synthesizer.reauth", lambda: ReauthResult.FAILED)
 
 
 @pytest.fixture

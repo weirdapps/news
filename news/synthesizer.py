@@ -5,10 +5,20 @@ import logging
 import os
 import re
 import subprocess
+import time
 from typing import Any
 
-from news.auth import refresh_auth
-from news.llm_policy import Outcome
+from news.auth import refresh_auth  # noqa: F401 — kept so test patches still resolve
+from news.llm_policy import (
+    Action,
+    Attempt,
+    Outcome,
+    ReauthResult,
+    decide,
+    reauth,
+    resolve_deadline,
+    running_on_linux,
+)
 from news.roster import build_roster
 
 logger = logging.getLogger(__name__)
@@ -212,17 +222,21 @@ def invoke_claude(
     timeout: int = 120,
     claude_command: str = "claude",
     claude_args: list[str] | None = None,
+    env: dict | None = None,
 ) -> str | None:
-    """Invoke Claude CLI with the given prompt.
+    """Invoke the model under the shared LLM policy. Returns the text, or None.
+
+    This is the only retry loop in the synthesis path. The five per-profile
+    ``for attempt in range(max_retries)`` loops that used to wrap it are gone:
+    nested, their caps multiplied instead of capping, and the one-shot re-auth
+    latch reset on every outer pass.
 
     Args:
         prompt: The prompt to send to Claude
         timeout: Timeout in seconds
         claude_command: Path to claude command
         claude_args: Additional arguments to pass to claude
-
-    Returns:
-        Claude's response stdout, or None if failed
+        env: Environment mapping for deadline resolution (defaults to os.environ)
     """
     if claude_args is None:
         claude_args = []
@@ -260,11 +274,15 @@ def invoke_claude(
                     )
         return (None, None)
 
-    def _run_once(model: str | None, region: str | None) -> dict[str, Any] | None:
-        """Run claude once with model id `model` + CLOUD_ML_REGION=region.
+    def _run_once() -> tuple[dict[str, Any] | None, str | None, BaseException | None]:
+        """Run claude once. Returns (envelope, raw_stdout, exc).
 
-        Returns the parsed --output-format json envelope, or None on failure.
+        Exactly one of the three return slots carries evidence:
+          - exc set:      subprocess raised before producing any output (:289, :292)
+          - raw set only: subprocess ran but stdout was empty or not JSON (:298, :303)
+          - envelope set: subprocess ran and stdout parsed as JSON (success or error envelope)
         """
+        model, region = _resolve_tier()
         args = list(bare_args)
         if model is not None:
             if "--model" in args:
@@ -284,72 +302,59 @@ def invoke_claude(
                 check=False,
                 env=run_env,
             )
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as exc:
             logger.warning(f"Claude CLI timed out after {timeout}s")
-            return None
-        except Exception as e:  # noqa: BLE001 - log and degrade, never raise
-            logger.error(f"Failed to invoke Claude CLI: {e}")
-            return None
-        if not proc.stdout or not proc.stdout.strip():
+            return (None, None, exc)
+        except Exception as exc:  # noqa: BLE001 - log and degrade, never raise
+            logger.error(f"Failed to invoke Claude CLI: {exc}")
+            return (None, None, exc)
+        raw = proc.stdout
+        if not raw or not raw.strip():
             logger.warning(
                 f"Claude CLI returned empty stdout. "
                 f"stderr: {proc.stderr[:500] if proc.stderr else '(none)'}"
             )
-            return None
+            return (None, raw, None)
         try:
-            return json.loads(proc.stdout)
+            return (json.loads(raw), raw, None)
         except json.JSONDecodeError:
-            logger.warning(f"Claude CLI output was not a JSON envelope: {proc.stdout[:200]!r}")
-            return None
+            logger.warning(f"Claude CLI output was not a JSON envelope: {raw[:200]!r}")
+            return (None, raw, None)
 
-    model, region = _resolve_tier()
-    env = _run_once(model, region)
+    # WALL CLOCK, not monotonic. PTS_LLM_DEADLINE is an absolute POSIX time
+    # (a runner computes it as start + TimeoutStartSec - margin), so comparing it
+    # against a monotonic now silently disables the budget check entirely.
+    _env = os.environ if env is None else env
+    now = time.time
+    deadline = resolve_deadline(now(), _env)
+    attempt = Attempt()
 
-    # Self-heal on auth-class errors (e.g. invalid_rapt): re-auth (user + ADC) and
-    # retry the SAME tier once. A model downgrade cannot fix an account-level
-    # credential failure, so we re-authenticate instead of falling back. If re-auth
-    # itself fails, return None so the pipeline alerts rather than shipping a dump.
-    if _is_auth_error(env):
-        logger.warning(
-            f"Claude auth error on {model or 'default'} @ {region or 'default'} — "
-            f"refreshing gcloud auth (user + ADC) and retrying same tier"
+    while True:
+        envelope, raw, exc = _run_once()
+        outcome = _classify(envelope, raw, exc)
+        attempt = attempt.bump(outcome)
+        decision = decide(
+            outcome, attempt, now(), deadline, float(timeout), is_linux=running_on_linux()
         )
-        if refresh_auth():
-            env = _run_once(model, region)
-        if _is_auth_error(env):
-            logger.error("Claude auth still failing after re-auth — synthesis unavailable")
-            return None
 
-    if env is None:
+        if decision.action is Action.RETURN:
+            # envelope is guaranteed non-None by _classify: OK requires a dict with a
+            # non-empty result field. The guard keeps mypy happy without masking bugs.
+            return str(envelope.get("result")) if envelope is not None else None
+
+        if decision.action in (Action.REAUTH_RETRY, Action.WAIT_FOR_PUSH):
+            result = reauth()
+            if result is not ReauthResult.SKIPPED:
+                attempt = attempt.with_reauth_used()
+            continue
+
+        if decision.action is Action.PLAIN_RETRY:
+            if decision.sleep_s:
+                time.sleep(decision.sleep_s)
+            continue
+
+        logger.error("giving up: %s (%s)", decision.reason, outcome.value)
         return None
-
-    # Retry on a (often spurious) policy refusal OR an API error such as a 429: one more
-    # attempt on the fallback tier (model AND region together — region is a function of
-    # model version, so the two must always flip together).
-    if env.get("stop_reason") == "refusal" or env.get("is_error"):
-        fb_model = os.environ.get("VERTEX_MODEL_FALLBACK", "claude-opus-5[1m]")
-        fb_region = os.environ.get("VERTEX_REGION_FALLBACK", "eu")
-        why = (
-            "policy refusal"
-            if env.get("stop_reason") == "refusal"
-            else f"error ({str(env.get('result'))[:160]})"
-        )
-        logger.warning(
-            f"Claude {why} on {model or 'default'} @ {region or 'default'} — "
-            f"downgrading to fallback {fb_model} @ {fb_region}"
-        )
-        env = _run_once(fb_model, fb_region)
-        if env is None:
-            return None
-        if env.get("is_error"):
-            logger.error(f"Fallback model {fb_model} also failed: {str(env.get('result'))[:200]}")
-            return None
-
-    text = env.get("result")
-    if not text or not str(text).strip():
-        logger.warning("Claude CLI returned an empty result field")
-        return None
-    return text
 
 
 def _validate_synthesis(data: dict[str, Any]) -> list[str]:
@@ -510,33 +515,28 @@ def synthesize(
     prompt = build_prompt(articles, previous_highlights, time_window)
     logger.info(f"Prompt size: {len(prompt)} chars for {len(articles)} articles")
 
-    for attempt in range(max_retries):
-        logger.info(f"Synthesis attempt {attempt + 1}/{max_retries}")
+    raw_output = invoke_claude(
+        prompt,
+        timeout=timeout,
+        claude_command=claude_command,
+        claude_args=claude_args,
+    )
 
-        raw_output = invoke_claude(
-            prompt,
-            timeout=timeout,
-            claude_command=claude_command,
-            claude_args=claude_args,
-        )
+    if raw_output is None:
+        logger.warning("Synthesis failed: no output from Claude")
+        logger.error("All synthesis attempts failed, using fallback digest")
+        fallback = build_fallback_digest(articles)
+        return (fallback, False)
 
-        if raw_output is None:
-            logger.warning(f"Attempt {attempt + 1} failed: no output from Claude")
-            continue
+    logger.info(f"Raw Claude output: {len(raw_output)} chars, starts with: {raw_output[:200]!r}")
+    parsed = parse_synthesis_output(raw_output)
 
-        logger.info(
-            f"Raw Claude output: {len(raw_output)} chars, starts with: {raw_output[:200]!r}"
-        )
-        parsed = parse_synthesis_output(raw_output)
+    # Check if parsing succeeded (no error key)
+    if "error" not in parsed:
+        logger.info("Synthesis succeeded")
+        return (parsed, True)
 
-        # Check if parsing succeeded (no error key)
-        if "error" not in parsed:
-            logger.info("Synthesis succeeded")
-            return (parsed, True)
-
-        logger.warning(f"Attempt {attempt + 1} failed: parse error")
-
-    # All attempts failed, return fallback
+    logger.warning("Synthesis failed: parse error")
     logger.error("All synthesis attempts failed, using fallback digest")
     fallback = build_fallback_digest(articles)
     return (fallback, False)
