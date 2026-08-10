@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from news.models import Article
 from news.storage import init_db
-from news.tagger import _reset_reauth_latch
+from news.tagger import _reset_llm_shutoff, _reset_reauth_latch
 
 
 @pytest.fixture(autouse=True)
@@ -52,6 +52,17 @@ def _reset_tagger_reauth_latch():
     script on a developer Mac.
     """
     _reset_reauth_latch()
+
+
+@pytest.fixture(autouse=True)
+def _reset_tagger_llm_shutoff():
+    """Reset the tagger's per-process LLM shutoff state before every test.
+
+    The shutoff is a module global: a test that drives N consecutive failures
+    would leave _llm_shutoff=True and corrupt every subsequent test that reaches
+    extract_tickers_llm, making them silently return [] without hitting subprocess.
+    """
+    _reset_llm_shutoff()
 
 
 @pytest.fixture

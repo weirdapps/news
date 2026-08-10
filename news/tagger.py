@@ -129,6 +129,28 @@ def _reset_reauth_latch() -> None:
     _reauth_attempted = False
 
 
+# Circuit breaker: after _LLM_SHUTOFF_THRESHOLD consecutive CLI invocation failures,
+# LLM tagging is disabled for the rest of the run. Remaining articles pass through
+# with rules-based tags only, so the unit reaches synthesis and its alert email.
+#
+# N=3 rationale: 3 x 30s timeout = 90s maximum budget burned before the shutoff
+# engages. On the smallest unit (600s), 90s leaves 510s for synthesis — comfortably
+# inside budget. Three consecutive failures are very unlikely to be random one-offs
+# (p^3 << p for any realistic per-article failure rate), keeping false positives low.
+# Mirrors the existing one-shot reauth latch pattern. State resets per run (this is a
+# module global in a single-run process). Resettable for tests.
+_LLM_SHUTOFF_THRESHOLD = 3
+_llm_consecutive_failures: int = 0
+_llm_shutoff: bool = False
+
+
+def _reset_llm_shutoff() -> None:
+    """Reset the per-process LLM shutoff state. For tests only."""
+    global _llm_consecutive_failures, _llm_shutoff
+    _llm_consecutive_failures = 0
+    _llm_shutoff = False
+
+
 def _invoke_once(cmd: list[str], prompt: str, timeout: int) -> dict[str, Any] | None:
     """Run the claude CLI once. Returns the parsed JSON envelope, or None on failure.
 
@@ -252,8 +274,17 @@ def extract_tickers_llm(
     mandate was to stop degrading silently; ``_invoke_once``'s ERROR log delivers that
     for a seventh of the wall clock. Re-auth on a credential outage remains synthesis's
     job, where the policy loop and the per-slot alert live.
+
+    After _LLM_SHUTOFF_THRESHOLD consecutive CLI invocation failures (None from
+    _invoke_once), LLM tagging is disabled for the rest of the run via _llm_shutoff.
+    Remaining articles pass through with rules-based tags so the unit reaches synthesis.
     """
-    global _reauth_attempted
+    global _reauth_attempted, _llm_consecutive_failures, _llm_shutoff
+
+    # Circuit breaker: skip LLM tagging entirely when too many consecutive failures
+    # have occurred. Rules-based tags still apply; only the LLM pass is bypassed.
+    if _llm_shutoff:
+        return []
 
     prompt = _TAGGER_PROMPT + text[:max_chars]
     cmd = ["claude", "--model", model, "--print", "--output-format", "json"]
@@ -261,6 +292,23 @@ def extract_tickers_llm(
     envelope = _invoke_once(cmd, prompt, timeout)
 
     if not _is_auth_error(envelope):
+        if envelope is None:
+            # CLI invocation failed (timeout, process error, non-zero exit, non-JSON).
+            # Count this as a consecutive failure and engage the shutoff if the threshold
+            # is reached. On the VPS an auth outage always surfaces as a timeout here
+            # (the CLI takes ~200s to surface invalid_grant; the 30s limit fires first).
+            _llm_consecutive_failures += 1
+            if _llm_consecutive_failures >= _LLM_SHUTOFF_THRESHOLD:
+                _llm_shutoff = True
+                logger.error(
+                    "tagger: %d consecutive LLM failures — disabling LLM tagging for "
+                    "this run. Remaining market-adjacent articles will be tagged by "
+                    "rules only. Check for an auth outage or CLI issue.",
+                    _llm_consecutive_failures,
+                )
+            return []
+        # CLI responded normally; reset the consecutive-failure counter.
+        _llm_consecutive_failures = 0
         return _tickers_from_envelope(envelope)
 
     # Auth failure path — mirrors check_gcloud_auth's Linux guard and refresh delegation
@@ -295,6 +343,9 @@ def extract_tickers_llm(
         logger.error("tagger: credential error persists after re-auth — article tagged empty")
         return []
 
+    # Re-auth succeeded and the CLI worked — clear the consecutive-failure counter so
+    # the next auth outage starts from zero rather than inheriting the pre-reauth count.
+    _llm_consecutive_failures = 0
     return _tickers_from_envelope(envelope)
 
 
