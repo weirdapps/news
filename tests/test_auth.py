@@ -61,3 +61,38 @@ def test_a_skipped_reauth_is_not_a_success(mock_reauth):
 def test_a_failed_reauth_is_false(mock_reauth):
     mock_reauth.return_value = ReauthResult.FAILED
     assert refresh_auth() is False
+
+
+@patch("news.auth.shared_reauth")
+@patch("news.auth.running_on_linux")
+@patch("news.auth.subprocess.run")
+def test_check_gcloud_auth_linux_fails_fast_when_expired(mock_run, mock_linux, mock_reauth):
+    """On Linux, a failed pre-flight probe must return False immediately.
+
+    The VPS cannot re-authenticate itself; waiting for a Mac token push takes
+    up to 1020 seconds — longer than news-monitor's TimeoutStartSec=600. Failing
+    fast lets the pipeline still send its per-slot alert instead of being SIGKILLed
+    mid-wait.
+    """
+    mock_run.return_value = Mock(returncode=1, stdout="")
+    mock_linux.return_value = True
+
+    result = check_gcloud_auth()
+
+    assert result is False
+    mock_reauth.assert_not_called()
+
+
+@patch("news.auth.refresh_auth")
+@patch("news.auth.running_on_linux")
+@patch("news.auth.subprocess.run")
+def test_check_gcloud_auth_macos_attempts_refresh_when_expired(mock_run, mock_linux, mock_refresh):
+    """On macOS, a failed pre-flight probe must attempt a refresh."""
+    mock_run.return_value = Mock(returncode=1, stdout="")
+    mock_linux.return_value = False
+    mock_refresh.return_value = True
+
+    result = check_gcloud_auth()
+
+    assert result is True
+    mock_refresh.assert_called_once()

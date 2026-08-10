@@ -7,7 +7,7 @@ Proactive pre-flight (`check_gcloud_auth`) lives here; reactive re-auth
 import logging
 import subprocess
 
-from news.llm_policy import ReauthResult
+from news.llm_policy import ReauthResult, running_on_linux
 from news.llm_policy import reauth as shared_reauth
 
 logger = logging.getLogger(__name__)
@@ -68,6 +68,16 @@ def check_gcloud_auth() -> bool:
     if _token_valid() and _adc_valid():
         logger.info("gcloud auth check: OK")
         return True
+
+    if running_on_linux():
+        # No pre-flight remedy exists here: the VPS cannot re-authenticate, and
+        # waiting for the Mac's 15-minute token push takes longer than some units
+        # are allowed to run (news-monitor's TimeoutStartSec is 600s). Fail fast so
+        # the pipeline still sends its per-slot alert instead of being SIGKILLed
+        # mid-wait. The reactive path inside invoke_claude does the waiting, where
+        # the deadline budget is known.
+        logger.warning("gcloud auth expired and no pre-flight remedy on this host")
+        return False
 
     logger.warning("gcloud auth expired (user token or ADC) — attempting auto-refresh")
     return refresh_auth()
