@@ -17,9 +17,16 @@ from news.models import Article
 
 logger = logging.getLogger(__name__)
 
-# A transient fetch failure is retried on later harvester runs up to this many
-# times, then left alone rather than retried forever.
-MAX_ATTEMPTS = 3
+# A transient failure is retried on later harvester runs up to this many times,
+# then left alone rather than retried forever.
+#
+# 8, not 3. The harvester runs hourly, so this is the number of hours of
+# transient failure a video can survive. Both observed failure modes last
+# longer than three hours: YouTube answers IpBlocked under load (seen in a live
+# run from the Mac), and a Vertex 429 persists until quota frees up. Abandoning
+# a video permanently over either is the wrong trade, and retries are cheap now
+# that an already-fetched transcript is reused rather than refetched.
+MAX_ATTEMPTS = 8
 
 # Statuses that will never change on a later run: the work is done, or the video
 # simply has no captions and never will.

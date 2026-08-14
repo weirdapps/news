@@ -68,7 +68,7 @@ from news.topic_synth import (
     build_topic_fallback,
     synthesize_topic,
 )
-from news.transcripts import enrich_articles
+from news.transcripts import enrich_articles, extract_video_id
 
 # Constants
 _ATHENS_TZ = ZoneInfo("Europe/Athens")
@@ -1198,6 +1198,13 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
     capped_articles = _select_digest_articles(all_recent, config["pipeline"])
     logger.info(f"Stack pool: {len(all_recent)} articles, selected top {len(capped_articles)}")
 
+    # Coverage is measured over the articles that actually reach the brief, not
+    # over everything fetched this run. The fetch set includes duplicates and
+    # quality drops, so counting it would report a reassuring figure about
+    # videos the reader never sees.
+    brief_videos = [a for a in capped_articles if extract_video_id(a.url)]
+    brief_enriched = sum(1 for a in brief_videos if a.transcript_abstract)
+
     # SYNTHESIZE
     from news.stack_synth import build_stack_fallback, synthesize_stack
 
@@ -1274,7 +1281,7 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
             next_run=next_run,
             subject=subject,
             transcript_coverage=(
-                f"{enriched}/{video_total} videos transcribed" if video_total else ""
+                f"{brief_enriched}/{len(brief_videos)} videos transcribed" if brief_videos else ""
             ),
         )
     else:

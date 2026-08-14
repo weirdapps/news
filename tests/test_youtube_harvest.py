@@ -3,10 +3,11 @@
 Everything is mocked: no network, no real transcript API, no claude CLI call.
 """
 
+import logging
 import sqlite3
 from unittest.mock import Mock, patch
 
-from news.transcripts import init_transcript_db, upsert_transcript
+from news.transcripts import MAX_ATTEMPTS, init_transcript_db, upsert_transcript
 from scripts.youtube_harvest import (
     ABSTRACT_MAX_CHARS,
     distil,
@@ -362,3 +363,27 @@ def test_harvest_treats_an_empty_caption_track_as_no_captions(tmp_path):
 
     assert distil_mock.call_count == 0
     assert stats["no_captions"] == 2
+
+
+def test_attempt_ceiling_survives_a_multi_hour_transient_outage():
+    """Hourly runs plus a 3-attempt ceiling abandoned videos after 3 bad hours.
+
+    Both observed failure modes are transient and multi-hour: YouTube IpBlocked
+    (seen in a live run) and a Vertex 429. Losing a video permanently to either
+    is the wrong trade, and retries are cheap now that transcripts are reused.
+    """
+    assert MAX_ATTEMPTS >= 8
+
+
+def test_distil_logs_stdout_on_failure_because_that_is_where_vertex_errors_land(caplog):
+    """A Vertex 429 arrives on stdout with stderr empty; logging stderr alone hides it."""
+    completed = Mock(
+        returncode=1,
+        stdout="API Error: Request rejected (429) RESOURCE_EXHAUSTED quota exceeded",
+        stderr="",
+    )
+    with patch("scripts.youtube_harvest.subprocess.run", return_value=completed):
+        with caplog.at_level(logging.WARNING, logger="scripts.youtube_harvest"):
+            assert distil("transcript", "title") == ""
+
+    assert "429" in caplog.text

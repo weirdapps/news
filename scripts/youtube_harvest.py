@@ -173,7 +173,11 @@ def distil(transcript: str, title: str) -> str:
         return ""
 
     if result.returncode != 0:
-        logger.warning(f"claude CLI exited {result.returncode}: {(result.stderr or '')[:200]}")
+        # Vertex errors (notably a 429 on an unprovisioned model/region pairing)
+        # arrive on stdout with stderr empty, so logging stderr alone produces a
+        # message with no diagnostic in it at all.
+        detail = (result.stderr or "").strip() or (result.stdout or "").strip()
+        logger.warning(f"claude CLI exited {result.returncode}: {detail[:300]}")
         return ""
 
     return (result.stdout or "").strip()

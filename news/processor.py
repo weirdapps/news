@@ -191,8 +191,10 @@ def filter_quality(
     overrides = source_max_age or {}
 
     for article in articles:
-        # Check word count
-        word_count = len(article.content.split())
+        # Check word count. The abstract counts: a video's description can be a
+        # single line while its transcript abstract is substantial, and dropping
+        # here happens before scoring, so the enrichment would never be seen.
+        word_count = len((article.content + " " + article.transcript_abstract).split())
         if word_count < min_words:
             dropped.append(article)
             continue
