@@ -22,6 +22,9 @@ schedule:
 storage:
   db_path: ~/SourceCode/news/data/news.db
   run_log_path: ~/SourceCode/news/data/run.log
+  # Written by scripts/youtube_harvest.py on the Mac (YouTube blocks the VPS by
+  # IP) and rsynced here. Read-only on this side; absent means no enrichment.
+  transcripts_db_path: ~/SourceCode/news/data/transcripts.db
   archive_dir: ~/SourceCode/news/data/archive
   archive_after_days: 30
 

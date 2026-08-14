@@ -13,9 +13,11 @@ from main import (
     log_run,
     release_lock,
     run_digest_pipeline,
+    run_stack_pipeline,
 )
 from news.models import Article
 from news.storage import init_db
+from news.transcripts import init_transcript_db, upsert_transcript
 
 
 def test_acquire_and_release_lock(tmp_path):
@@ -238,3 +240,78 @@ def test_digest_pipeline_keeps_an_old_article_from_a_source_with_an_age_override
         asyncio.run(run_digest_pipeline())
 
     assert stored == ["Harness Engineering"]
+
+
+def test_stack_pipeline_attaches_transcript_abstracts_before_storing(tmp_path):
+    """Enrichment must land before compute_hash/process_articles so scoring sees it."""
+    transcripts_db = tmp_path / "transcripts.db"
+    tconn = sqlite3.connect(transcripts_db)
+    tconn.row_factory = sqlite3.Row
+    init_transcript_db(tconn)
+    upsert_transcript(
+        tconn,
+        "G55HSGpuh1M",
+        "YouTube: Fireship",
+        "Muse Glimmer",
+        None,
+        "full words",
+        "Meta released Muse Glimmer under Apache 2.0.",
+        "ok",
+    )
+    tconn.close()
+
+    settings = {
+        "pipeline": {
+            "max_digest_articles": 100,
+            "max_articles_per_source": 10,
+            "min_article_length_words": 2,
+            "max_article_age_hours": 36,
+            "digest_window_hours": 36,
+        },
+        "email": {"recipient": "test@example.com"},
+        "storage": {
+            "db_path": str(tmp_path / "news.db"),
+            "run_log_path": str(tmp_path / "runs.log"),
+            "transcripts_db_path": str(transcripts_db),
+        },
+        "schedule": {"timezone": "Europe/Athens", "runs": ["13:00"]},
+        "synthesis": {"max_retries": 1, "timeout": 60, "claude_command": "claude"},
+        "scoring": {},
+    }
+    video = Article(
+        url="https://www.youtube.com/watch?v=G55HSGpuh1M",
+        title="Muse Glimmer",
+        source="YouTube: Fireship",
+        content="Subscribe for more!",
+        categories=["ai"],
+        language="en",
+        published_at=datetime.now(UTC),
+    )
+
+    mem_conn = sqlite3.connect(":memory:")
+    mem_conn.row_factory = sqlite3.Row
+    init_db(mem_conn)
+    stored: list[Article] = []
+
+    with (
+        patch("main.get_settings", return_value=settings),
+        patch("main.get_sources", return_value={"rss_feeds": []}),
+        patch("main.get_categories", return_value={}),
+        patch("main.get_connection", return_value=mem_conn),
+        patch("main.init_db"),
+        patch("main.get_last_digest", return_value=None),
+        patch("main.fetch_all_sources", new_callable=AsyncMock, return_value=([video], [])),
+        patch("main.insert_article", side_effect=lambda conn, a: stored.append(a)),
+        patch("main.get_articles_since", return_value=[]),
+        patch("main.check_gcloud_auth", return_value=True),
+        # NOT "main.synthesize_stack": main.py imports it locally inside the
+        # function, so only the source-module patch takes effect.
+        patch("news.stack_synth.synthesize_stack", return_value=("fallback", False)),
+        patch("main.send_email", return_value=True),
+        patch("main.insert_digest", return_value=1),
+        patch("main.update_digest_sent"),
+    ):
+        asyncio.run(run_stack_pipeline())
+
+    assert len(stored) == 1
+    assert stored[0].transcript_abstract == "Meta released Muse Glimmer under Apache 2.0."

@@ -519,8 +519,15 @@ def render_stack_html(
     date_display: str,
     next_run: str | None = None,
     subject: str = "",
+    transcript_coverage: str = "",
 ) -> str:
-    """Render the stack HTML using Jinja2 template."""
+    """Render the stack HTML using Jinja2 template.
+
+    ``transcript_coverage`` surfaces how many YouTube items had a transcript
+    abstract available. The harvester runs on the Mac, so a stale store is a
+    real possibility; putting the figure in the artifact actually read makes
+    that visible rather than silent.
+    """
     env = Environment(  # nosemgrep
         loader=FileSystemLoader(_TEMPLATES_DIR),
         autoescape=select_autoescape(default_for_string=True, default=True),
@@ -570,6 +577,7 @@ def render_stack_html(
         sections=sections,
         fallback_text=fallback_text,
         next_run=next_run,
+        transcript_coverage=transcript_coverage,
     )
 
 
