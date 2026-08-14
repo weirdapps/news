@@ -104,6 +104,19 @@ def pending_video_ids(conn: sqlite3.Connection, candidates: list[str]) -> list[s
     return [video_id for video_id in candidates if video_id not in settled]
 
 
+def stored_transcript(conn: sqlite3.Connection, video_id: str) -> str:
+    """Return a transcript already held for this video, or "".
+
+    Lets the harvester retry a failed distillation without paying for the fetch
+    again, and without risking the stored transcript being overwritten by a
+    refetch that fails.
+    """
+    row = conn.execute(
+        "SELECT transcript FROM transcripts WHERE video_id = ?", (video_id,)
+    ).fetchone()
+    return (row["transcript"] or "") if row else ""
+
+
 def extract_video_id(url: str) -> str | None:
     """Return the YouTube video id in a URL, or None if it is not a video URL."""
     if not url:

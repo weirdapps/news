@@ -38,6 +38,7 @@ from news.config import get_sources  # noqa: E402
 from news.transcripts import (  # noqa: E402
     init_transcript_db,
     pending_video_ids,
+    stored_transcript,
     upsert_transcript,
 )
 
@@ -210,7 +211,19 @@ def harvest(
 
                 video = by_id[video_id]
                 stats["attempted"] += 1
-                text, status = fetch_transcript(video_id)
+
+                # Reuse a transcript we already paid to fetch. This is what makes
+                # a summary_failed retry cheap, and it stops a refetch that fails
+                # from overwriting good text with an empty string.
+                text = stored_transcript(conn, video_id)
+                status = "ok" if text else ""
+                if not text:
+                    text, status = fetch_transcript(video_id)
+
+                # An 'ok' with no words is a caption track that exists but is
+                # empty; distilling it would send the model an empty prompt.
+                if status == "ok" and not text.strip():
+                    text, status = "", "no_captions"
 
                 abstract = ""
                 if status == "ok":

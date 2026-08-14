@@ -282,3 +282,83 @@ def test_harvest_stores_an_abstract_trimmed_to_the_synthesis_allowance(tmp_path)
 
     assert len(row["abstract"]) <= ABSTRACT_MAX_CHARS
     assert row["abstract"].endswith(".")
+
+
+# --- Retry must not destroy work already done ---------------------------------
+
+
+def test_harvest_reuses_a_stored_transcript_instead_of_refetching(tmp_path):
+    """A summary_failed retry should cost one LLM call, not another fetch."""
+    db_path = tmp_path / "transcripts.db"
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    init_transcript_db(conn)
+    upsert_transcript(
+        conn,
+        "G55HSGpuh1M",
+        "Fireship",
+        "Meta's new model",
+        None,
+        "the expensive transcript",
+        "",
+        "summary_failed",
+    )
+    conn.close()
+
+    with (
+        patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
+        patch("scripts.youtube_harvest.fetch_transcript") as fetch,
+        patch("scripts.youtube_harvest.distil", return_value="the abstract") as distil_mock,
+    ):
+        harvest(_FIRESHIP_SOURCES, db_path, limit=1)
+
+    # The transcript was already in hand, so no refetch for that video.
+    assert "G55HSGpuh1M" not in [c.args[0] for c in fetch.call_args_list]
+    assert distil_mock.call_args[0][0] == "the expensive transcript"
+
+
+def test_harvest_never_overwrites_a_stored_transcript_with_an_empty_one(tmp_path):
+    """A failed refetch must not destroy a transcript we already paid to get."""
+    db_path = tmp_path / "transcripts.db"
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    init_transcript_db(conn)
+    upsert_transcript(
+        conn,
+        "G55HSGpuh1M",
+        "Fireship",
+        "Meta's new model",
+        None,
+        "the expensive transcript",
+        "",
+        "summary_failed",
+    )
+    conn.close()
+
+    with (
+        patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
+        patch("scripts.youtube_harvest.fetch_transcript", return_value=("", "fetch_failed")),
+        patch("scripts.youtube_harvest.distil", return_value=""),
+    ):
+        harvest(_FIRESHIP_SOURCES, db_path, limit=2)
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT transcript FROM transcripts WHERE video_id='G55HSGpuh1M'").fetchone()
+    conn.close()
+    assert row["transcript"] == "the expensive transcript"
+
+
+def test_harvest_treats_an_empty_caption_track_as_no_captions(tmp_path):
+    """An 'ok' status with no text must not be sent to the LLM as an empty prompt."""
+    db_path = tmp_path / "transcripts.db"
+
+    with (
+        patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
+        patch("scripts.youtube_harvest.fetch_transcript", return_value=("   ", "ok")),
+        patch("scripts.youtube_harvest.distil") as distil_mock,
+    ):
+        stats = harvest(_FIRESHIP_SOURCES, db_path, limit=2)
+
+    assert distil_mock.call_count == 0
+    assert stats["no_captions"] == 2
