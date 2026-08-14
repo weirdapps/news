@@ -21,6 +21,7 @@ dependencies = [
     "cryptography>=49.0.0",   # CVE-2025-*: high; patched in 48.0.1 (via pyjwt[crypto])
     # pydantic-settings pin dropped: mcp 2.0 removed the dependency along with
     # its MCP_* env-var settings, and nothing here imports it.
+    "youtube-transcript-api>=1.2.4",
 ]
 
 [project.optional-dependencies]
