@@ -548,7 +548,21 @@ def _setup_digest_pipeline(settings: dict, sources: dict):
     run_log_path = Path(storage_config["run_log_path"]).expanduser()
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    source_tiers = {source["name"]: source.get("tier", 2) for source in sources["rss_feeds"]}
+    # Every source type contributes, not just rss_feeds: a tier declared on an
+    # html_sources or api_sources entry would otherwise be silently scored as 2.
+    all_sources = [
+        source
+        for key in ("rss_feeds", "html_sources", "api_sources")
+        for source in sources.get(key, [])
+    ]
+    source_tiers = {source["name"]: source.get("tier", 2) for source in all_sources}
+    # Slow-publishing curated sources may declare a longer age window than the
+    # profile's news-wire default; absent here means the default applies.
+    source_max_age = {
+        source["name"]: source["max_age_hours"]
+        for source in all_sources
+        if source.get("max_age_hours")
+    }
 
     return {
         "pipeline": pipeline_config,
@@ -559,6 +573,7 @@ def _setup_digest_pipeline(settings: dict, sources: dict):
         "db_path": db_path,
         "run_log_path": run_log_path,
         "source_tiers": source_tiers,
+        "source_max_age": source_max_age,
     }
 
 
@@ -652,6 +667,7 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
         source_tiers=config["source_tiers"],
         min_words=config["pipeline"]["min_article_length_words"],
         max_age_hours=config["pipeline"]["max_article_age_hours"],
+        source_max_age=config["source_max_age"],
     )
 
     logger.info(
@@ -887,6 +903,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
         source_tiers=config["source_tiers"],
         min_words=config["pipeline"]["min_article_length_words"],
         max_age_hours=config["pipeline"]["max_article_age_hours"],
+        source_max_age=config["source_max_age"],
         keywords_config=keywords_config,
     )
 
@@ -1137,6 +1154,7 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
         source_tiers=config["source_tiers"],
         min_words=config["pipeline"]["min_article_length_words"],
         max_age_hours=config["pipeline"]["max_article_age_hours"],
+        source_max_age=config["source_max_age"],
     )
 
     for article in processed_articles:
@@ -1358,6 +1376,7 @@ async def run_market_pipeline(run_type: str = "scheduled") -> None:
         source_tiers=config["source_tiers"],
         min_words=config["pipeline"]["min_article_length_words"],
         max_age_hours=config["pipeline"]["max_article_age_hours"],
+        source_max_age=config["source_max_age"],
     )
 
     for article in processed_articles:

@@ -6,6 +6,7 @@ from news.processor import (
     compute_relevance_score,
     deduplicate,
     filter_quality,
+    process_articles,
 )
 
 
@@ -268,3 +269,76 @@ def test_filter_quality_drops_old_articles():
     assert kept[0].published_at == two_hours_ago
     assert len(dropped) == 1
     assert dropped[0].published_at == forty_eight_hours_ago
+
+
+# --- Per-source age override --------------------------------------------------
+# Curated, slow-publishing sources (evergreen deep dives) would be wiped out by
+# the news-wire age window, so a source may declare a longer one of its own.
+
+
+def test_filter_quality_keeps_old_articles_from_a_source_with_an_age_override():
+    sixty_hours_ago = datetime.now(UTC) - timedelta(hours=60)
+    evergreen = _make_article(source="The Agent Daily", published_at=sixty_hours_ago)
+
+    kept, dropped = filter_quality(
+        [evergreen],
+        min_words=100,
+        max_age_hours=36,
+        source_max_age={"The Agent Daily": 720},
+    )
+
+    assert kept == [evergreen]
+    assert dropped == []
+
+
+def test_filter_quality_still_drops_old_articles_from_sources_without_an_override():
+    sixty_hours_ago = datetime.now(UTC) - timedelta(hours=60)
+    wire = _make_article(source="TechCrunch", published_at=sixty_hours_ago)
+    evergreen = _make_article(source="The Agent Daily", published_at=sixty_hours_ago)
+
+    kept, dropped = filter_quality(
+        [wire, evergreen],
+        min_words=100,
+        max_age_hours=36,
+        source_max_age={"The Agent Daily": 720},
+    )
+
+    assert kept == [evergreen]
+    assert dropped == [wire]
+
+
+def test_filter_quality_applies_the_override_ceiling_not_an_exemption():
+    """An override is a longer window, not a licence to keep anything forever."""
+    ancient = _make_article(
+        source="The Agent Daily",
+        published_at=datetime.now(UTC) - timedelta(hours=800),
+    )
+
+    kept, dropped = filter_quality(
+        [ancient],
+        min_words=100,
+        max_age_hours=36,
+        source_max_age={"The Agent Daily": 720},
+    )
+
+    assert kept == []
+    assert dropped == [ancient]
+
+
+def test_process_articles_threads_the_source_age_override_through():
+    sixty_hours_ago = datetime.now(UTC) - timedelta(hours=60)
+    evergreen = _make_article(source="The Agent Daily", published_at=sixty_hours_ago)
+
+    processed, stats = process_articles(
+        articles=[evergreen],
+        existing_hashes=set(),
+        categories_config={"categories": {}},
+        scoring_config={},
+        source_tiers={},
+        min_words=10,
+        max_age_hours=36,
+        source_max_age={"The Agent Daily": 720},
+    )
+
+    assert stats["quality_dropped"] == 0
+    assert len(processed) == 1

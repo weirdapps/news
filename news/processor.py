@@ -162,7 +162,10 @@ def compute_relevance_score(
 
 
 def filter_quality(
-    articles: list[Article], min_words: int = 100, max_age_hours: int = 36
+    articles: list[Article],
+    min_words: int = 100,
+    max_age_hours: int = 36,
+    source_max_age: dict[str, int] | None = None,
 ) -> tuple[list[Article], list[Article]]:
     """
     Filter articles by quality: word count and age.
@@ -171,13 +174,18 @@ def filter_quality(
         articles: Articles to filter
         min_words: Minimum word count
         max_age_hours: Maximum age in hours
+        source_max_age: Optional per-source age windows keyed by source name.
+            Curated sources that publish evergreen material on a weekly cadence
+            would otherwise be wiped out by the news-wire window, so they may
+            declare a longer one. It is still a ceiling, not an exemption.
 
     Returns:
         Tuple of (kept_articles, dropped_articles)
     """
     kept = []
     dropped = []
-    cutoff_time = datetime.now(UTC) - timedelta(hours=max_age_hours)
+    now = datetime.now(UTC)
+    overrides = source_max_age or {}
 
     for article in articles:
         # Check word count
@@ -186,8 +194,9 @@ def filter_quality(
             dropped.append(article)
             continue
 
-        # Check age
-        if article.published_at and article.published_at < cutoff_time:
+        # Check age, against this source's window if it declared one
+        window = overrides.get(article.source, max_age_hours)
+        if article.published_at and article.published_at < now - timedelta(hours=window):
             dropped.append(article)
             continue
 
@@ -251,6 +260,7 @@ def process_articles(
     min_words: int = 100,
     max_age_hours: int = 36,
     keywords_config: dict | None = None,
+    source_max_age: dict[str, int] | None = None,
 ) -> tuple[list[Article], dict]:
     """
     Process articles through the full pipeline.
@@ -271,6 +281,9 @@ def process_articles(
         max_age_hours: Maximum age in hours for quality filter
         keywords_config: Optional brand-monitoring config; threaded to
             ``compute_relevance_score`` for company/competitor bonuses.
+        source_max_age: Optional per-source age windows; threaded to
+            ``filter_quality`` so slow-publishing curated sources survive the
+            news-wire window.
 
     Returns:
         Tuple of (processed_articles, stats_dict)
@@ -283,7 +296,7 @@ def process_articles(
     }
 
     # Step 1: Filter quality
-    kept, dropped = filter_quality(articles, min_words, max_age_hours)
+    kept, dropped = filter_quality(articles, min_words, max_age_hours, source_max_age)
     stats["quality_dropped"] = len(dropped)
 
     # Step 2: Deduplicate
