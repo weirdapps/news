@@ -67,3 +67,22 @@ def test_source_creation():
     assert source.tier == 1
     assert source.fetch_count == 0
     assert source.error_count == 0
+
+
+def test_transcript_abstract_does_not_affect_the_content_hash():
+    """The abstract must stay out of the hash input, or dedup double-stores videos."""
+    common = {
+        "url": "https://www.youtube.com/watch?v=abc12345678",
+        "title": "A Video",
+        "source": "YouTube: Fireship",
+        "content": "Short marketing blurb.",
+        "categories": ["ai"],
+        "language": "en",
+    }
+    base = Article(**common)
+    enriched = Article(**common, transcript_abstract="A completely different 800 char abstract.")
+
+    base.compute_hash()
+    enriched.compute_hash()
+
+    assert base.content_hash == enriched.content_hash

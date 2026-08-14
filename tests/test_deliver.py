@@ -13,6 +13,7 @@ from news.deliver import (
     build_subject,
     notify_macos,
     render_digest_html,
+    render_stack_html,
     save_fallback,
     send_email,
 )
@@ -354,3 +355,28 @@ def test_render_monitor_html_links_mention_title_when_url_present():
     )
     assert 'href="https://reuters.com/nbg-q1"' in html
     assert "NBG Q1 results" in html
+
+
+def test_stack_html_shows_transcript_coverage_when_provided():
+    html = render_stack_html(
+        synthesis={"executive_brief": [], "sections": []},
+        article_count=10,
+        source_count=3,
+        time_display="13:00",
+        date_display="Fri 14 AUG",
+        transcript_coverage="11/14 videos transcribed",
+    )
+
+    assert "11/14 videos transcribed" in html
+
+
+def test_stack_html_omits_the_coverage_line_when_there_are_no_videos():
+    html = render_stack_html(
+        synthesis={"executive_brief": [], "sections": []},
+        article_count=10,
+        source_count=3,
+        time_display="13:00",
+        date_display="Fri 14 AUG",
+    )
+
+    assert "videos transcribed" not in html

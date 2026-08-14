@@ -342,3 +342,33 @@ def test_process_articles_threads_the_source_age_override_through():
 
     assert stats["quality_dropped"] == 0
     assert len(processed) == 1
+
+
+def test_relevance_score_counts_a_claude_mention_found_only_in_the_abstract():
+    """The description is marketing copy; the substance is in the transcript."""
+    article = _make_article(content="Subscribe for more videos every week!")
+    article.transcript_abstract = (
+        "A walkthrough of building an MCP server and wiring it into Claude Code."
+    )
+
+    score = compute_relevance_score(article, {"claude_mention": 30}, source_tier=2)
+
+    assert score == 30
+
+
+def test_filter_quality_counts_the_abstract_toward_the_word_gate():
+    """A video with a terse description but a rich abstract must survive.
+
+    filter_quality runs before scoring, so dropping here means the abstract is
+    never seen at all -- the enrichment is computed and then discarded.
+    """
+    terse = _make_article(content="New video out now")
+    terse.transcript_abstract = (
+        "Meta released Muse Glimmer, a 30-billion-parameter agentic model under the "
+        "Apache 2.0 licence, with 4-bit quantisation bringing it under 20 GB."
+    )
+
+    kept, dropped = filter_quality([terse], min_words=10, max_age_hours=36)
+
+    assert kept == [terse]
+    assert dropped == []

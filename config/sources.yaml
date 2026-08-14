@@ -158,13 +158,53 @@ rss_feeds:
     category: "ai"
     tier: 2
     language: "en"
-  - name: "YouTube: Bloomberg TV"
-    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCIALMKvObZNtJ6AmdCLP7Lg"
-    category: "business"
-    tier: 1
-    language: "en"
   - name: "YouTube: NetworkChuck"
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC9x0AN7BWHpCDHSm9NiJFJQ"
+    category: "tech"
+    tier: 2
+    language: "en"
+
+  # --- Banking, payments and industry (added 2026-08-14) ---
+  # Standards bodies, scheme operators and the payments conference circuit.
+  # Low volume, high signal: these post rarely, which is the opposite of the
+  # broadcast clip feed removed above.
+  - name: "YouTube: BIS"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCM_UXHYYPreAnuT5cmCN5TA"
+    category: "banking"
+    tier: 1
+    language: "en"
+  - name: "YouTube: Swift"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCYDwSnNluJ0pa-h2eo8ZkXg"
+    category: "banking"
+    tier: 1
+    language: "en"
+  - name: "YouTube: EMVCo"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCQPCa9UJuF5wGslZymPq1sQ"
+    category: "banking"
+    tier: 1
+    language: "en"
+  - name: "YouTube: European Payments Council"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCj9W8575lOTT46XEsnxIqGA"
+    category: "banking"
+    tier: 1
+    language: "en"
+  - name: "YouTube: Money20/20"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCip4CIpmM13NOAH-j9GiAzg"
+    category: "banking"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Finextra Research"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC2n7WbjqcCmSQ6E0Cc-gOFQ"
+    category: "banking"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Acquired"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCyFqFYfTW2VoIQKylJ04Rtw"
+    category: "business"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Big Technology"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCye1YedIypHffYb8k6Gp9wg"
     category: "tech"
     tier: 2
     language: "en"

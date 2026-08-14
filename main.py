@@ -52,6 +52,7 @@ from news.models import Digest
 from news.monitor_synth import synthesize_monitor
 from news.processor import process_articles
 from news.storage import (
+    backfill_transcript_abstracts,
     get_article_by_hash,
     get_articles_since,
     get_connection,
@@ -67,6 +68,7 @@ from news.topic_synth import (
     build_topic_fallback,
     synthesize_topic,
 )
+from news.transcripts import enrich_articles, extract_video_id
 
 # Constants
 _ATHENS_TZ = ZoneInfo("Europe/Athens")
@@ -563,6 +565,10 @@ def _setup_digest_pipeline(settings: dict, sources: dict):
         for source in all_sources
         if source.get("max_age_hours")
     }
+    # Written by the Mac harvester and rsynced here; read-only on this side.
+    transcripts_db_path = Path(
+        storage_config.get("transcripts_db_path", db_path.parent / "transcripts.db")
+    ).expanduser()
 
     return {
         "pipeline": pipeline_config,
@@ -574,6 +580,7 @@ def _setup_digest_pipeline(settings: dict, sources: dict):
         "run_log_path": run_log_path,
         "source_tiers": source_tiers,
         "source_max_age": source_max_age,
+        "transcripts_db_path": transcripts_db_path,
     }
 
 
@@ -1138,6 +1145,19 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
         for error in fetch_errors[:5]:
             logger.warning(f"  {error}")
 
+    # ENRICH: attach transcript abstracts before hashing and scoring. The
+    # abstract is a separate field, so the hash input is untouched; doing it
+    # here is what lets process_articles score on what was actually said.
+    enriched, video_total = enrich_articles(raw_articles, config["transcripts_db_path"])
+    if video_total:
+        logger.info(f"Transcript enrichment: {enriched}/{video_total} YouTube items enriched")
+        # A video first stored before the harvester reached it is dropped as a
+        # duplicate on every later run (its hash is unchanged by design), so it
+        # would never receive its abstract. Backfill it onto the stored row.
+        backfilled = backfill_transcript_abstracts(conn, raw_articles)
+        if backfilled:
+            logger.info(f"Backfilled abstracts onto {backfilled} previously-stored article(s)")
+
     # PROCESS
     existing_hashes: set[str] = set()
     for article in raw_articles:
@@ -1177,6 +1197,13 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
 
     capped_articles = _select_digest_articles(all_recent, config["pipeline"])
     logger.info(f"Stack pool: {len(all_recent)} articles, selected top {len(capped_articles)}")
+
+    # Coverage is measured over the articles that actually reach the brief, not
+    # over everything fetched this run. The fetch set includes duplicates and
+    # quality drops, so counting it would report a reassuring figure about
+    # videos the reader never sees.
+    brief_videos = [a for a in capped_articles if extract_video_id(a.url)]
+    brief_enriched = sum(1 for a in brief_videos if a.transcript_abstract)
 
     # SYNTHESIZE
     from news.stack_synth import build_stack_fallback, synthesize_stack
@@ -1253,6 +1280,9 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
             date_display=date_display,
             next_run=next_run,
             subject=subject,
+            transcript_coverage=(
+                f"{brief_enriched}/{len(brief_videos)} videos transcribed" if brief_videos else ""
+            ),
         )
     else:
         # Synthesis failed — send a one-line alert, NOT the unsynthesized dump.

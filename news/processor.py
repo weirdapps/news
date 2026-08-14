@@ -102,7 +102,10 @@ def compute_relevance_score(
         Computed relevance score
     """
     score = 0
-    text = (article.title + " " + article.content).lower()
+    # The abstract carries what was actually said in a video, while content is
+    # only the uploader's blurb. Scoring reads both, or transcript-only signal
+    # is filtered out by selection before anyone ever reads it.
+    text = (article.title + " " + article.content + " " + article.transcript_abstract).lower()
 
     # Company-mention bonus — patterns come from keywords_config.company.names.
     # When keywords_config is None (digest profile), no company bonus applies.
@@ -188,8 +191,10 @@ def filter_quality(
     overrides = source_max_age or {}
 
     for article in articles:
-        # Check word count
-        word_count = len(article.content.split())
+        # Check word count. The abstract counts: a video's description can be a
+        # single line while its transcript abstract is substantial, and dropping
+        # here happens before scoring, so the enrichment would never be seen.
+        word_count = len((article.content + " " + article.transcript_abstract).split())
         if word_count < min_words:
             dropped.append(article)
             continue
