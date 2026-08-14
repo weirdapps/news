@@ -224,6 +224,170 @@ rss_feeds:
     tier: 2
     language: "en"
 
+  # --- Expanded roster (added 2026-08-14) ---
+  # Every channel here has a reputable organisation behind it, a reputable
+  # practitioner running it, or subscriber scale that is itself evidence of
+  # reputation. Every channel_id was verified against its live Atom feed
+  # before being added; an unverified id yields a feed that silently returns
+  # nothing, which is the failure mode that hid a dead source for weeks.
+  # Weighted towards conference talks and practitioner deep dives, because
+  # that content is video-native and has no RSS equivalent.
+  - name: "YouTube: Anthropic"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCrDwWp7EBBv4NwvScIpBDOA"
+    category: "releases"
+    tier: 1
+    language: "en"
+  - name: "YouTube: Claude"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCV03SRZXJEz-hchIAogeJOg"
+    category: "releases"
+    tier: 1
+    language: "en"
+  - name: "YouTube: Google DeepMind"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCP7jMXSY2xbc3KCAE0MHQ-A"
+    category: "releases"
+    tier: 1
+    language: "en"
+  - name: "YouTube: Hugging Face"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCHlNU7kIZhRgSbhHvFoy72w"
+    category: "releases"
+    tier: 1
+    language: "en"
+  - name: "YouTube: Microsoft Research"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCCb9_Kn8F_Opb3UCGm-lILQ"
+    category: "research"
+    tier: 1
+    language: "en"
+  - name: "YouTube: Ai2"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCEqgmyWChwvt6MFGGlmUQCQ"
+    category: "research"
+    tier: 2
+    language: "en"
+  - name: "YouTube: AI Engineer"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCLKPca3kwwd-B59HNr-_lvA"
+    category: "tutorials"
+    tier: 1
+    language: "en"
+  - name: "YouTube: Sam Witteveen"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC55ODQSvARtgSyc8ThfiepQ"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Cole Medin"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCMwVTLZIRRUyyVrkjDpn4pA"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Dave Ebbelaar"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCn8ujwUInbJkBhffxqAPBVQ"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "YouTube: How I AI"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCRYY7IEbkHLH_ScJCu9eWDQ"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Dwarkesh Patel"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCXl4i9dYBrFOabk0xGmbkRA"
+    category: "industry"
+    tier: 1
+    language: "en"
+  - name: "YouTube: Machine Learning Street Talk"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCMLtBahI5DMrt0NPvDSoIRQ"
+    category: "research"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Sebastian Raschka"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC_CzsS7UTjcxJ-xXp1ftxtA"
+    category: "research"
+    tier: 2
+    language: "en"
+  - name: "YouTube: GOTO Conferences"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCs_tLP3AiwYKwdUHpltJPuA"
+    category: "industry"
+    tier: 1
+    language: "en"
+  - name: "YouTube: InfoQ"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCkQX1tChV7Z7l1LFF4L9j_g"
+    category: "industry"
+    tier: 1
+    language: "en"
+  - name: "YouTube: NDC Conferences"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCTdw38Cw6jcm0atBPA39a0Q"
+    category: "industry"
+    tier: 2
+    language: "en"
+  - name: "YouTube: USENIX"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC4-GrpQBx6WCGwmwozP744Q"
+    category: "research"
+    tier: 1
+    language: "en"
+  - name: "YouTube: CMU Database Group"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCHnBsf2rH-K7pn09rb3qvkA"
+    category: "research"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Jon Gjengset"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC_iD0xppBwwsrM9DegC5cQQ"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Hussein Nasser"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC_ML5xP23TOWKUcc-oAE_Eg"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Matt Pocock"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCswG6FSbgZjbWtdf_hMLaow"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Armin Ronacher"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC-mexo-76-J1MlQM8NkWCYw"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "YouTube: DevOps and AI Toolkit"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCfz8x0lVzJpb_dgWm9kPVrw"
+    category: "tutorials"
+    tier: 2
+    language: "en"
+  - name: "YouTube: SemiAnalysis"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCf_KhBXw5TIV0A7butjgFhg"
+    category: "industry"
+    tier: 1
+    language: "en"
+  - name: "YouTube: Asianometry"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC1LpsuAUaKoMzzJSEt5WImw"
+    category: "industry"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Black Hat"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCJ6q9Ie29ajGqKApbLqfBOg"
+    category: "industry"
+    tier: 1
+    language: "en"
+  - name: "YouTube: DEF CON"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC6Om9kAkl32dWlDSNlDS9Iw"
+    category: "industry"
+    tier: 2
+    language: "en"
+  - name: "YouTube: OWASP Foundation"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCe8j61ABYDuPTdtjItD2veA"
+    category: "industry"
+    tier: 2
+    language: "en"
+  - name: "YouTube: Stripe Developers"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCd1HAa7hlN5SCQjgCcGnsxw"
+    category: "showcase"
+    tier: 2
+    language: "en"
+  - name: "YouTube: TigerBeetle"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC3TlyQ3h6lC_jSWust2leGg"
+    category: "showcase"
+    tier: 2
+    language: "en"
+
 # === API SOURCES (content platforms with a public JSON contract) ===
 # the-agent-daily.org publishes no RSS/Atom feed and is not indexed by Google
 # News. It was previously configured as three html_sources entries scraping the
