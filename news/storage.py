@@ -223,6 +223,33 @@ def _row_to_article(conn: sqlite3.Connection, row: sqlite3.Row) -> Article:
     )
 
 
+def backfill_transcript_abstracts(conn: sqlite3.Connection, articles: list[Article]) -> int:
+    """Write abstracts onto already-stored rows that lack one. Returns rows updated.
+
+    Necessary because the abstract deliberately stays out of ``compute_hash()``.
+    That keeps dedup stable, but it also means a video first stored before the
+    harvester reached it -- published shortly before a run, or harvested while
+    the Mac was asleep -- is dropped as a duplicate on every later run and its
+    row would keep NULL forever. The enrichment would be computed and then
+    silently thrown away.
+
+    Only fills empty values, so a good abstract is never churned by a later one.
+    """
+    updated = 0
+    for article in articles:
+        if not article.transcript_abstract:
+            continue
+        cursor = conn.execute(
+            "UPDATE articles SET transcript_abstract = ? "
+            "WHERE url = ? AND (transcript_abstract IS NULL OR transcript_abstract = '')",
+            (article.transcript_abstract, article.url),
+        )
+        updated += cursor.rowcount
+    if updated:
+        conn.commit()
+    return updated
+
+
 def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
     """
     Insert article and its categories.

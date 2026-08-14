@@ -52,6 +52,7 @@ from news.models import Digest
 from news.monitor_synth import synthesize_monitor
 from news.processor import process_articles
 from news.storage import (
+    backfill_transcript_abstracts,
     get_article_by_hash,
     get_articles_since,
     get_connection,
@@ -1150,6 +1151,12 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
     enriched, video_total = enrich_articles(raw_articles, config["transcripts_db_path"])
     if video_total:
         logger.info(f"Transcript enrichment: {enriched}/{video_total} YouTube items enriched")
+        # A video first stored before the harvester reached it is dropped as a
+        # duplicate on every later run (its hash is unchanged by design), so it
+        # would never receive its abstract. Backfill it onto the stored row.
+        backfilled = backfill_transcript_abstracts(conn, raw_articles)
+        if backfilled:
+            logger.info(f"Backfilled abstracts onto {backfilled} previously-stored article(s)")
 
     # PROCESS
     existing_hashes: set[str] = set()

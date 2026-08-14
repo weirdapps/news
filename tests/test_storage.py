@@ -4,6 +4,7 @@ from news.models import Article, Digest
 from news.storage import (
     _migrate_db,
     _row_to_article,
+    backfill_transcript_abstracts,
     get_article_by_hash,
     get_article_by_url,
     get_articles_since,
@@ -169,3 +170,68 @@ def test_migrate_db_is_idempotent_on_an_already_migrated_database(db):
 
     cols = {r[1] for r in db.execute("PRAGMA table_info(articles)")}
     assert "transcript_abstract" in cols
+
+
+def test_backfill_writes_an_abstract_onto_a_row_stored_without_one(db):
+    """A video stored before the harvester reached it must still get its abstract.
+
+    Dedup drops the re-fetched article (its hash is unchanged by design), so
+    insert_article never runs a second time. Without a backfill the row keeps
+    NULL forever and the enrichment is silently lost.
+    """
+    article = Article(
+        url="https://www.youtube.com/watch?v=G55HSGpuh1M",
+        title="Muse Glimmer",
+        source="YouTube: Fireship",
+        content="Subscribe for more!",
+        categories=["ai"],
+        language="en",
+        published_at=datetime.now(UTC),
+    )
+    article.compute_hash()
+    insert_article(db, article)
+
+    enriched = Article(**{**article.__dict__, "transcript_abstract": "The distilled facts."})
+    updated = backfill_transcript_abstracts(db, [enriched])
+
+    assert updated == 1
+    row = db.execute("SELECT transcript_abstract FROM articles WHERE url = ?", (article.url,))
+    assert row.fetchone()[0] == "The distilled facts."
+
+
+def test_backfill_does_not_overwrite_an_abstract_that_is_already_there(db):
+    article = Article(
+        url="https://www.youtube.com/watch?v=G55HSGpuh1M",
+        title="Muse Glimmer",
+        source="YouTube: Fireship",
+        content="blurb",
+        categories=["ai"],
+        language="en",
+        published_at=datetime.now(UTC),
+        transcript_abstract="The original abstract.",
+    )
+    article.compute_hash()
+    insert_article(db, article)
+
+    replacement = Article(**{**article.__dict__, "transcript_abstract": "A different abstract."})
+    updated = backfill_transcript_abstracts(db, [replacement])
+
+    assert updated == 0
+    row = db.execute("SELECT transcript_abstract FROM articles WHERE url = ?", (article.url,))
+    assert row.fetchone()[0] == "The original abstract."
+
+
+def test_backfill_ignores_articles_without_an_abstract(db):
+    article = Article(
+        url="https://techcrunch.com/story",
+        title="A Story",
+        source="TechCrunch",
+        content="words",
+        categories=["tech"],
+        language="en",
+        published_at=datetime.now(UTC),
+    )
+    article.compute_hash()
+    insert_article(db, article)
+
+    assert backfill_transcript_abstracts(db, [article]) == 0
