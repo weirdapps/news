@@ -43,6 +43,7 @@ def _migrate_db(conn: sqlite3.Connection) -> None:
         "ALTER TABLE articles ADD COLUMN sentiment TEXT",
         "ALTER TABLE articles ADD COLUMN mention_type TEXT",
         "ALTER TABLE articles ADD COLUMN urgency TEXT",
+        "ALTER TABLE articles ADD COLUMN transcript_abstract TEXT",
         "ALTER TABLE digests ADD COLUMN pipeline TEXT DEFAULT 'digest'",
         "CREATE TABLE IF NOT EXISTS article_tickers (article_url TEXT NOT NULL, ticker TEXT NOT NULL, PRIMARY KEY (article_url, ticker), FOREIGN KEY (article_url) REFERENCES articles(url) ON DELETE CASCADE)",
         "CREATE INDEX IF NOT EXISTS idx_article_tickers_ticker ON article_tickers(ticker)",
@@ -90,6 +91,7 @@ def init_db(conn: sqlite3.Connection) -> None:
             sentiment TEXT,
             mention_type TEXT,
             urgency TEXT,
+            transcript_abstract TEXT,
             FOREIGN KEY (included_in_digest_id) REFERENCES digests(id)
         );
 
@@ -213,6 +215,10 @@ def _row_to_article(conn: sqlite3.Connection, row: sqlite3.Row) -> Article:
         sentiment=row["sentiment"] or "",
         mention_type=row["mention_type"] or "",
         urgency=row["urgency"] or "",
+        transcript_abstract=(
+            row["transcript_abstract"] if "transcript_abstract" in row.keys() else ""
+        )
+        or "",
         tickers=tickers,
     )
 
@@ -232,8 +238,8 @@ def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
                 url, title, source, author, published_at, content, summary,
                 content_hash, language, relevance_score, fetched_at,
                 included_in_digest_id, also_reported_by,
-                pipeline, sentiment, mention_type, urgency
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                pipeline, sentiment, mention_type, urgency, transcript_abstract
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 article.url,
@@ -253,6 +259,7 @@ def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
                 article.sentiment or None,
                 article.mention_type or None,
                 article.urgency or None,
+                article.transcript_abstract or None,
             ),
         )
 

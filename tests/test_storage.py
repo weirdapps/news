@@ -1,7 +1,9 @@
 from datetime import UTC, datetime, timedelta
 
-from news.models import Digest
+from news.models import Article, Digest
 from news.storage import (
+    _migrate_db,
+    _row_to_article,
     get_article_by_hash,
     get_article_by_url,
     get_articles_since,
@@ -133,3 +135,37 @@ def test_get_run_stats_empty(db):
     stats = get_run_stats(db)
     assert stats["total_articles"] == 0
     assert stats["total_digests"] == 0
+
+
+# --- Transcript abstract column ----------------------------------------------
+
+
+def test_insert_article_round_trips_the_transcript_abstract(db):
+    article = Article(
+        url="https://www.youtube.com/watch?v=abc12345678",
+        title="A Video",
+        source="YouTube: Fireship",
+        content="Short marketing blurb.",
+        categories=["ai"],
+        language="en",
+        published_at=datetime.now(UTC),
+        transcript_abstract="Meta released Muse Glimmer, a 30B agentic model under Apache 2.0.",
+    )
+    article.compute_hash()
+    insert_article(db, article)
+
+    row = db.execute("SELECT * FROM articles WHERE url = ?", (article.url,)).fetchone()
+    restored = _row_to_article(db, row)
+
+    assert restored.transcript_abstract == (
+        "Meta released Muse Glimmer, a 30B agentic model under Apache 2.0."
+    )
+
+
+def test_migrate_db_is_idempotent_on_an_already_migrated_database(db):
+    """_migrate_db runs on every init_db; a second pass must not raise."""
+    _migrate_db(db)
+    _migrate_db(db)
+
+    cols = {r[1] for r in db.execute("PRAGMA table_info(articles)")}
+    assert "transcript_abstract" in cols

@@ -24,6 +24,11 @@ class Article:
     sentiment: str = ""
     mention_type: str = ""
     urgency: str = ""
+    # Fact-extracted distillation of a video transcript. Deliberately separate
+    # from ``content`` so it stays out of compute_hash(): an abstract arriving
+    # after the article was first stored would otherwise change the hash and
+    # re-insert the same video as a new row.
+    transcript_abstract: str = ""
 
     def compute_hash(self) -> None:
         normalized_title = self.title.strip().lower()
