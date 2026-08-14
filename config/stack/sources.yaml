@@ -224,27 +224,28 @@ rss_feeds:
     tier: 2
     language: "en"
 
-# === FEED-LESS HTML SOURCES (scraped listing pages) ===
+# === API SOURCES (content platforms with a public JSON contract) ===
 # the-agent-daily.org publishes no RSS/Atom feed and is not indexed by Google
-# News, so it cannot be added as an rss_feeds line. It IS server-rendered, so we
-# scrape its section listing pages for article links + titles (see
-# news.fetcher.parse_html_listing). link_pattern is a regex the article hrefs match.
-html_sources:
-  - name: "The Agent Daily — News"
-    url: "https://the-agent-daily.org/agentnews/news"
-    link_pattern: "/agentnews/news/.+"
+# News. It was previously configured as three html_sources entries scraping the
+# section listing pages, which yielded ZERO articles for the whole time it was
+# enabled: the listing markup is hydrated client-side, so the anchors arrive as
+# empty shells and parse_html_listing correctly skips every one. There was no
+# error to notice — the source simply looked like it never published.
+#
+# The site exposes a documented public JSON API instead, and invites programmatic
+# use at /instructions-to-agents.md. news.fetcher.fetch_api_sources walks
+# /api/views -> /api/views/:view -> /api/views/:view/sections/:section/items,
+# which also picks up the five views beyond `agentnews` that the old scraper
+# never looked at. One source name, so max_articles_per_source caps the lot.
+#
+# max_age_hours: the profile default is 36h, but this is a curated evergreen
+# publication running ~6 items a week, so every item would age out before a run
+# ever saw it. 30 days lets a deep dive surface once when first discovered; the
+# digest pool's own fetched_at window then retires it normally.
+api_sources:
+  - name: "The Agent Daily"
+    base_url: "https://the-agent-daily.org"
     category: "industry"
     tier: 1
     language: "en"
-  - name: "The Agent Daily — Deep Dives"
-    url: "https://the-agent-daily.org/agentnews/deep-dives"
-    link_pattern: "/agentnews/deep-dives/.+"
-    category: "tutorials"
-    tier: 1
-    language: "en"
-  - name: "The Agent Daily — Articles"
-    url: "https://the-agent-daily.org/agentnews/articles"
-    link_pattern: "/agentnews/articles/.+"
-    category: "research"
-    tier: 2
-    language: "en"
+    max_age_hours: 720

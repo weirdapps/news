@@ -25,6 +25,11 @@ logger = logging.getLogger(__name__)
 _REQUEST_TIMEOUT = 30
 _MAX_CONCURRENT = 10
 
+# API source walk: page size per section listing, and sections that carry
+# editorial boilerplate rather than articles.
+_API_PAGE_SIZE = 100
+_API_SKIP_SECTIONS = frozenset({"about"})
+
 
 def normalize_rss_entry(entry: dict[str, Any], source_config: dict[str, Any]) -> Article:
     """Convert feedparser entry to Article model.
@@ -210,6 +215,64 @@ def parse_html_listing(html_content: str, source_config: dict[str, Any]) -> list
     return articles
 
 
+def parse_api_items(
+    items: list[dict[str, Any]],
+    source_config: dict[str, Any],
+    view_id: str,
+    section_id: str,
+) -> list[Article]:
+    """Convert content-platform API items into Articles.
+
+    Speaks the public ``/api/views/:view/sections/:section/items`` contract used by
+    the-agent-daily.org: each item is a metadata sidecar carrying title, summary,
+    author and publishedAt, with the public permalink assembled from view, section
+    and slug. The item's ``summary`` becomes the article content — it is real
+    editorial prose, unlike the empty anchors the listing pages serve.
+
+    Args:
+        items: item dicts from a section listing response
+        source_config: source config with name, base_url, category, language
+        view_id: the view the items belong to
+        section_id: the section the items belong to
+
+    Returns:
+        List of Article instances (items missing title or slug are skipped)
+    """
+    base = source_config["base_url"].rstrip("/")
+    articles: list[Article] = []
+
+    for item in items:
+        title = (item.get("title") or "").strip()
+        slug = (item.get("slug") or "").strip()
+        if not title or not slug:
+            continue
+
+        published_at = None
+        raw_published = item.get("publishedAt")
+        if raw_published:
+            try:
+                published_at = datetime.fromisoformat(raw_published.replace("Z", "+00:00"))
+            except (AttributeError, ValueError):
+                pass
+
+        summary = item.get("summary") or ""
+        articles.append(
+            Article(
+                url=f"{base}/{view_id}/{section_id}/{slug}",
+                title=title,
+                source=source_config["name"],
+                content=summary,
+                categories=[source_config["category"]],
+                language=source_config["language"],
+                author=item.get("author") or "",
+                published_at=published_at,
+                summary=summary,
+            )
+        )
+
+    return articles
+
+
 async def _fetch_single_html(
     source: dict[str, Any],
     client: httpx.AsyncClient,
@@ -271,6 +334,90 @@ async def fetch_html_sources(
     return all_articles, errors
 
 
+async def _fetch_single_api_source(
+    source: dict[str, Any],
+    client: httpx.AsyncClient,
+    semaphore: asyncio.Semaphore,
+) -> tuple[list[Article], str | None]:
+    """Walk one content platform's views and sections, collecting every item.
+
+    Three hops: ``/api/views`` for the view list, ``/api/views/:view`` for that
+    view's sections, then ``/api/views/:view/sections/:section/items`` for the
+    items. ``about`` sections are editorial boilerplate, not news, so they are
+    skipped. A failure anywhere aborts this source rather than returning a
+    partial set that would look like a quiet publishing day.
+
+    Args:
+        source: source config with name, base_url, category, language
+        client: httpx async client
+        semaphore: concurrency limiter
+
+    Returns:
+        Tuple of (articles list, error message or None)
+    """
+    base = source["base_url"].rstrip("/")
+
+    async def _get_json(path: str) -> Any:
+        response = await client.get(f"{base}{path}", timeout=_REQUEST_TIMEOUT)
+        response.raise_for_status()
+        return response.json()
+
+    async with semaphore:
+        try:
+            articles: list[Article] = []
+            views = await _get_json("/api/views")
+            for view in views.get("views", []):
+                view_id = view.get("id")
+                if not view_id:
+                    continue
+                sections = await _get_json(f"/api/views/{view_id}")
+                for section in sections.get("sections", []):
+                    section_id = section.get("id")
+                    if not section_id or section_id in _API_SKIP_SECTIONS:
+                        continue
+                    listing = await _get_json(
+                        f"/api/views/{view_id}/sections/{section_id}/items?size={_API_PAGE_SIZE}"
+                    )
+                    articles.extend(
+                        parse_api_items(listing.get("items", []), source, view_id, section_id)
+                    )
+            return articles, None
+        except Exception as e:
+            error_msg = f"{source['name']}: {type(e).__name__}: {str(e)}"
+            return [], error_msg
+
+
+async def fetch_api_sources(
+    sources: list[dict[str, Any]],
+) -> tuple[list[Article], list[str]]:
+    """Fetch multiple content-platform API sources in parallel.
+
+    Args:
+        sources: list of API source config dicts (with name, base_url, category,
+            language)
+
+    Returns:
+        Tuple of (all articles, error messages)
+    """
+    all_articles: list[Article] = []
+    errors: list[str] = []
+
+    semaphore = asyncio.Semaphore(_MAX_CONCURRENT)
+
+    async with httpx.AsyncClient(
+        headers={"User-Agent": "NewsReader/1.0 (API Source Fetcher)"}
+    ) as client:
+        tasks = [_fetch_single_api_source(source, client, semaphore) for source in sources]
+        results = await asyncio.gather(*tasks)
+
+        for articles, error in results:
+            all_articles.extend(articles)
+            if error:
+                errors.append(error)
+
+    return all_articles, errors
+
+
 async def fetch_rss_feeds(
     sources: list[dict[str, Any]],
 ) -> tuple[list[Article], list[str]]:
@@ -304,11 +451,12 @@ async def fetch_rss_feeds(
 async def fetch_all_sources(
     sources: dict[str, Any],
 ) -> tuple[list[Article], list[str]]:
-    """Fetch a profile's RSS feeds plus any feed-less HTML listing sources.
+    """Fetch a profile's RSS feeds plus any feed-less HTML or API sources.
 
     Single entry point for a profile's full source set: reads ``rss_feeds`` and
-    the optional ``html_sources`` list from the loaded sources.yaml dict, so a
-    profile gains a feed-less site just by adding ``html_sources:`` to its YAML.
+    the optional ``html_sources`` and ``api_sources`` lists from the loaded
+    sources.yaml dict, so a profile gains a feed-less site just by adding
+    ``html_sources:`` or ``api_sources:`` to its YAML.
 
     Args:
         sources: loaded sources config (the sources.yaml dict)
@@ -326,4 +474,44 @@ async def fetch_all_sources(
         articles.extend(html_articles)
         errors.extend(html_errors)
 
+    api_sources = sources.get("api_sources", [])
+    if api_sources:
+        logger.info(f"Querying {len(api_sources)} API sources")
+        api_articles, api_errors = await fetch_api_sources(api_sources)
+        logger.info(f"Retrieved {len(api_articles)} articles from API sources")
+        articles.extend(api_articles)
+        errors.extend(api_errors)
+
+    _warn_on_silent_sources(sources, articles, errors)
+
     return articles, errors
+
+
+def _warn_on_silent_sources(
+    sources: dict[str, Any],
+    articles: list[Article],
+    errors: list[str],
+) -> None:
+    """Log sources that produced nothing without raising.
+
+    A source whose markup or contract changes under us returns an empty list and
+    no error, which reads identically to a quiet publishing day. Naming those
+    sources is the difference between noticing in a day and noticing in a month.
+    """
+    configured = {
+        source["name"]
+        for key in ("rss_feeds", "html_sources", "api_sources")
+        for source in sources.get(key, [])
+        if source.get("name")
+    }
+    produced = {article.source for article in articles}
+    # Errors are formatted "<name>: <ExcType>: <msg>"; match on the name prefix
+    # rather than splitting, since source names themselves contain colons.
+    errored = {name for name in configured if any(e.startswith(f"{name}:") for e in errors)}
+
+    silent = sorted(configured - produced - errored)
+    if silent:
+        logger.warning(
+            f"{len(silent)} source(s) returned no articles and no error "
+            f"(possible dead source): {', '.join(silent)}"
+        )
