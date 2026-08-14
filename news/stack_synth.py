@@ -120,7 +120,14 @@ def _build_article_entry(article: Any, index: int) -> dict:
         "id": index,
         "title": article.title,
         "source": article.source,
-        "snippet": article.content[:300] if article.content else "",
+        # A transcript abstract is distilled fact rather than marketing copy, so
+        # it earns a larger allowance. ~20 video items at 800 chars is roughly
+        # +2.5k tokens, noise against the 150s synthesis timeout.
+        "snippet": (
+            article.transcript_abstract[:800]
+            if getattr(article, "transcript_abstract", "")
+            else (article.content[:300] if article.content else "")
+        ),
         "language": article.language,
     }
     if article.published_at and article.fetched_at:

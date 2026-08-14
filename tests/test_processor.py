@@ -342,3 +342,15 @@ def test_process_articles_threads_the_source_age_override_through():
 
     assert stats["quality_dropped"] == 0
     assert len(processed) == 1
+
+
+def test_relevance_score_counts_a_claude_mention_found_only_in_the_abstract():
+    """The description is marketing copy; the substance is in the transcript."""
+    article = _make_article(content="Subscribe for more videos every week!")
+    article.transcript_abstract = (
+        "A walkthrough of building an MCP server and wiring it into Claude Code."
+    )
+
+    score = compute_relevance_score(article, {"claude_mention": 30}, source_tier=2)
+
+    assert score == 30
