@@ -9,22 +9,22 @@ rss_feeds:
     tier: 1
     language: "en"
   - name: "Anthropic News"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:anthropic.com&ceid=US:en&hl=en-US&gl=US"
+    url: "https://news.google.com/rss/search?q=when:24h+site:anthropic.com&ceid=US:en&hl=en-US&gl=US"
     category: "releases"
     tier: 1
     language: "en"
   - name: "OpenAI News"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:openai.com&ceid=US:en&hl=en-US&gl=US"
+    url: "https://openai.com/news/rss.xml"
     category: "releases"
     tier: 1
     language: "en"
   - name: "Google AI Blog"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:blog.google+AI&ceid=US:en&hl=en-US&gl=US"
+    url: "https://news.google.com/rss/search?q=when:24h+site:blog.google+AI&ceid=US:en&hl=en-US&gl=US"
     category: "releases"
     tier: 1
     language: "en"
   - name: "DeepMind"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:deepmind.google&ceid=US:en&hl=en-US&gl=US"
+    url: "https://deepmind.google/blog/rss.xml"
     category: "releases"
     tier: 1
     language: "en"
@@ -34,12 +34,12 @@ rss_feeds:
     tier: 2
     language: "en"
   - name: "Vercel Blog"
-    url: "https://news.google.com/rss/search?q=when:48h+allinurl:vercel.com%2Fblog&ceid=US:en&hl=en-US&gl=US"
+    url: "https://vercel.com/atom"
     category: "releases"
     tier: 2
     language: "en"
   - name: "Hugging Face Papers"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:huggingface.co&ceid=US:en&hl=en-US&gl=US"
+    url: "https://news.google.com/rss/search?q=when:24h+site:huggingface.co&ceid=US:en&hl=en-US&gl=US"
     category: "releases"
     tier: 2
     language: "en"
@@ -98,7 +98,7 @@ rss_feeds:
     tier: 1
     language: "en"
   - name: "The Batch (deeplearning.ai)"
-    url: "https://news.google.com/rss/search?q=when:7d+allinurl:deeplearning.ai&ceid=US:en&hl=en-US&gl=US"
+    url: "https://news.google.com/rss/search?q=when:7d+site:deeplearning.ai&ceid=US:en&hl=en-US&gl=US"
     category: "research"
     tier: 1
     language: "en"
@@ -108,7 +108,7 @@ rss_feeds:
     tier: 2
     language: "en"
   - name: "Hacker News Best"
-    url: "https://hnrss.org/best?points=100"
+    url: "https://hnrss.org/frontpage?points=100"
     category: "research"
     tier: 1
     language: "en"
@@ -162,7 +162,7 @@ rss_feeds:
 
   # === INDUSTRY & PEOPLE ===
   - name: "TechCrunch AI"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:techcrunch.com+AI&ceid=US:en&hl=en-US&gl=US"
+    url: "https://news.google.com/rss/search?q=when:24h+site:techcrunch.com+AI&ceid=US:en&hl=en-US&gl=US"
     category: "industry"
     tier: 1
     language: "en"
@@ -387,6 +387,40 @@ rss_feeds:
     category: "showcase"
     tier: 2
     language: "en"
+  # --- Direct AI/research feeds (added 2026-08-15) ---
+  # Publisher feeds rather than Google News proxies: fresher, complete, and
+  # not dependent on a query operator that can silently stop matching.
+  - name: "Google Research Blog"
+    url: "https://research.google/blog/rss/"
+    category: "research"
+    tier: 1
+    language: "en"
+  - name: "Microsoft Research Blog"
+    url: "https://www.microsoft.com/en-us/research/feed/"
+    category: "research"
+    tier: 2
+    language: "en"
+  - name: "Hugging Face Blog"
+    url: "https://huggingface.co/blog/feed.xml"
+    category: "releases"
+    tier: 2
+    language: "en"
+  - name: "Simon Willison"
+    url: "https://simonwillison.net/atom/everything/"
+    category: "tutorials"
+    tier: 1
+    language: "en"
+  - name: "arXiv cs.AI"
+    url: "https://rss.arxiv.org/rss/cs.AI"
+    category: "research"
+    tier: 2
+    language: "en"
+  - name: "MIT Tech Review AI"
+    url: "https://www.technologyreview.com/topic/artificial-intelligence/feed"
+    category: "industry"
+    tier: 2
+    language: "en"
+
 
 # === API SOURCES (content platforms with a public JSON contract) ===
 # the-agent-daily.org publishes no RSS/Atom feed and is not indexed by Google

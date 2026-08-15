@@ -8,12 +8,12 @@
 rss_feeds:
   # === BROAD MARKETS (tier 1) ===
   - name: "Reuters Business"
-    url: "https://news.google.com/rss/search?q=when:18h+allinurl:reuters.com/business&ceid=US:en&hl=en-US&gl=US"
+    url: "https://news.google.com/rss/search?q=when:18h+site:reuters.com/business&ceid=US:en&hl=en-US&gl=US"
     category: "equities"
     tier: 1
     language: "en"
   - name: "Bloomberg via Google"
-    url: "https://news.google.com/rss/search?q=when:18h+allinurl:bloomberg.com&ceid=US:en&hl=en-US&gl=US"
+    url: "https://news.google.com/rss/search?q=when:18h+site:bloomberg.com&ceid=US:en&hl=en-US&gl=US"
     category: "equities"
     tier: 1
     language: "en"
@@ -53,7 +53,7 @@ rss_feeds:
     tier: 2
     language: "en"
   - name: "TipRanks News via Google"
-    # site: form — allinurl:tipranks.com returns 0 in Google News; site:tipranks.com/news works.
+    # site: form — site:tipranks.com returns 0 in Google News; site:tipranks.com/news works.
     url: "https://news.google.com/rss/search?q=when:18h+site:tipranks.com/news&ceid=US:en&hl=en-US&gl=US"
     category: "equities"
     tier: 2
@@ -66,7 +66,7 @@ rss_feeds:
     tier: 1
     language: "en"
   - name: "Reuters Economy via Google"
-    url: "https://news.google.com/rss/search?q=when:18h+site:reuters.com/markets/us+(Fed+OR+inflation+OR+rates+OR+jobs)&ceid=US:en&hl=en-US&gl=US"
+    url: "https://news.google.com/rss/search?q=when:24h+site:reuters.com/markets+(Fed+OR+inflation+OR+rates+OR+jobs)&ceid=US:en&hl=en-US&gl=US"
     category: "macro_rates"
     tier: 1
     language: "en"
@@ -102,12 +102,36 @@ rss_feeds:
     tier: 2
     language: "gr"
   - name: "Capital.gr via Google"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:capital.gr&ceid=GR:el&hl=el&gl=GR"
+    url: "https://news.google.com/rss/search?q=when:24h+site:capital.gr&ceid=GR:el&hl=el&gl=GR"
     category: "greece_athex"
     tier: 2
     language: "gr"
   - name: "Euro2day via Google"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:euro2day.gr&ceid=GR:el&hl=el&gl=GR"
+    url: "https://news.google.com/rss/search?q=when:24h+site:euro2day.gr&ceid=GR:el&hl=el&gl=GR"
     category: "greece_athex"
     tier: 2
     language: "gr"
+
+  # --- Supervision, banking and payments (added 2026-08-15) ---
+  # ECB and EBA direct, plus payments trade press: the regulatory and
+  # infrastructure side that the market wires do not cover.
+  - name: "FT Companies"
+    url: "https://www.ft.com/companies?format=rss"
+    category: "equities"
+    tier: 1
+    language: "en"
+  - name: "ECB Press"
+    url: "https://www.ecb.europa.eu/rss/press.html"
+    category: "macro_rates"
+    tier: 1
+    language: "en"
+  - name: "EBA News"
+    url: "https://www.eba.europa.eu/rss.xml"
+    category: "sectors_themes"
+    tier: 1
+    language: "en"
+  - name: "Finextra"
+    url: "https://www.finextra.com/rss/headlines.aspx"
+    category: "sectors_themes"
+    tier: 2
+    language: "en"

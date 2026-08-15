@@ -4,7 +4,7 @@
 rss_feeds:
   # === BUSINESS & FINANCE ===
   - name: "Reuters Business"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com/business&ceid=US:en&hl=en-US&gl=US"
+    url: "https://news.google.com/rss/search?q=when:24h+site:reuters.com/business&ceid=US:en&hl=en-US&gl=US"
     category: "business"
     tier: 1
     language: "en"
@@ -24,7 +24,7 @@ rss_feeds:
     tier: 1
     language: "en"
   - name: "Bloomberg via Google"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:bloomberg.com&ceid=US:en&hl=en-US&gl=US"
+    url: "https://news.google.com/rss/search?q=when:24h+site:bloomberg.com&ceid=US:en&hl=en-US&gl=US"
     category: "business"
     tier: 1
     language: "en"
@@ -46,7 +46,7 @@ rss_feeds:
     tier: 2
     language: "en"
   - name: "TipRanks News via Google"
-    # NB: allinurl:tipranks.com returns 0 items in Google News; site:tipranks.com/news
+    # NB: site:tipranks.com returns 0 items in Google News; site:tipranks.com/news
     # returns ~100/24h. Use the site: form scoped to the /news section.
     url: "https://news.google.com/rss/search?q=when:24h+site:tipranks.com/news&ceid=US:en&hl=en-US&gl=US"
     category: "trading"
@@ -65,12 +65,12 @@ rss_feeds:
     tier: 2
     language: "en"
   - name: "The Batch (deeplearning.ai)"
-    url: "https://news.google.com/rss/search?q=when:7d+allinurl:deeplearning.ai&ceid=US:en&hl=en-US&gl=US"
+    url: "https://news.google.com/rss/search?q=when:7d+site:deeplearning.ai&ceid=US:en&hl=en-US&gl=US"
     category: "ai"
     tier: 1
     language: "en"
   - name: "Anthropic Blog"
-    url: "https://news.google.com/rss/search?q=when:7d+allinurl:anthropic.com&ceid=US:en&hl=en-US&gl=US"
+    url: "https://news.google.com/rss/search?q=when:7d+site:anthropic.com&ceid=US:en&hl=en-US&gl=US"
     category: "ai"
     tier: 1
     language: "en"
@@ -208,6 +208,35 @@ rss_feeds:
     category: "tech"
     tier: 2
     language: "en"
+  # --- Greek direct feeds (added 2026-08-15) ---
+  # Native publisher RSS. Kathimerini/Capital/Euro2day publish no working feed
+  # and stay on Google News site: queries above.
+  - name: "in.gr"
+    url: "https://www.in.gr/feed/"
+    category: "greece"
+    tier: 2
+    language: "el"
+  - name: "ERT News"
+    url: "https://www.ertnews.gr/feed/"
+    category: "greece"
+    tier: 2
+    language: "el"
+  - name: "To Vima"
+    url: "https://www.tovima.gr/feed/"
+    category: "greece"
+    tier: 2
+    language: "el"
+  - name: "Protothema"
+    url: "https://www.protothema.gr/rss/"
+    category: "greece"
+    tier: 3
+    language: "el"
+  - name: "Insider.gr"
+    url: "https://www.insider.gr/rss.xml"
+    category: "greece"
+    tier: 2
+    language: "el"
+
 
   # === TECH ===
   - name: "TechCrunch"
@@ -231,7 +260,7 @@ rss_feeds:
     tier: 2
     language: "en"
   - name: "Hacker News Best"
-    url: "https://hnrss.org/best"
+    url: "https://hnrss.org/frontpage"
     category: "tech"
     tier: 2
     language: "en"
@@ -255,17 +284,17 @@ rss_feeds:
 
   # === GREECE ===
   - name: "Kathimerini English"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:ekathimerini.com&ceid=US:en&hl=en&gl=US"
+    url: "https://news.google.com/rss/search?q=when:24h+site:ekathimerini.com&ceid=US:en&hl=en&gl=US"
     category: "greece"
     tier: 1
     language: "en"
   - name: "Kathimerini Greek"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:kathimerini.gr&ceid=GR:el&hl=el&gl=GR"
+    url: "https://news.google.com/rss/search?q=when:24h+site:kathimerini.gr&ceid=GR:el&hl=el&gl=GR"
     category: "greece"
     tier: 1
     language: "gr"
   - name: "Capital.gr"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:capital.gr&ceid=GR:el&hl=el&gl=GR"
+    url: "https://news.google.com/rss/search?q=when:24h+site:capital.gr&ceid=GR:el&hl=el&gl=GR"
     category: "greece"
     tier: 2
     language: "gr"
@@ -275,7 +304,7 @@ rss_feeds:
     tier: 2
     language: "gr"
   - name: "Euro2day"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:euro2day.gr&ceid=GR:el&hl=el&gl=GR"
+    url: "https://news.google.com/rss/search?q=when:24h+site:euro2day.gr&ceid=GR:el&hl=el&gl=GR"
     category: "greece"
     tier: 2
     language: "gr"
@@ -297,7 +326,7 @@ rss_feeds:
     tier: 2
     language: "en"
   - name: "American Banker via Google"
-    url: "https://news.google.com/rss/search?q=when:24h+allinurl:americanbanker.com&ceid=US:en&hl=en-US&gl=US"
+    url: "https://news.google.com/rss/search?q=when:24h+site:americanbanker.com&ceid=US:en&hl=en-US&gl=US"
     category: "banking"
     tier: 2
     language: "en"

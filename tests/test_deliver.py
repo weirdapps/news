@@ -380,3 +380,38 @@ def test_stack_html_omits_the_coverage_line_when_there_are_no_videos():
     )
 
     assert "videos transcribed" not in html
+
+
+def test_digest_html_shows_the_source_health_note():
+    html = render_digest_html(
+        synthesis={"executive_brief": [], "sections": []},
+        article_count=10,
+        source_count=3,
+        time_display="09:00",
+        date_display="Sat 15 AUG",
+        health_note="2 sources silent: Dead Feed (12d), Never Worked",
+    )
+    assert "Dead Feed (12d)" in html
+
+
+def test_digest_html_omits_the_health_note_when_everything_is_healthy():
+    html = render_digest_html(
+        synthesis={"executive_brief": [], "sections": []},
+        article_count=10,
+        source_count=3,
+        time_display="09:00",
+        date_display="Sat 15 AUG",
+    )
+    assert "sources silent" not in html
+
+
+def test_stack_html_shows_the_source_health_note():
+    html = render_stack_html(
+        synthesis={"executive_brief": [], "sections": []},
+        article_count=10,
+        source_count=3,
+        time_display="13:00",
+        date_display="Sat 15 AUG",
+        health_note="1 sources silent: Broken Feed (9d)",
+    )
+    assert "Broken Feed (9d)" in html
