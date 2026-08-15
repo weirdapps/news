@@ -41,6 +41,7 @@ from news.deliver import (
     send_email,
 )
 from news.fetcher import fetch_all_sources, fetch_rss_feeds
+from news.health import format_health_note, stale_sources
 from news.llm_policy import (
     MAX_ATTEMPTS,
     PUSH_WAIT_SECONDS,
@@ -584,6 +585,26 @@ def _setup_digest_pipeline(settings: dict, sources: dict):
     }
 
 
+def _source_health_note(conn, sources: dict, pipeline: str) -> str:
+    """One-line footer note naming sources that have gone quiet for real.
+
+    Keyed on when each source last produced an article, not on this run's yield,
+    so a quiet Saturday does not read the same as a broken feed. Never raises:
+    a health report is not worth failing a digest over.
+    """
+    try:
+        configured = [
+            src["name"]
+            for key in ("rss_feeds", "html_sources", "api_sources")
+            for src in sources.get(key, [])
+            if src.get("name")
+        ]
+        return format_health_note(stale_sources(conn, configured, pipeline=pipeline))
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Source health check failed: {type(e).__name__}: {e}")
+        return ""
+
+
 def _select_digest_articles(all_recent: list, pipeline_config: dict):
     """Select top articles for digest with per-source diversity cap."""
     max_digest = pipeline_config.get("max_digest_articles", 300)
@@ -777,6 +798,7 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
             date_display=date_display,
             next_digest=next_digest,
             subject=subject,
+            health_note=_source_health_note(conn, sources, "digest"),
         )
     else:
         # Synthesis failed — send a one-line alert, NOT the unsynthesized dump.
@@ -1040,6 +1062,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
             keywords_config=keywords_config,
             next_scan=next_scan,
             subject=subject,
+            health_note=_source_health_note(conn, sources, "monitor"),
         )
     else:
         # Synthesis failed — send a one-line alert, NOT the unsynthesized dump.
@@ -1283,6 +1306,7 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
             transcript_coverage=(
                 f"{brief_enriched}/{len(brief_videos)} videos transcribed" if brief_videos else ""
             ),
+            health_note=_source_health_note(conn, sources, "stack"),
         )
     else:
         # Synthesis failed — send a one-line alert, NOT the unsynthesized dump.

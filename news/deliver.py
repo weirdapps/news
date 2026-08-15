@@ -30,6 +30,7 @@ def render_digest_html(
     date_display: str,
     next_digest: str | None = None,
     subject: str = "",
+    health_note: str = "",
 ) -> str:
     """Render the digest HTML using Jinja2 template.
 
@@ -92,6 +93,7 @@ def render_digest_html(
         sections=sections,
         fallback_text=fallback_text,
         next_digest=next_digest,
+        health_note=health_note,
     )
 
 
@@ -295,6 +297,7 @@ def render_monitor_html(
     keywords_config: dict,
     next_scan: str | None = None,
     subject: str = "",
+    health_note: str = "",
 ) -> str:
     """Render the monitor HTML using Jinja2 template.
 
@@ -354,6 +357,7 @@ def render_monitor_html(
         competitor_display_names=competitor_display_names,
         fallback_text=fallback_text,
         next_scan=next_scan,
+        health_note=health_note,
     )
 
 
@@ -520,6 +524,7 @@ def render_stack_html(
     next_run: str | None = None,
     subject: str = "",
     transcript_coverage: str = "",
+    health_note: str = "",
 ) -> str:
     """Render the stack HTML using Jinja2 template.
 
@@ -578,6 +583,7 @@ def render_stack_html(
         fallback_text=fallback_text,
         next_run=next_run,
         transcript_coverage=transcript_coverage,
+        health_note=health_note,
     )
 
 
