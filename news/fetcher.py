@@ -39,7 +39,12 @@ _API_SKIP_SECTIONS = frozenset({"about"})
 _CHANGELOG_DATE = r"[A-Z][a-z]+ \d{1,2}(?:st|nd|rd|th)?, \d{4}"
 _CHANGELOG_ORDINAL_RE = re.compile(r"(?<=\d)(?:st|nd|rd|th)(?=,)")
 _CHANGELOG_HEADING_RE = re.compile(rf"^#{{1,4}}[ \t]+({_CHANGELOG_DATE})[ \t]*$", re.MULTILINE)
-_CHANGELOG_MODEL_SPLIT_RE = re.compile(r"^##[ \t]+(.+?)[ \t]*$", re.MULTILINE)
+# Captured greedily to end of line and stripped at the call site rather than
+# with a trailing ``[ \t]*``: a lazy ``(.+?)`` followed by an optional whitespace
+# run is ambiguous, and the two overlap into super-linear backtracking on a long
+# whitespace-only line. The input is a 471 KB document served by a third party,
+# so a pathological line is their edit to make, not ours to survive.
+_CHANGELOG_MODEL_SPLIT_RE = re.compile(r"^##[ \t]+(.*)$", re.MULTILINE)
 _CHANGELOG_ACCORDION_RE = re.compile(
     rf'<Accordion title="({_CHANGELOG_DATE})">\n(.*?)\n[ \t]*</Accordion>', re.DOTALL
 )
@@ -418,7 +423,8 @@ def _parse_changelog_accordions(markdown: str, source_config: dict[str, Any]) ->
     parts = _CHANGELOG_MODEL_SPLIT_RE.split(markdown)
     entries: list[dict[str, str]] = []
 
-    for model, chunk in zip(parts[1::2], parts[2::2], strict=True):
+    for raw_model, chunk in zip(parts[1::2], parts[2::2], strict=True):
+        model = raw_model.strip()
         for match in _CHANGELOG_ACCORDION_RE.finditer(chunk):
             entries.append(
                 {

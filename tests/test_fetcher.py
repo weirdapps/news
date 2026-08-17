@@ -736,3 +736,31 @@ async def test_fetch_all_sources_flags_a_silent_changelog_source(caplog):
     assert articles == []
     assert errors == []
     assert "Anthropic Platform Release Notes" in caplog.text
+
+
+def test_changelog_model_heading_capture_is_not_super_linear():
+    """A lazy capture followed by an optional whitespace run backtracks
+    super-linearly. The input is a 471 KB third-party document, so a
+    whitespace-heavy heading is their edit to make, not ours to hang on."""
+    import time
+
+    from news.fetcher import _CHANGELOG_MODEL_SPLIT_RE
+
+    pathological = "## " + " " * 20000 + "\n"
+    started = time.monotonic()
+    parts = _CHANGELOG_MODEL_SPLIT_RE.split(pathological)
+    assert time.monotonic() - started < 1.0
+    assert len(parts) == 3
+
+
+def test_changelog_model_headings_are_stripped_of_trailing_whitespace():
+    """The capture is greedy to end of line now, so the strip moved to the
+    caller; an unstripped model name would leak into every title and anchor."""
+    markdown = (
+        '## Claude Opus 5   \n\n<AccordionGroup>\n  <Accordion title="July 24, 2026">\n'
+        "    The prompt body.\n  </Accordion>\n</AccordionGroup>\n"
+    )
+    articles = parse_changelog_sections(markdown, _CHANGELOG_ACCORDIONS_CFG)
+
+    assert articles[0].title == "Claude Opus 5 system prompt (July 24, 2026)"
+    assert articles[0].url.endswith("#claude-opus-5-july-24-2026")
