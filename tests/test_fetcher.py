@@ -431,6 +431,10 @@ url: https://platform.claude.com/docs/en/release-notes/overview
 ### August 10, 2026
 
 * The introductory pricing for **Claude Sonnet 5** is now the standard price.
+
+### April 9th, 2025
+
+* Ordinal dates ship on 33 of the live page's headings.
 """
 
 # Two models carry an entry dated January 18, 2026. That collision is real: the
@@ -447,10 +451,14 @@ Claude's web interface uses a system prompt at the start of every conversation.
 <AccordionGroup>
   <Accordion title="January 18, 2026">
     The assistant is Claude, made by Anthropic.
+    Claude is accessible via an API and Claude Platform.
+    Claude keeps its responses concise.
   </Accordion>
 
   <Accordion title="November 24, 2025">
     An older Opus 4.5 prompt.
+    Claude is accessible via an API and Claude Platform.
+    Claude keeps its responses concise.
   </Accordion>
 </AccordionGroup>
 
@@ -488,6 +496,7 @@ def test_parse_changelog_sections_splits_dated_headings_into_articles():
     assert [a.title for a in articles] == [
         "Anthropic Platform Release Notes: August 11, 2026",
         "Anthropic Platform Release Notes: August 10, 2026",
+        "Anthropic Platform Release Notes: April 9th, 2025",
     ]
 
 
@@ -499,6 +508,22 @@ def test_parse_changelog_sections_dates_each_entry_from_its_heading():
     assert articles[1].published_at == datetime(2026, 8, 10, tzinfo=UTC)
 
 
+def test_parse_changelog_sections_reads_an_ordinal_date_heading():
+    """33 of the live page's 130 dated headings write the day as an ordinal.
+
+    A pattern that misses them does not skip those entries, it welds them into
+    the body of the entry above: the live page produced one 12,537-char section
+    dated "May 1, 2025" holding 33 orphaned headings.
+    """
+    articles = parse_changelog_sections(SAMPLE_CHANGELOG_HEADINGS, _CHANGELOG_HEADINGS_CFG)
+
+    ordinal = articles[-1]
+    assert ordinal.published_at == datetime(2025, 4, 9, tzinfo=UTC)
+    assert "Ordinal dates ship" in ordinal.content
+    # The tell of the franken-entry: a heading swallowed into someone's body.
+    assert not any("### " in a.content for a in articles)
+
+
 def test_parse_changelog_sections_anchors_each_entry_url_for_stable_dedup():
     """One document, many articles: without an anchor they collapse to one row."""
     articles = parse_changelog_sections(SAMPLE_CHANGELOG_HEADINGS, _CHANGELOG_HEADINGS_CFG)
@@ -506,6 +531,7 @@ def test_parse_changelog_sections_anchors_each_entry_url_for_stable_dedup():
     assert [a.url for a in articles] == [
         "https://platform.claude.com/docs/en/release-notes/overview#august-11-2026",
         "https://platform.claude.com/docs/en/release-notes/overview#august-10-2026",
+        "https://platform.claude.com/docs/en/release-notes/overview#april-9th-2025",
     ]
 
 
@@ -544,26 +570,87 @@ def test_parse_changelog_sections_keeps_same_date_entries_apart_by_model():
     assert "Haiku variant" in haiku.content
 
 
-def test_parse_changelog_sections_versions_the_url_when_revisions_are_tracked():
-    """The page edits updates into an existing dated entry rather than adding a
-    new one, so a date-only url would make a rewrite invisible to the PK."""
-    config = dict(_CHANGELOG_ACCORDIONS_CFG, track_revisions=True)
-    before = parse_changelog_sections(SAMPLE_CHANGELOG_ACCORDIONS, config)
+def test_parse_changelog_sections_gives_a_new_dated_entry_a_distinct_content_hash():
+    """A revision surfaces because the page appends a new dated entry, not
+    because the url carries a body digest.
+
+    The two Opus 4.5 accordions are the real shape: a new date means a new
+    title, so the pair clears ``processor.deduplicate()`` on the hash alone.
+    """
+    articles = parse_changelog_sections(SAMPLE_CHANGELOG_ACCORDIONS, _CHANGELOG_ACCORDIONS_CFG)
+
+    opus = [a for a in articles if a.title.startswith("Claude Opus 4.5 system prompt")]
+    assert len(opus) == 2
+    for article in opus:
+        article.compute_hash()
+    assert len({a.content_hash for a in opus}) == 2
+
+
+def test_parse_changelog_sections_sets_a_deterministic_digest_on_every_entry():
+    """Both layouts, or the stack email keeps quoting 300 chars of boilerplate."""
+    for markdown, config in (
+        (SAMPLE_CHANGELOG_HEADINGS, _CHANGELOG_HEADINGS_CFG),
+        (SAMPLE_CHANGELOG_ACCORDIONS, _CHANGELOG_ACCORDIONS_CFG),
+    ):
+        articles = parse_changelog_sections(markdown, config)
+
+        assert articles
+        for article in articles:
+            assert article.changelog_digest
+            assert article.changelog_digest_source == "deterministic"
+
+
+def test_parse_changelog_sections_diffs_an_accordion_against_its_same_model_predecessor():
+    """The baseline is same-model scope, never document position."""
+    articles = parse_changelog_sections(SAMPLE_CHANGELOG_ACCORDIONS, _CHANGELOG_ACCORDIONS_CFG)
+    by_title = {a.title: a for a in articles}
+
+    newer = by_title["Claude Opus 4.5 system prompt (January 18, 2026)"]
+    older = by_title["Claude Opus 4.5 system prompt (November 24, 2025)"]
+
+    assert "DELTA vs Claude Opus 4.5 / November 24, 2025:" in newer.changelog_digest
+    assert older.changelog_digest.startswith("NEW MODEL ENTRY:")
+
+
+def test_parse_changelog_sections_falls_back_to_a_profile_on_a_reordered_chunk(caplog):
+    """A vendor reordering the page must not produce a confidently inverted diff."""
+    reordered = """## Claude Opus 4.5
+
+<AccordionGroup>
+  <Accordion title="November 24, 2025">
+    An older Opus 4.5 prompt.
+  </Accordion>
+
+  <Accordion title="January 18, 2026">
+    The assistant is Claude, made by Anthropic.
+  </Accordion>
+</AccordionGroup>
+"""
+
+    with caplog.at_level(logging.WARNING, logger="news.changelog_delta"):
+        articles = parse_changelog_sections(reordered, _CHANGELOG_ACCORDIONS_CFG)
+
+    opus = [a for a in articles if a.title.startswith("Claude Opus 4.5")]
+    assert all("DELTA vs" not in a.changelog_digest for a in opus)
+    assert "Claude Opus 4.5" in caplog.text
+
+
+def test_parse_changelog_sections_reuses_the_same_url_for_an_unchanged_entry():
+    """The anchor is keyed on model and date alone.
+
+    Folding a body digest back into it would mint 29 brand-new urls the first
+    time the vendor re-escapes the 471 KB page, and re-report the whole thing.
+    """
+    before = parse_changelog_sections(SAMPLE_CHANGELOG_ACCORDIONS, _CHANGELOG_ACCORDIONS_CFG)
     after = parse_changelog_sections(
         SAMPLE_CHANGELOG_ACCORDIONS.replace(
             "The assistant is Claude, made by Anthropic.",
-            "The assistant is Claude, made by Anthropic. Claude is concise.",
+            "The assistant is Claude, made by Anthropic\\. Claude is concise.",
         ),
-        config,
+        _CHANGELOG_ACCORDIONS_CFG,
     )
 
-    def _find(articles, prefix):
-        return next(a for a in articles if a.title.startswith(prefix))
-
-    revised_prefix = "Claude Opus 4.5 system prompt (January"
-    assert _find(before, revised_prefix).url != _find(after, revised_prefix).url
-    # An untouched entry must keep its url, or every run re-reports the whole page.
-    assert _find(before, "Claude Haiku").url == _find(after, "Claude Haiku").url
+    assert [a.url for a in before] == [a.url for a in after]
 
 
 def _mock_text_client(mock_client_cls, text=None, side_effect=None):
@@ -589,8 +676,25 @@ async def test_fetch_changelog_sources_returns_articles():
         articles, errors = await fetch_changelog_sources([_CHANGELOG_HEADINGS_CFG])
 
     assert errors == []
-    assert len(articles) == 2
+    assert len(articles) == 3
     assert {a.source for a in articles} == {"Anthropic Platform Release Notes"}
+
+
+@pytest.mark.asyncio
+async def test_fetch_changelog_sources_survives_an_ordinal_date():
+    """An unparseable date must not take the whole source down with it.
+
+    ``_fetch_single_changelog`` catches bare ``Exception``, so a strptime that
+    cannot read "April 9th, 2025" degrades the entire page to zero articles and
+    one error string rather than losing the single entry.
+    """
+    with patch("news.fetcher.httpx.AsyncClient") as mock_client_cls:
+        _mock_text_client(mock_client_cls, text=SAMPLE_CHANGELOG_HEADINGS)
+
+        articles, errors = await fetch_changelog_sources([_CHANGELOG_HEADINGS_CFG])
+
+    assert errors == []
+    assert datetime(2025, 4, 9, tzinfo=UTC) in {a.published_at for a in articles}
 
 
 @pytest.mark.asyncio
@@ -614,7 +718,7 @@ async def test_fetch_all_sources_includes_changelog_sources():
         articles, errors = await fetch_all_sources({"changelog_sources": [_CHANGELOG_HEADINGS_CFG]})
 
     assert errors == []
-    assert len(articles) == 2
+    assert len(articles) == 3
 
 
 @pytest.mark.asyncio

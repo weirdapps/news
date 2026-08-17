@@ -6,7 +6,9 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 from main import (
+    _select_digest_articles,
     _setup_digest_pipeline,
+    _source_health_note,
     acquire_lock,
     get_next_digest_time,
     get_time_window,
@@ -428,3 +430,268 @@ def test_stack_pipeline_backfills_an_abstract_onto_a_previously_stored_video(tmp
     stored = check.execute("SELECT transcript_abstract FROM articles").fetchone()[0]
     check.close()
     assert stored == "Meta released Muse Glimmer under Apache 2.0."
+
+
+def test_source_health_note_names_a_silent_changelog_source(tmp_path):
+    """A changelog source that goes quiet is a fetch warning nobody reads.
+
+    Every other source type is already named in the digest footer; leaving
+    changelog_sources out of the tuple is the gap that makes a dead vendor page
+    look like a quiet publishing week.
+    """
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+    sources = {
+        "rss_feeds": [{"name": "Live Feed"}],
+        "changelog_sources": [{"name": "Claude System Prompts"}],
+    }
+    live = Article(
+        url="https://example.com/live",
+        title="Still publishing",
+        source="Live Feed",
+        content="body",
+        categories=["ai"],
+        language="en",
+        published_at=datetime.now(UTC),
+        pipeline="stack",
+    )
+    live.compute_hash()
+    assert insert_article(conn, live)
+
+    note = _source_health_note(conn, sources, "stack")
+
+    assert "Claude System Prompts" in note
+    assert "Live Feed" not in note
+
+
+def test_select_digest_articles_keeps_a_changelog_entry_in_a_production_shaped_pool():
+    """Reaching build_stack_prompt is the whole point of the digest.
+
+    The pool shape is the measured score histogram of a real stack run across
+    20 sources. A future raise of max_articles_per_source, or a drop of
+    max_digest_articles, is what would crowd a score-55 changelog entry out.
+    """
+    histogram = {65: 9, 62: 8, 60: 10, 37: 9, 35: 71, 32: 22, 30: 299, 25: 21, 20: 2}
+    pool = []
+    index = 0
+    for score, count in histogram.items():
+        for _ in range(count):
+            pool.append(
+                Article(
+                    url=f"https://example.com/{index}",
+                    title=f"Article {index}",
+                    source=f"Source {index % 20}",
+                    content="body",
+                    categories=["ai"],
+                    language="en",
+                    relevance_score=score,
+                )
+            )
+            index += 1
+    assert len(pool) == 451
+
+    entry = Article(
+        url="https://platform.claude.com/docs/en/release-notes/system-prompts#claude-opus-5",
+        title="Claude Opus 5 system prompt (July 24, 2026)",
+        source="Claude System Prompts",
+        content="The assistant is Claude, made by Anthropic.",
+        categories=["releases"],
+        language="en",
+        relevance_score=55,
+        changelog_digest="NEW MODEL ENTRY: ...",
+        changelog_digest_source="deterministic",
+    )
+    pool.append(entry)
+
+    selected = _select_digest_articles(
+        pool, {"max_digest_articles": 150, "max_articles_per_source": 8}
+    )
+
+    assert entry in selected
+
+
+_CHANGELOG_ENTRY_URL = (
+    "https://platform.claude.com/docs/en/release-notes/system-prompts#claude-opus-5-july-24-2026"
+)
+
+
+def _stack_settings(tmp_path, transcripts_db):
+    return {
+        "pipeline": {
+            "max_digest_articles": 100,
+            "max_articles_per_source": 10,
+            "min_article_length_words": 2,
+            "max_article_age_hours": 36,
+            "digest_window_hours": 36,
+        },
+        "email": {"recipient": "test@example.com"},
+        "storage": {
+            "db_path": str(tmp_path / "news.db"),
+            "run_log_path": str(tmp_path / "runs.log"),
+            "transcripts_db_path": str(transcripts_db),
+        },
+        "schedule": {"timezone": "Europe/Athens", "runs": ["13:00"]},
+        "synthesis": {"max_retries": 1, "timeout": 60, "claude_command": "claude"},
+        "scoring": {},
+    }
+
+
+def _empty_transcripts_db(tmp_path):
+    path = tmp_path / "transcripts.db"
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    init_transcript_db(conn)
+    conn.close()
+    return path
+
+
+def _changelog_entry(digest="NEW MODEL ENTRY: the whole prompt is new."):
+    return Article(
+        url=_CHANGELOG_ENTRY_URL,
+        title="Claude Opus 5 system prompt (July 24, 2026)",
+        source="Claude System Prompts",
+        content="The assistant is Claude, made by Anthropic.",
+        categories=["releases"],
+        language="en",
+        published_at=datetime.now(UTC),
+        pipeline="stack",
+        changelog_digest=digest,
+        changelog_digest_source="deterministic",
+    )
+
+
+def _upgrade_to_prose(articles, *args, **kwargs):
+    for article in articles:
+        article.changelog_digest = "Claude Opus 5 is now the selected model."
+        article.changelog_digest_source = "llm"
+    return len(articles), len(articles)
+
+
+def test_stack_pipeline_upgrades_a_changelog_digest_before_storing(tmp_path):
+    """The enrichment must sit after dedup and before the STORE loop.
+
+    Run at the transcript enrichment site it would see the whole raw fetch,
+    which at the measured per-call cost is ~2,900s against a 600s unit.
+    """
+    settings = _stack_settings(tmp_path, _empty_transcripts_db(tmp_path))
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+    stored: list[Article] = []
+
+    with (
+        patch("main.get_settings", return_value=settings),
+        patch("main.get_sources", return_value={"changelog_sources": []}),
+        patch("main.get_categories", return_value={}),
+        patch("main.get_connection", return_value=conn),
+        patch("main.init_db"),
+        patch("main.get_last_digest", return_value=None),
+        patch(
+            "main.fetch_all_sources",
+            new_callable=AsyncMock,
+            return_value=([_changelog_entry()], []),
+        ),
+        patch("main.insert_article", side_effect=lambda c, a: stored.append(a)),
+        patch("main.get_articles_since", return_value=[]),
+        patch("main.check_gcloud_auth", return_value=True),
+        patch("news.stack_synth.synthesize_stack", return_value=("fallback", False)),
+        patch("main.send_email", return_value=True),
+        patch("main.insert_digest", return_value=1),
+        patch("main.update_digest_sent"),
+        patch("main.enrich_changelog_digests", side_effect=_upgrade_to_prose) as enrich,
+    ):
+        asyncio.run(run_stack_pipeline())
+
+    assert enrich.call_count == 1
+    assert [a.url for a in enrich.call_args[0][0]] == [_CHANGELOG_ENTRY_URL]
+    assert len(stored) == 1
+    assert stored[0].changelog_digest == "Claude Opus 5 is now the selected model."
+    assert stored[0].changelog_digest_source == "llm"
+
+
+def test_stack_pipeline_retries_a_changelog_entry_still_on_its_deterministic_delta(tmp_path):
+    """A timed-out upgrade must be temporary, not permanent.
+
+    The entry is a dedup drop on every later run, so unless the stale set puts
+    it back in front of the enrichment it keeps the fallback forever.
+    """
+    settings = _stack_settings(tmp_path, _empty_transcripts_db(tmp_path))
+    news_db = tmp_path / "news.db"
+    conn = sqlite3.connect(news_db)
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+
+    # Yesterday: the entry was stored, its LLM upgrade did not happen.
+    stored_yesterday = _changelog_entry()
+    stored_yesterday.compute_hash()
+    assert insert_article(conn, stored_yesterday)
+
+    with (
+        patch("main.get_settings", return_value=settings),
+        patch("main.get_sources", return_value={"changelog_sources": []}),
+        patch("main.get_categories", return_value={}),
+        patch("main.get_connection", return_value=conn),
+        patch("main.init_db"),
+        patch("main.get_last_digest", return_value=None),
+        patch(
+            "main.fetch_all_sources",
+            new_callable=AsyncMock,
+            return_value=([_changelog_entry()], []),
+        ),
+        patch("main.get_articles_since", return_value=[]),
+        patch("main.check_gcloud_auth", return_value=True),
+        patch("news.stack_synth.synthesize_stack", return_value=("fallback", False)),
+        patch("main.send_email", return_value=True),
+        patch("main.insert_digest", return_value=1),
+        patch("main.update_digest_sent"),
+        patch("main.enrich_changelog_digests", side_effect=_upgrade_to_prose) as enrich,
+    ):
+        asyncio.run(run_stack_pipeline())
+
+    assert [a.url for a in enrich.call_args[0][0]] == [_CHANGELOG_ENTRY_URL]
+    check = sqlite3.connect(news_db)
+    row = check.execute(
+        "SELECT changelog_digest, changelog_digest_source FROM articles WHERE url = ?",
+        (_CHANGELOG_ENTRY_URL,),
+    ).fetchone()
+    check.close()
+    assert row == ("Claude Opus 5 is now the selected model.", "llm")
+
+
+def test_stack_pipeline_makes_no_llm_call_when_nothing_carries_a_delta(tmp_path):
+    """~92% of runs: no changelog entry survives dedup and the window."""
+    settings = _stack_settings(tmp_path, _empty_transcripts_db(tmp_path))
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+    plain = Article(
+        url="https://example.com/plain",
+        title="An ordinary article",
+        source="Live Feed",
+        content="Nothing to do with a changelog at all.",
+        categories=["ai"],
+        language="en",
+        published_at=datetime.now(UTC),
+    )
+
+    with (
+        patch("main.get_settings", return_value=settings),
+        patch("main.get_sources", return_value={"rss_feeds": []}),
+        patch("main.get_categories", return_value={}),
+        patch("main.get_connection", return_value=conn),
+        patch("main.init_db"),
+        patch("main.get_last_digest", return_value=None),
+        patch("main.fetch_all_sources", new_callable=AsyncMock, return_value=([plain], [])),
+        patch("main.insert_article"),
+        patch("main.get_articles_since", return_value=[]),
+        patch("main.check_gcloud_auth", return_value=True),
+        patch("news.stack_synth.synthesize_stack", return_value=("fallback", False)),
+        patch("main.send_email", return_value=True),
+        patch("main.insert_digest", return_value=1),
+        patch("main.update_digest_sent"),
+        patch("main.enrich_changelog_digests") as enrich,
+    ):
+        asyncio.run(run_stack_pipeline())
+
+    enrich.assert_not_called()

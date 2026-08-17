@@ -466,12 +466,20 @@ changelog_sources:
   # The Claude API, SDKs and Console: the layer the MCP servers and the Vertex
   # automations actually run on. Several dated entries a week, so the profile's
   # default 36h window is the right one.
+  # max_age_hours: the 36h default is the right window for a news wire, but this
+  # page posts two to four times a week and a single missed window loses the
+  # entry permanently, because the next fetch sees an item that is already too
+  # old to enter. Seven days costs nothing in repetition: an entry that has been
+  # stored once is a dedup drop on every later run, so it is reported once and
+  # then never again. What it buys is that a weekend of VPS downtime no longer
+  # silently swallows a model launch or a deprecation notice.
   - name: "Anthropic Platform Release Notes"
     url: "https://platform.claude.com/docs/en/release-notes/overview.md"
     layout: "headings"
     category: "releases"
     tier: 1
     language: "en"
+    max_age_hours: 168
 
   # The claude.ai web and mobile system prompt. Note the page's own caveat: these
   # updates do NOT apply to the Claude API, so this explains drift in the chat
@@ -480,15 +488,9 @@ changelog_sources:
   # max_age_hours: entries land on model launches, roughly five in six months, so
   # every one would age out of a 36h window before a run ever saw it. 30 days
   # matches The Agent Daily's reasoning above.
-  #
-  # track_revisions: the page states that "updates between versions are bolded",
-  # meaning a revision is edited into the existing dated entry rather than added
-  # as a new one. Without a body digest in the anchor the rewrite keeps the old
-  # url and INSERT OR IGNORE drops it silently.
   - name: "Claude System Prompts"
     url: "https://platform.claude.com/docs/en/release-notes/system-prompts.md"
     layout: "accordions"
-    track_revisions: true
     category: "releases"
     tier: 1
     language: "en"

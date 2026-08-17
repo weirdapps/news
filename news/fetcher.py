@@ -6,7 +6,6 @@ their server-rendered listing pages for article links + titles instead.
 """
 
 import asyncio
-import hashlib
 import logging
 import re
 from datetime import UTC, datetime
@@ -19,6 +18,7 @@ import httpx
 import lxml.etree
 import lxml.html
 
+from news.changelog_delta import changelog_delta, select_predecessor
 from news.models import Article
 
 logger = logging.getLogger(__name__)
@@ -32,8 +32,12 @@ _API_PAGE_SIZE = 100
 _API_SKIP_SECTIONS = frozenset({"about"})
 
 # Changelog sources: vendor release notes that publish no feed. Two layouts are
-# in the wild, both keyed on a "Month D, YYYY" entry date.
-_CHANGELOG_DATE = r"[A-Z][a-z]+ \d{1,2}, \d{4}"
+# in the wild, both keyed on a "Month D, YYYY" entry date. The day is optionally
+# an ordinal: the platform page writes 33 of its 130 dated headings as
+# "April 9th, 2025", and a pattern that misses them does not skip those entries,
+# it welds each one into the body of the entry above.
+_CHANGELOG_DATE = r"[A-Z][a-z]+ \d{1,2}(?:st|nd|rd|th)?, \d{4}"
+_CHANGELOG_ORDINAL_RE = re.compile(r"(?<=\d)(?:st|nd|rd|th)(?=,)")
 _CHANGELOG_HEADING_RE = re.compile(rf"^#{{1,4}}[ \t]+({_CHANGELOG_DATE})[ \t]*$", re.MULTILINE)
 _CHANGELOG_MODEL_SPLIT_RE = re.compile(r"^##[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 _CHANGELOG_ACCORDION_RE = re.compile(
@@ -289,34 +293,64 @@ def _changelog_slug(text: str) -> str:
     return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", text.lower())).strip("-")
 
 
+def _changelog_published_at(date_str: str) -> datetime:
+    """Parse a changelog entry date, tolerating an ordinal day.
+
+    ``strptime`` has no directive for "9th", so the suffix comes off first.
+    Letting the ValueError escape would be caught by ``_fetch_single_changelog``'s
+    bare ``except``, which turns one unreadable date into a zero-article source.
+
+    Args:
+        date_str: entry date as written on the page, e.g. ``April 9th, 2025``
+
+    Returns:
+        Midnight UTC on that date
+    """
+    return datetime.strptime(_CHANGELOG_ORDINAL_RE.sub("", date_str), "%B %d, %Y").replace(
+        tzinfo=UTC
+    )
+
+
 def _changelog_article(
     label: str,
     title: str,
     date_str: str,
     body: str,
     source_config: dict[str, Any],
+    layout: str,
+    *,
+    predecessor_body: str | None = None,
+    predecessor_label: str = "",
+    cross_model: bool = False,
 ) -> Article:
     """Build one Article from one dated changelog entry.
 
     The url carries a per-entry anchor because the whole changelog is a single
     document: without it every entry collapses onto one url and all but the
-    first are lost to the articles table's url PRIMARY KEY. ``track_revisions``
-    adds a short body digest to that anchor, for pages that edit updates into an
-    existing dated entry rather than appending a new one.
+    first are lost to the articles table's url PRIMARY KEY.
+
+    The digest is computed here, at parse time, because the baseline body is
+    only in scope while the document is still whole. It costs ~250 ms for the
+    whole 159-entry corpus, most of which is thrown away as duplicates.
     """
     page_url = source_config["url"].removesuffix(".md")
-    anchor = _changelog_slug(label)
-    if source_config.get("track_revisions"):
-        anchor = f"{anchor}-{hashlib.sha256(body.encode()).hexdigest()[:8]}"
 
     return Article(
-        url=f"{page_url}#{anchor}",
+        url=f"{page_url}#{_changelog_slug(label)}",
         title=title,
         source=source_config["name"],
         content=body,
         categories=[source_config["category"]],
         language=source_config["language"],
-        published_at=datetime.strptime(date_str, "%B %d, %Y").replace(tzinfo=UTC),
+        published_at=_changelog_published_at(date_str),
+        changelog_digest=changelog_delta(
+            body,
+            predecessor_body,
+            layout,
+            predecessor_label=predecessor_label,
+            cross_model=cross_model,
+        ),
+        changelog_digest_source="deterministic",
     )
 
 
@@ -339,8 +373,7 @@ def parse_changelog_sections(markdown: str, source_config: dict[str, Any]) -> li
 
     Args:
         markdown: raw markdown of the changelog document
-        source_config: source config with name, url, layout, category, language,
-            and optional track_revisions
+        source_config: source config with name, url, layout, category, language
 
     Returns:
         List of Article instances in document order (newest first, as published)
@@ -366,6 +399,7 @@ def _parse_changelog_headings(markdown: str, source_config: dict[str, Any]) -> l
                 date_str=date_str,
                 body=body,
                 source_config=source_config,
+                layout="headings",
             )
         )
 
@@ -373,24 +407,48 @@ def _parse_changelog_headings(markdown: str, source_config: dict[str, Any]) -> l
 
 
 def _parse_changelog_accordions(markdown: str, source_config: dict[str, Any]) -> list[Article]:
-    """Entries are accordions nested under the model heading that scopes them."""
-    # re.split with a capturing group yields [preamble, model, chunk, model, ...].
+    """Entries are accordions nested under the model heading that scopes them.
+
+    Two passes, because the digest's baseline is document-wide: an entry's
+    predecessor may be the same model's next accordion further down the page or,
+    failing that, a different model's chronologically earlier entry.
+    """
+    # re.split with a capturing group yields [preamble, model, chunk, model, ...],
+    # always 2n+1 parts, so the two slices below are always equal length.
     parts = _CHANGELOG_MODEL_SPLIT_RE.split(markdown)
-    articles: list[Article] = []
+    entries: list[dict[str, str]] = []
 
     for model, chunk in zip(parts[1::2], parts[2::2], strict=True):
         for match in _CHANGELOG_ACCORDION_RE.finditer(chunk):
-            date_str = match.group(1)
-            body = _CHANGELOG_INDENT_RE.sub("", match.group(2)).strip()
-            articles.append(
-                _changelog_article(
-                    label=f"{model} {date_str}",
-                    title=f"{model} system prompt ({date_str})",
-                    date_str=date_str,
-                    body=body,
-                    source_config=source_config,
-                )
+            entries.append(
+                {
+                    "model": model,
+                    "date": match.group(1),
+                    "body": _CHANGELOG_INDENT_RE.sub("", match.group(2)).strip(),
+                }
             )
+
+    articles: list[Article] = []
+    for index, entry in enumerate(entries):
+        predecessor, cross_model = select_predecessor(entries, index)
+        model, date_str = entry["model"], entry["date"]
+        articles.append(
+            _changelog_article(
+                label=f"{model} {date_str}",
+                title=f"{model} system prompt ({date_str})",
+                date_str=date_str,
+                body=entry["body"],
+                source_config=source_config,
+                layout="accordions",
+                predecessor_body=entries[predecessor]["body"] if predecessor is not None else None,
+                predecessor_label=(
+                    f"{entries[predecessor]['model']} / {entries[predecessor]['date']}"
+                    if predecessor is not None
+                    else ""
+                ),
+                cross_model=cross_model,
+            )
+        )
 
     return articles
 
