@@ -555,7 +555,7 @@ def _setup_digest_pipeline(settings: dict, sources: dict):
     # html_sources or api_sources entry would otherwise be silently scored as 2.
     all_sources = [
         source
-        for key in ("rss_feeds", "html_sources", "api_sources")
+        for key in ("rss_feeds", "html_sources", "api_sources", "changelog_sources")
         for source in sources.get(key, [])
     ]
     source_tiers = {source["name"]: source.get("tier", 2) for source in all_sources}

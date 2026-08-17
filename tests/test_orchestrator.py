@@ -164,6 +164,29 @@ def test_setup_digest_pipeline_applies_declared_tiers_to_api_sources(tmp_path):
     assert config["source_tiers"]["The Agent Daily"] == 1
 
 
+def test_setup_digest_pipeline_collects_age_overrides_from_changelog_sources(tmp_path):
+    """System prompts move on model launches, so a 36h window never sees them."""
+    sources = {
+        "rss_feeds": [{"name": "TechCrunch", "tier": 1}],
+        "changelog_sources": [{"name": "Claude System Prompts", "tier": 1, "max_age_hours": 720}],
+    }
+
+    config = _setup_digest_pipeline(_settings_for_setup(tmp_path), sources)
+
+    assert config["source_max_age"] == {"Claude System Prompts": 720}
+
+
+def test_setup_digest_pipeline_applies_declared_tiers_to_changelog_sources(tmp_path):
+    sources = {
+        "rss_feeds": [{"name": "TechCrunch", "tier": 1}],
+        "changelog_sources": [{"name": "Claude System Prompts", "tier": 1}],
+    }
+
+    config = _setup_digest_pipeline(_settings_for_setup(tmp_path), sources)
+
+    assert config["source_tiers"]["Claude System Prompts"] == 1
+
+
 def test_digest_pipeline_keeps_an_old_article_from_a_source_with_an_age_override(tmp_path):
     """End to end: a 60h-old item from an override source must reach storage.
 
