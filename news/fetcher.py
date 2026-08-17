@@ -18,6 +18,7 @@ import httpx
 import lxml.etree
 import lxml.html
 
+from news.changelog_delta import changelog_delta, select_predecessor
 from news.models import Article
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,27 @@ _MAX_CONCURRENT = 10
 # editorial boilerplate rather than articles.
 _API_PAGE_SIZE = 100
 _API_SKIP_SECTIONS = frozenset({"about"})
+
+# Changelog sources: vendor release notes that publish no feed. Two layouts are
+# in the wild, both keyed on a "Month D, YYYY" entry date. The day is optionally
+# an ordinal: the platform page writes 33 of its 130 dated headings as
+# "April 9th, 2025", and a pattern that misses them does not skip those entries,
+# it welds each one into the body of the entry above.
+_CHANGELOG_DATE = r"[A-Z][a-z]+ \d{1,2}(?:st|nd|rd|th)?, \d{4}"
+_CHANGELOG_ORDINAL_RE = re.compile(r"(?<=\d)(?:st|nd|rd|th)(?=,)")
+_CHANGELOG_HEADING_RE = re.compile(rf"^#{{1,4}}[ \t]+({_CHANGELOG_DATE})[ \t]*$", re.MULTILINE)
+# Every quantifier here is disjoint from its neighbour, which is what keeps the
+# match linear. The original ``[ \t]+(.+?)[ \t]*$`` overlapped twice over: ``.``
+# matches a space, so the separator and the capture competed for the same run,
+# and the lazy capture competed again with the trailing whitespace group. On a
+# whitespace-heavy heading that backtracks super-linearly, and the input is a
+# 471 KB document served by a third party. Requiring ``\S`` first also means a
+# heading with no text is not a model heading, which is the right reading.
+_CHANGELOG_MODEL_SPLIT_RE = re.compile(r"^##[ \t]+(\S.*)$", re.MULTILINE)
+_CHANGELOG_ACCORDION_RE = re.compile(
+    rf'<Accordion title="({_CHANGELOG_DATE})">\n(.*?)\n[ \t]*</Accordion>', re.DOTALL
+)
+_CHANGELOG_INDENT_RE = re.compile(r"^[ \t]{1,4}", re.MULTILINE)
 
 
 def normalize_rss_entry(entry: dict[str, Any], source_config: dict[str, Any]) -> Article:
@@ -273,6 +295,233 @@ def parse_api_items(
     return articles
 
 
+def _changelog_slug(text: str) -> str:
+    """Lowercase anchor slug: ``Claude Opus 4.5 January 18, 2026`` -> ``claude-opus-4-5-january-18-2026``."""
+    return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", text.lower())).strip("-")
+
+
+def _changelog_published_at(date_str: str) -> datetime:
+    """Parse a changelog entry date, tolerating an ordinal day.
+
+    ``strptime`` has no directive for "9th", so the suffix comes off first.
+    Letting the ValueError escape would be caught by ``_fetch_single_changelog``'s
+    bare ``except``, which turns one unreadable date into a zero-article source.
+
+    Args:
+        date_str: entry date as written on the page, e.g. ``April 9th, 2025``
+
+    Returns:
+        Midnight UTC on that date
+    """
+    return datetime.strptime(_CHANGELOG_ORDINAL_RE.sub("", date_str), "%B %d, %Y").replace(
+        tzinfo=UTC
+    )
+
+
+def _changelog_article(
+    label: str,
+    title: str,
+    date_str: str,
+    body: str,
+    source_config: dict[str, Any],
+    layout: str,
+    *,
+    predecessor_body: str | None = None,
+    predecessor_label: str = "",
+    cross_model: bool = False,
+) -> Article:
+    """Build one Article from one dated changelog entry.
+
+    The url carries a per-entry anchor because the whole changelog is a single
+    document: without it every entry collapses onto one url and all but the
+    first are lost to the articles table's url PRIMARY KEY.
+
+    The digest is computed here, at parse time, because the baseline body is
+    only in scope while the document is still whole. It costs ~250 ms for the
+    whole 159-entry corpus, most of which is thrown away as duplicates.
+    """
+    page_url = source_config["url"].removesuffix(".md")
+
+    return Article(
+        url=f"{page_url}#{_changelog_slug(label)}",
+        title=title,
+        source=source_config["name"],
+        content=body,
+        categories=[source_config["category"]],
+        language=source_config["language"],
+        published_at=_changelog_published_at(date_str),
+        changelog_digest=changelog_delta(
+            body,
+            predecessor_body,
+            layout,
+            predecessor_label=predecessor_label,
+            cross_model=cross_model,
+        ),
+        changelog_digest_source="deterministic",
+    )
+
+
+def parse_changelog_sections(markdown: str, source_config: dict[str, Any]) -> list[Article]:
+    """Split a vendor changelog document into one Article per dated entry.
+
+    Release notes publish no feed, but the docs site serves a markdown twin at
+    the same path plus ``.md``: one long document whose dated sections are the
+    actual news items. Two layouts, selected by the source's ``layout`` key:
+
+    ``headings``
+        Flat ``### August 11, 2026`` sections, as on the Claude Platform release
+        notes. Text before the first dated heading is front matter and banners,
+        so it is dropped rather than attached to the newest entry.
+    ``accordions``
+        ``## <model>`` headings with ``<Accordion title="July 24, 2026">``
+        entries beneath, as on the system prompts page. The model qualifies the
+        entry: the same date ships under two models there, so a date-only anchor
+        would silently drop one of them.
+
+    Args:
+        markdown: raw markdown of the changelog document
+        source_config: source config with name, url, layout, category, language
+
+    Returns:
+        List of Article instances in document order (newest first, as published)
+    """
+    if source_config.get("layout") == "accordions":
+        return _parse_changelog_accordions(markdown, source_config)
+    return _parse_changelog_headings(markdown, source_config)
+
+
+def _parse_changelog_headings(markdown: str, source_config: dict[str, Any]) -> list[Article]:
+    """Entries are flat dated headings; each body runs to the next heading."""
+    matches = list(_CHANGELOG_HEADING_RE.finditer(markdown))
+    articles: list[Article] = []
+
+    for index, match in enumerate(matches):
+        date_str = match.group(1)
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(markdown)
+        body = markdown[match.end() : end].strip()
+        articles.append(
+            _changelog_article(
+                label=date_str,
+                title=f"{source_config['name']}: {date_str}",
+                date_str=date_str,
+                body=body,
+                source_config=source_config,
+                layout="headings",
+            )
+        )
+
+    return articles
+
+
+def _parse_changelog_accordions(markdown: str, source_config: dict[str, Any]) -> list[Article]:
+    """Entries are accordions nested under the model heading that scopes them.
+
+    Two passes, because the digest's baseline is document-wide: an entry's
+    predecessor may be the same model's next accordion further down the page or,
+    failing that, a different model's chronologically earlier entry.
+    """
+    # re.split with a capturing group yields [preamble, model, chunk, model, ...],
+    # always 2n+1 parts, so the two slices below are always equal length.
+    parts = _CHANGELOG_MODEL_SPLIT_RE.split(markdown)
+    entries: list[dict[str, str]] = []
+
+    for raw_model, chunk in zip(parts[1::2], parts[2::2], strict=True):
+        model = raw_model.strip()
+        for match in _CHANGELOG_ACCORDION_RE.finditer(chunk):
+            entries.append(
+                {
+                    "model": model,
+                    "date": match.group(1),
+                    "body": _CHANGELOG_INDENT_RE.sub("", match.group(2)).strip(),
+                }
+            )
+
+    articles: list[Article] = []
+    for index, entry in enumerate(entries):
+        predecessor, cross_model = select_predecessor(entries, index)
+        model, date_str = entry["model"], entry["date"]
+        articles.append(
+            _changelog_article(
+                label=f"{model} {date_str}",
+                title=f"{model} system prompt ({date_str})",
+                date_str=date_str,
+                body=entry["body"],
+                source_config=source_config,
+                layout="accordions",
+                predecessor_body=entries[predecessor]["body"] if predecessor is not None else None,
+                predecessor_label=(
+                    f"{entries[predecessor]['model']} / {entries[predecessor]['date']}"
+                    if predecessor is not None
+                    else ""
+                ),
+                cross_model=cross_model,
+            )
+        )
+
+    return articles
+
+
+async def _fetch_single_changelog(
+    source: dict[str, Any],
+    client: httpx.AsyncClient,
+    semaphore: asyncio.Semaphore,
+) -> tuple[list[Article], str | None]:
+    """Fetch and split a single changelog document.
+
+    Args:
+        source: source configuration dict (with layout)
+        client: httpx async client
+        semaphore: concurrency limiter
+
+    Returns:
+        Tuple of (articles list, error message or None)
+    """
+    async with semaphore:
+        try:
+            response = await client.get(
+                source["url"],
+                timeout=_REQUEST_TIMEOUT,
+                follow_redirects=True,
+            )
+            response.raise_for_status()
+            articles = parse_changelog_sections(response.text, source)
+            return articles, None
+        except Exception as e:
+            error_msg = f"{source['name']}: {type(e).__name__}: {str(e)}"
+            return [], error_msg
+
+
+async def fetch_changelog_sources(
+    sources: list[dict[str, Any]],
+) -> tuple[list[Article], list[str]]:
+    """Fetch multiple vendor changelog documents in parallel.
+
+    Args:
+        sources: list of changelog source config dicts (with url, name, layout,
+            category, language)
+
+    Returns:
+        Tuple of (all articles, error messages)
+    """
+    all_articles: list[Article] = []
+    errors: list[str] = []
+
+    semaphore = asyncio.Semaphore(_MAX_CONCURRENT)
+
+    async with httpx.AsyncClient(
+        headers={"User-Agent": "NewsReader/1.0 (Changelog Fetcher)"}
+    ) as client:
+        tasks = [_fetch_single_changelog(source, client, semaphore) for source in sources]
+        results = await asyncio.gather(*tasks)
+
+        for articles, error in results:
+            all_articles.extend(articles)
+            if error:
+                errors.append(error)
+
+    return all_articles, errors
+
+
 async def _fetch_single_html(
     source: dict[str, Any],
     client: httpx.AsyncClient,
@@ -482,6 +731,14 @@ async def fetch_all_sources(
         articles.extend(api_articles)
         errors.extend(api_errors)
 
+    changelog_sources = sources.get("changelog_sources", [])
+    if changelog_sources:
+        logger.info(f"Splitting {len(changelog_sources)} changelog documents")
+        changelog_articles, changelog_errors = await fetch_changelog_sources(changelog_sources)
+        logger.info(f"Extracted {len(changelog_articles)} entries from changelog documents")
+        articles.extend(changelog_articles)
+        errors.extend(changelog_errors)
+
     _warn_on_silent_sources(sources, articles, errors)
 
     return articles, errors
@@ -500,7 +757,7 @@ def _warn_on_silent_sources(
     """
     configured = {
         source["name"]
-        for key in ("rss_feeds", "html_sources", "api_sources")
+        for key in ("rss_feeds", "html_sources", "api_sources", "changelog_sources")
         for source in sources.get(key, [])
         if source.get("name")
     }

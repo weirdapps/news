@@ -24,7 +24,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7
         with:
-          python-version: '3.11'
+          # Must satisfy pyproject's requires-python (>=3.12) and match ci.yml.
+          # On 3.11 the editable install below fails the version check, every
+          # fallback in the chain fails the same way, and the `|| true` swallows
+          # it -- so pytest died at conftest with "No module named 'news'", no
+          # coverage.xml was written, and the quality gate read 0% coverage on
+          # new code for what were in fact fully tested changes.
+          python-version: '3.12'
 
       # Safe: feedparser dependency (sgmllib3k) has no binary wheels, requires source install
       - name: Install dependencies
@@ -55,6 +61,17 @@ jobs:
         if: steps.check-tests.outputs.has_tests == 'true'
         continue-on-error: true
         run: pytest --cov=. --cov-report=xml --cov-report=term-missing || true
+
+      # Without this, a failed install or a collection error is indistinguishable
+      # from genuinely untested code: the scan just reports 0% and the gate fails
+      # for the wrong reason. Annotate loudly rather than fail, since the step
+      # above is already best-effort by design.
+      - name: Warn if no coverage report was produced
+        if: steps.check-tests.outputs.has_tests == 'true' && hashFiles('coverage.xml') == ''
+        run: |
+          echo "::error::pytest produced no coverage.xml, so SonarCloud will" \
+               "report 0% coverage on new code. This is a CI environment" \
+               "failure, not untested code. Check the install output above."
 
       - name: Check for SonarCloud token
         id: check-sonar

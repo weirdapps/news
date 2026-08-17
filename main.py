@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from news.auth import check_gcloud_auth
+from news.changelog_digest import enrich_changelog_digests
 from news.config import (
     VALID_PROFILES,
     get_categories,
@@ -53,6 +54,7 @@ from news.models import Digest
 from news.monitor_synth import synthesize_monitor
 from news.processor import process_articles
 from news.storage import (
+    backfill_changelog_digests,
     backfill_transcript_abstracts,
     get_article_by_hash,
     get_articles_since,
@@ -62,6 +64,8 @@ from news.storage import (
     insert_article,
     insert_digest,
     update_digest_sent,
+    urls_already_upgraded,
+    urls_awaiting_changelog_upgrade,
 )
 from news.synthesizer import synthesize
 from news.topic_synth import (
@@ -555,7 +559,7 @@ def _setup_digest_pipeline(settings: dict, sources: dict):
     # html_sources or api_sources entry would otherwise be silently scored as 2.
     all_sources = [
         source
-        for key in ("rss_feeds", "html_sources", "api_sources")
+        for key in ("rss_feeds", "html_sources", "api_sources", "changelog_sources")
         for source in sources.get(key, [])
     ]
     source_tiers = {source["name"]: source.get("tier", 2) for source in all_sources}
@@ -595,7 +599,7 @@ def _source_health_note(conn, sources: dict, pipeline: str) -> str:
     try:
         configured = [
             src["name"]
-            for key in ("rss_feeds", "html_sources", "api_sources")
+            for key in ("rss_feeds", "html_sources", "api_sources", "changelog_sources")
             for src in sources.get(key, [])
             if src.get("name")
         ]
@@ -1209,13 +1213,56 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
         f"{process_stats['quality_dropped']} quality drops)"
     )
 
+    digest_window = timedelta(hours=config["pipeline"].get("digest_window_hours", 36))
+    digest_since = start_time - digest_window
+
+    # Resolved before the enrichment rather than at synthesis, because every
+    # changelog upgrade is a claude CLI call too: on a run with expired ADC the
+    # enrichment would otherwise spend its whole 135s worst case on calls that
+    # cannot succeed, and only then discover the credential is dead.
+    auth_ok = _preflight_auth_ok(config["synthesis"])
+
+    # ENRICH: upgrade the parse-time changelog delta to prose. Deliberately here
+    # and not beside the transcript enrichment: at that point the candidate set
+    # is the raw fetch, 159 entries, which at the measured per-call cost is
+    # ~2,900s against a 600s unit. Post-dedup the steady state is under three
+    # calls a week and ~92% of runs make none at all.
+    survived = [a for a in processed_articles if a.changelog_digest]
+    fresh_urls = {a.url for a in processed_articles}
+    # A body edit outside the first 200 characters moves content_hash but not the
+    # url, so an already-upgraded entry can survive dedup and look new. Paying for
+    # it again buys nothing: insert_article will not overwrite the stored row and
+    # backfill refuses a row that already reads 'llm'.
+    already = urls_already_upgraded(conn, [a.url for a in survived])
+    fresh = [a for a in survived if a.url not in already]
+    # An entry whose upgrade timed out is a dedup drop on every later run, so
+    # without this half it would keep the deterministic fallback forever. One
+    # query, then an O(1) membership test per article.
+    retry_urls = urls_awaiting_changelog_upgrade(
+        conn,
+        [a.url for a in raw_articles if a.changelog_digest and a.url not in fresh_urls],
+        since=digest_since,
+    )
+    stale = [a for a in raw_articles if a.url in retry_urls]
+    if auth_ok and (fresh or stale):
+        candidates = sorted(
+            fresh + stale,
+            key=lambda a: a.published_at or start_time,
+            reverse=True,
+        )
+        upgraded, attempted = enrich_changelog_digests(candidates)
+        logger.info(f"Changelog digests: {upgraded}/{attempted} upgraded to prose")
+
     # STORE
     for article in processed_articles:
         insert_article(conn, article)
 
+    if fresh or stale:
+        rewritten = backfill_changelog_digests(conn, fresh + stale)
+        if rewritten:
+            logger.info(f"Backfilled changelog digests onto {rewritten} stored article(s)")
+
     # POOL: pull recent stack articles
-    digest_window = timedelta(hours=config["pipeline"].get("digest_window_hours", 36))
-    digest_since = start_time - digest_window
     all_recent = get_articles_since(conn, digest_since, min_score=0, pipeline="stack")
 
     capped_articles = _select_digest_articles(all_recent, config["pipeline"])
@@ -1231,7 +1278,6 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
     # SYNTHESIZE
     from news.stack_synth import build_stack_fallback, synthesize_stack
 
-    auth_ok = _preflight_auth_ok(config["synthesis"])
     if auth_ok and capped_articles:
         synthesis_result, synthesis_ok = synthesize_stack(
             articles=capped_articles,

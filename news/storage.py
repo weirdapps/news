@@ -44,6 +44,8 @@ def _migrate_db(conn: sqlite3.Connection) -> None:
         "ALTER TABLE articles ADD COLUMN mention_type TEXT",
         "ALTER TABLE articles ADD COLUMN urgency TEXT",
         "ALTER TABLE articles ADD COLUMN transcript_abstract TEXT",
+        "ALTER TABLE articles ADD COLUMN changelog_digest TEXT",
+        "ALTER TABLE articles ADD COLUMN changelog_digest_source TEXT",
         "ALTER TABLE digests ADD COLUMN pipeline TEXT DEFAULT 'digest'",
         "CREATE TABLE IF NOT EXISTS article_tickers (article_url TEXT NOT NULL, ticker TEXT NOT NULL, PRIMARY KEY (article_url, ticker), FOREIGN KEY (article_url) REFERENCES articles(url) ON DELETE CASCADE)",
         "CREATE INDEX IF NOT EXISTS idx_article_tickers_ticker ON article_tickers(ticker)",
@@ -92,6 +94,8 @@ def init_db(conn: sqlite3.Connection) -> None:
             mention_type TEXT,
             urgency TEXT,
             transcript_abstract TEXT,
+            changelog_digest TEXT,
+            changelog_digest_source TEXT,
             FOREIGN KEY (included_in_digest_id) REFERENCES digests(id)
         );
 
@@ -219,6 +223,12 @@ def _row_to_article(conn: sqlite3.Connection, row: sqlite3.Row) -> Article:
             row["transcript_abstract"] if "transcript_abstract" in row.keys() else ""
         )
         or "",
+        changelog_digest=(row["changelog_digest"] if "changelog_digest" in row.keys() else "")
+        or "",
+        changelog_digest_source=(
+            row["changelog_digest_source"] if "changelog_digest_source" in row.keys() else ""
+        )
+        or "",
         tickers=tickers,
     )
 
@@ -250,6 +260,110 @@ def backfill_transcript_abstracts(conn: sqlite3.Connection, articles: list[Artic
     return updated
 
 
+# SQLite caps host parameters per statement, so a run that re-parses every
+# changelog entry at once cannot be asked in a single IN clause.
+_URL_CHUNK_SIZE = 500
+
+
+def urls_awaiting_changelog_upgrade(
+    conn: sqlite3.Connection, urls: list[str], since: datetime
+) -> set[str]:
+    """Find stored rows still carrying the parse-time fallback digest.
+
+    This is what makes graceful degradation temporary. An entry whose LLM
+    upgrade timed out is stored with the deterministic delta, and from the next
+    run onwards it is a dedup drop -- ``insert_article`` never sees it again, so
+    without this lookup it would keep its fallback forever.
+
+    Args:
+        conn: Open database connection.
+        urls: Candidate URLs, typically the changelog entries dedup dropped.
+        since: Lower bound on ``fetched_at``. ``get_articles_since`` filters on
+            that same column, so a row older than the digest window can never
+            reach the email again and spending an LLM call on it buys nothing.
+
+    Returns:
+        The subset of ``urls`` whose row is stored with a deterministic digest.
+    """
+    pending: set[str] = set()
+    cutoff = _dt_to_str(since)
+    for start in range(0, len(urls), _URL_CHUNK_SIZE):
+        chunk = urls[start : start + _URL_CHUNK_SIZE]
+        # Only the placeholder count is interpolated; every value is bound.
+        placeholders = ",".join("?" * len(chunk))
+        rows = conn.execute(
+            "SELECT url FROM articles "
+            "WHERE changelog_digest_source = 'deterministic' AND fetched_at >= ? "
+            f"AND url IN ({placeholders})",
+            [cutoff, *chunk],
+        ).fetchall()
+        pending.update(row[0] for row in rows)
+    return pending
+
+
+def urls_already_upgraded(conn: sqlite3.Connection, urls: list[str]) -> set[str]:
+    """Find stored rows whose digest is already LLM prose.
+
+    The mirror image of ``urls_awaiting_changelog_upgrade``, and the guard on the
+    other half of the candidate list. ``compute_hash()`` reads title plus the
+    first 200 characters, while the url is built from the unchanged model-and-date
+    label, so a vendor edit anywhere else in the body moves the hash but not the
+    url. Such an entry survives dedup, looks new, earns a paid CLI call, and then
+    loses its prose to the url PRIMARY KEY on insert. Without this lookup that
+    repeats on every run for as long as the entry stays in window.
+
+    Args:
+        conn: Open database connection.
+        urls: Candidate URLs, typically the changelog entries that survived dedup.
+
+    Returns:
+        The subset of ``urls`` already stored with an LLM-upgraded digest.
+    """
+    upgraded: set[str] = set()
+    for start in range(0, len(urls), _URL_CHUNK_SIZE):
+        chunk = urls[start : start + _URL_CHUNK_SIZE]
+        # Only the placeholder count is interpolated; every value is bound.
+        placeholders = ",".join("?" * len(chunk))
+        rows = conn.execute(
+            "SELECT url FROM articles "
+            f"WHERE changelog_digest_source = 'llm' AND url IN ({placeholders})",
+            chunk,
+        ).fetchall()
+        upgraded.update(row[0] for row in rows)
+    return upgraded
+
+
+def backfill_changelog_digests(conn: sqlite3.Connection, articles: list[Article]) -> int:
+    """Write digests onto already-stored rows. Returns rows updated.
+
+    Necessary for the same reason as ``backfill_transcript_abstracts``: the
+    digest deliberately stays out of ``compute_hash()``, so an entry first
+    stored before its digest was upgraded is dropped as a duplicate on every
+    later run and the enrichment would be computed and then thrown away.
+
+    The predicate is NOT that function's ``IS NULL OR = ''``. The deterministic
+    delta is written at parse time, so the column is never empty and that test
+    would be a permanent no-op. Matching on ``!= 'llm'`` instead lets a genuine
+    prose upgrade land on top of a fallback, while still refusing to churn a
+    good prose digest back down to the deterministic delta the parser re-derives
+    on every one of the five daily runs.
+    """
+    updated = 0
+    for article in articles:
+        if not article.changelog_digest:
+            continue
+        cursor = conn.execute(
+            "UPDATE articles SET changelog_digest = ?, changelog_digest_source = ? "
+            "WHERE url = ? AND (changelog_digest IS NULL OR changelog_digest = '' "
+            "OR changelog_digest_source != 'llm')",
+            (article.changelog_digest, article.changelog_digest_source, article.url),
+        )
+        updated += cursor.rowcount
+    if updated:
+        conn.commit()
+    return updated
+
+
 def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
     """
     Insert article and its categories.
@@ -265,8 +379,9 @@ def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
                 url, title, source, author, published_at, content, summary,
                 content_hash, language, relevance_score, fetched_at,
                 included_in_digest_id, also_reported_by,
-                pipeline, sentiment, mention_type, urgency, transcript_abstract
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                pipeline, sentiment, mention_type, urgency, transcript_abstract,
+                changelog_digest, changelog_digest_source
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 article.url,
@@ -287,6 +402,8 @@ def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
                 article.mention_type or None,
                 article.urgency or None,
                 article.transcript_abstract or None,
+                article.changelog_digest or None,
+                article.changelog_digest_source or None,
             ),
         )
 

@@ -29,6 +29,14 @@ class Article:
     # after the article was first stored would otherwise change the hash and
     # re-insert the same video as a new row.
     transcript_abstract: str = ""
+    # Deterministic delta of what a dated changelog entry changed, plus which
+    # producer wrote it ("deterministic" at parse time, "llm" once the optional
+    # prose upgrade lands). Both stay out of compute_hash() for the same reason
+    # as ``transcript_abstract``: a digest arriving after the article was first
+    # stored -- and the LLM upgrade can arrive a run later still -- would
+    # otherwise change the hash and re-insert the same entry as a new row.
+    changelog_digest: str = ""
+    changelog_digest_source: str = ""
 
     def compute_hash(self) -> None:
         normalized_title = self.title.strip().lower()

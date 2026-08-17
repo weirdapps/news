@@ -447,3 +447,51 @@ api_sources:
     tier: 1
     language: "en"
     max_age_hours: 720
+
+
+# === CHANGELOG SOURCES (vendor release notes, no feed) ===
+# Anthropic publishes no usable first-party feed here: "Anthropic News" (the
+# Google-News-scoped site:anthropic.com query above) has returned zero articles
+# for its entire life, so every Anthropic item in this digest arrives secondhand
+# via TechCrunch, HN and Dev.to. The docs site does serve a clean markdown twin
+# of each release-notes page at the same path plus ".md", which is what these
+# two entries read. news.fetcher.parse_changelog_sections splits one document
+# into one article per dated entry, anchoring each url so the articles table's
+# url PRIMARY KEY dedupes them across runs with no state to persist.
+#
+# The Claude Code changelog is deliberately absent: "Claude Code Releases"
+# (github.com/anthropics/claude-code/releases.atom, above) already covers it and
+# is one of the few release sources actually producing.
+changelog_sources:
+  # The Claude API, SDKs and Console: the layer the MCP servers and the Vertex
+  # automations actually run on. Several dated entries a week, so the profile's
+  # default 36h window is the right one.
+  # max_age_hours: the 36h default is the right window for a news wire, but this
+  # page posts two to four times a week and a single missed window loses the
+  # entry permanently, because the next fetch sees an item that is already too
+  # old to enter. Seven days costs nothing in repetition: an entry that has been
+  # stored once is a dedup drop on every later run, so it is reported once and
+  # then never again. What it buys is that a weekend of VPS downtime no longer
+  # silently swallows a model launch or a deprecation notice.
+  - name: "Anthropic Platform Release Notes"
+    url: "https://platform.claude.com/docs/en/release-notes/overview.md"
+    layout: "headings"
+    category: "releases"
+    tier: 1
+    language: "en"
+    max_age_hours: 168
+
+  # The claude.ai web and mobile system prompt. Note the page's own caveat: these
+  # updates do NOT apply to the Claude API, so this explains drift in the chat
+  # apps, not in Claude Code or in the automations.
+  #
+  # max_age_hours: entries land on model launches, roughly five in six months, so
+  # every one would age out of a 36h window before a run ever saw it. 30 days
+  # matches The Agent Daily's reasoning above.
+  - name: "Claude System Prompts"
+    url: "https://platform.claude.com/docs/en/release-notes/system-prompts.md"
+    layout: "accordions"
+    category: "releases"
+    tier: 1
+    language: "en"
+    max_age_hours: 720

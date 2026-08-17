@@ -123,8 +123,17 @@ def _build_article_entry(article: Any, index: int) -> dict:
         # A transcript abstract is distilled fact rather than marketing copy, so
         # it earns a larger allowance. ~20 video items at 800 chars is roughly
         # +2.5k tokens, noise against the 150s synthesis timeout.
+        #
+        # A changelog digest earns the largest allowance because it is the only
+        # snippet that is already the answer: for a system-prompt entry
+        # content[:300] is preamble that is byte-identical across 6 of the 29
+        # dated entries, so the LLM has nothing citable. The 2000 is a no-op
+        # guard, since changelog_delta self-caps at DIGEST_CAP. Measured cost is
+        # +2.9% on a real 62,752-char stack prompt for two entries.
         "snippet": (
-            article.transcript_abstract[:800]
+            article.changelog_digest[:2000]
+            if getattr(article, "changelog_digest", "")
+            else article.transcript_abstract[:800]
             if getattr(article, "transcript_abstract", "")
             else (article.content[:300] if article.content else "")
         ),
