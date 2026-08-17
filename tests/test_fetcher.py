@@ -750,7 +750,11 @@ def test_changelog_model_heading_capture_is_not_super_linear():
     started = time.monotonic()
     parts = _CHANGELOG_MODEL_SPLIT_RE.split(pathological)
     assert time.monotonic() - started < 1.0
-    assert len(parts) == 3
+    # A heading with no text is not a model heading, so it does not split.
+    assert len(parts) == 1
+
+    real = "## Claude Opus 5\nbody\n"
+    assert _CHANGELOG_MODEL_SPLIT_RE.split(real)[1] == "Claude Opus 5"
 
 
 def test_changelog_model_headings_are_stripped_of_trailing_whitespace():
