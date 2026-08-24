@@ -80,7 +80,7 @@ CI: lint → test (GitHub Actions `ci.yml`). SonarCloud on push to master.
 
 ## VPS Deployment (systemd timers)
 
-All three pipelines run as systemd timers on the Hetzner VPS (167.233.42.38):
+All three pipelines run as systemd timers on the Hetzner VPS (reached via the `vps` SSH alias):
 
 | Timer | Schedule | Pipeline |
 |-------|----------|----------|
