@@ -6,7 +6,8 @@ import os
 import re
 import subprocess
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from pathlib import Path
 from typing import Any
 
 from news.llm_policy import (
@@ -18,10 +19,40 @@ from news.llm_policy import (
     reauth,
     resolve_deadline,
     running_on_linux,
+    trace,
 )
 from news.roster import build_roster
 
 logger = logging.getLogger(__name__)
+
+_PROJECT_ROOT = Path(__file__).parent.parent
+
+
+def _trace_path(env: Mapping[str, str]) -> Path:
+    """Where the per-call decision record lands. Overridable so a test never writes to data/."""
+    override = env.get("NEWS_LLM_TRACE")
+    return Path(override) if override else _PROJECT_ROOT / "data" / "llm_trace.jsonl"
+
+
+def _envelope_tokens(envelope: dict[str, Any] | None) -> tuple[int | None, int | None]:
+    """Pull (in_tok, out_tok) from the CLI envelope's usage block.
+
+    Defensive on every hop: the field is absent on every failure path, absent from
+    the test doubles, and its shape is the CLI's to change. Telemetry must not be
+    the thing that fells a synthesis run, so an unexpected shape yields (None, None)
+    rather than raising -- `trace` omits the keys entirely when they are None.
+    """
+    if not isinstance(envelope, dict):
+        return (None, None)
+    usage = envelope.get("usage")
+    if not isinstance(usage, dict):
+        return (None, None)
+
+    def _int(value: Any) -> int | None:
+        return value if isinstance(value, int) else None
+
+    return (_int(usage.get("input_tokens")), _int(usage.get("output_tokens")))
+
 
 # Auth-class error markers in the Claude/Vertex JSON envelope's `result`. These
 # are credential failures (re-auth fixes them) — distinct from a 429/quota or a
@@ -250,6 +281,7 @@ def invoke_claude(
     claude_args: list[str] | None = None,
     env: dict | None = None,
     validate: Callable[[str], bool] | None = None,
+    job: str = "unknown",
 ) -> str | None:
     """Invoke the model under the shared LLM policy. Returns the text, or None.
 
@@ -270,6 +302,9 @@ def invoke_claude(
             text the caller cannot use. Restores the content-level retry that the old
             outer per-profile loops provided when parse_synthesis_output returned
             a dict containing an "error" key.
+        job: Profile name recorded in the trace record, so a JSONL line can be
+            attributed to the run that produced it. Defaults to "unknown" rather than
+            being required, because an unattributed record still beats no record.
     """
     if claude_args is None:
         claude_args = []
@@ -362,8 +397,16 @@ def invoke_claude(
     deadline = resolve_deadline(now(), _env)
     attempt = Attempt()
 
+    # Resolved once: _resolve_tier is a pure function of bare_args, which the loop
+    # never mutates. Hoisted so the trace record can name the model/region that was
+    # actually used even on the paths where _run_once returns before reaching them.
+    traced_model, traced_region = _resolve_tier()
+    trace_path = _trace_path(_env)
+
     while True:
+        call_started = now()
         envelope, raw, exc = _run_once()
+        latency_ms = int((now() - call_started) * 1000)
         outcome = _classify(envelope, raw, exc)
 
         # Content-level validation: the transport succeeded and the envelope parsed,
@@ -380,6 +423,25 @@ def invoke_claude(
         attempt = attempt.bump(outcome)
         decision = decide(
             outcome, attempt, now(), deadline, float(timeout), is_linux=running_on_linux()
+        )
+
+        # One record per attempt, not per call: a run that retries twice should be
+        # legible as three lines with the same job, not one summary that hides the
+        # retries. `trace` swallows its own failures by contract.
+        in_tok, out_tok = _envelope_tokens(envelope)
+        trace(
+            trace_path,
+            job=job,
+            call_site="synthesizer.invoke_claude",
+            model=traced_model or "unresolved",
+            region=traced_region or "inherited",
+            outcome=outcome,
+            action=decision.action,
+            attempt=attempt,
+            latency_ms=latency_ms,
+            ts=now(),
+            in_tok=in_tok,
+            out_tok=out_tok,
         )
 
         if decision.action is Action.RETURN:
@@ -403,43 +465,74 @@ def invoke_claude(
 
 
 def _validate_synthesis(data: dict[str, Any]) -> list[str]:
-    """Validate synthesis output structure. Returns list of issues (empty = valid)."""
-    issues: list[str] = []
+    """Validate and repair synthesis structure in place. Returns FATAL issues only.
 
-    if not isinstance(data.get("executive_brief"), list):
-        issues.append("executive_brief must be a list")
+    Three outcomes, deliberately distinguished, because the old code collapsed them
+    into one list that the caller logged and then ignored -- so a malformed bullet
+    and an unusable payload both shipped:
+
+      - REPAIRED: a coercion this function can make safely (a bare string bullet, a
+        missing ``high_value``). Silent, as before.
+      - DROPPED: one malformed item among good ones. The item is removed and named
+        in the log; the digest still goes out. Rejecting the whole synthesis over a
+        single bad section would trade a good digest for a plain-text fallback.
+      - FATAL (returned): the payload cannot be rendered at all. The caller turns
+        this into an ``error`` key, which makes ``invoke_claude``'s validate callback
+        fail, which reclassifies the turn as UNPARSEABLE and spends a retry -- the
+        thing that never used to happen.
+    """
+    fatal: list[str] = []
+    dropped: list[str] = []
+
+    brief = data.get("executive_brief")
+    if not isinstance(brief, list):
+        fatal.append(f"executive_brief is {type(brief).__name__}, expected list")
     else:
-        for i, item in enumerate(data["executive_brief"]):
+        kept_brief = []
+        for i, item in enumerate(brief):
             if isinstance(item, str):
-                data["executive_brief"][i] = {"text": item, "article_ids": []}
-            elif isinstance(item, dict):
-                if "text" not in item:
-                    issues.append(f"executive_brief[{i}] missing 'text'")
+                kept_brief.append({"text": item, "article_ids": []})
+            elif isinstance(item, dict) and "text" in item:
+                kept_brief.append(item)
             else:
-                issues.append(f"executive_brief[{i}] is {type(item).__name__}, expected dict")
+                dropped.append(f"executive_brief[{i}] ({type(item).__name__})")
+        data["executive_brief"] = kept_brief
 
-    if not isinstance(data.get("sections"), list):
-        issues.append("sections must be a list")
+    sections = data.get("sections")
+    if not isinstance(sections, list):
+        fatal.append(f"sections is {type(sections).__name__}, expected list")
     else:
         required_section_keys = {"category", "display_name", "synthesis"}
-        for i, section in enumerate(data["sections"]):
+        kept_sections = []
+        for i, section in enumerate(sections):
             if not isinstance(section, dict):
-                issues.append(f"sections[{i}] is not a dict")
+                dropped.append(f"sections[{i}] ({type(section).__name__})")
                 continue
             missing = required_section_keys - set(section.keys())
             if missing:
-                issues.append(f"sections[{i}] missing keys: {missing}")
-            if "high_value" not in section:
-                section["high_value"] = False
-            if "article_ids" not in section:
-                section["article_ids"] = []
+                dropped.append(f"sections[{i}] missing {sorted(missing)}")
+                continue
+            section.setdefault("high_value", False)
+            section.setdefault("article_ids", [])
+            kept_sections.append(section)
+        data["sections"] = kept_sections
 
     if "what_changed" not in data:
         data["what_changed"] = []
     elif isinstance(data["what_changed"], str):
         data["what_changed"] = [{"text": data["what_changed"], "article_ids": []}]
 
-    return issues
+    # Deliberately NOT fatal: a well-formed but empty synthesis. The prompt tells the
+    # model to skip sections when nothing meaningful happened, so empty is an
+    # editorial verdict, not a schema failure. Rejecting it spends a retry and then
+    # ships the plain-text "SYNTHESIS UNAVAILABLE" dump, which is worse than the
+    # quiet digest it replaced. Whether to email an empty digest is main.py's call.
+    if dropped:
+        logger.warning(
+            "Synthesis: dropped %d malformed item(s): %s", len(dropped), "; ".join(dropped[:5])
+        )
+
+    return fatal
 
 
 def parse_synthesis_output(raw: str) -> dict[str, Any]:
@@ -487,12 +580,13 @@ def parse_synthesis_output(raw: str) -> dict[str, Any]:
             "error": "Parse failure",
         }
 
-    # Validate and coerce structure
-    issues = _validate_synthesis(parsed)
-    if issues:
-        logger.warning(
-            f"Synthesis output has {len(issues)} validation issue(s): " + "; ".join(issues[:5])
-        )
+    # Validate, repair in place, and reject what cannot be rendered. The `error` key
+    # is the contract every profile's validate callback checks, so setting it here is
+    # what converts a structural failure into a retry instead of a malformed email.
+    fatal = _validate_synthesis(parsed)
+    if fatal:
+        logger.error("Synthesis output unusable: %s", "; ".join(fatal))
+        parsed["error"] = "Schema failure: " + "; ".join(fatal)
 
     return parsed
 
@@ -566,6 +660,7 @@ def synthesize(
         claude_command=claude_command,
         claude_args=claude_args,
         validate=lambda text: "error" not in parse_synthesis_output(text),
+        job="digest",
     )
 
     if raw_output is None:

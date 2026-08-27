@@ -113,7 +113,15 @@ def test_fetch_transcript_marks_a_blocked_request_retryable():
 # --- Distillation -------------------------------------------------------------
 
 
-def test_distil_calls_the_claude_cli_and_returns_the_abstract():
+def test_distil_calls_the_claude_cli_and_returns_the_abstract(monkeypatch):
+    """The tier alias must be resolved to an exact id, with its region pinned.
+
+    A bare "sonnet" inherits whatever CLOUD_ML_REGION the parent carries. On the VPS
+    that is `eu`, and sonnet in eu is an unprovisioned pairing that returns 429 --
+    which the caller then logs as a generic CLI failure.
+    """
+    monkeypatch.setenv("VERTEX_MODEL_LIGHT", "claude-sonnet-4-6")
+    monkeypatch.setenv("VERTEX_REGION_LIGHT", "europe-west1")
     completed = Mock(returncode=0, stdout="  Meta released Muse Glimmer under Apache 2.0.  ")
     with patch("scripts.youtube_harvest.subprocess.run", return_value=completed) as run:
         abstract = distil("the full spoken transcript", "Meta's new model")
@@ -121,7 +129,9 @@ def test_distil_calls_the_claude_cli_and_returns_the_abstract():
     assert abstract == "Meta released Muse Glimmer under Apache 2.0."
     argv = run.call_args[0][0]
     assert argv[0] == "claude"
-    assert "--model" in argv and "sonnet" in argv
+    assert "--model" in argv and "claude-sonnet-4-6" in argv
+    assert "sonnet" not in argv  # the bare alias must not survive
+    assert run.call_args[1]["env"]["CLOUD_ML_REGION"] == "europe-west1"
 
 
 def test_distil_returns_empty_when_the_cli_fails():

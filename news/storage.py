@@ -1,11 +1,14 @@
 """SQLite storage layer for news articles and digests."""
 
 import json
+import logging
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
 from news.models import Article, Digest
+
+logger = logging.getLogger(__name__)
 
 
 def get_connection(db_path: str | Path) -> sqlite3.Connection:
@@ -428,9 +431,23 @@ def insert_article(conn: sqlite3.Connection, article: Article) -> bool:
         conn.commit()
         return True
 
-    except sqlite3.IntegrityError:
-        # Duplicate URL
+    except sqlite3.IntegrityError as exc:
         conn.rollback()
+        # A duplicate URL is the expected, boring case and stays silent: the fetch
+        # window overlaps by design and most runs re-see most articles.
+        #
+        # Every OTHER integrity failure used to return the same quiet False, and one
+        # of them was load-bearing. A feed carrying no date field yields
+        # published_at=None (fetcher.normalize_rss_entry), which filter_quality waves
+        # through because None is falsy, and which this INSERT then puts into a
+        # NOT NULL column. The article was counted as a duplicate, dropped forever,
+        # and its source reported as "silent" in the digest footer -- for months, for
+        # every dateless feed. Naming the constraint is the difference between a
+        # statistic and a bug report.
+        if "UNIQUE constraint failed" not in str(exc):
+            logger.warning(
+                "insert_article dropped %s from %s: %s", article.url, article.source, exc
+            )
         return False
 
 

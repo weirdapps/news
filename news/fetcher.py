@@ -115,6 +115,19 @@ def normalize_rss_entry(entry: dict[str, Any], source_config: dict[str, Any]) ->
         except (TypeError, ValueError):
             pass
 
+    if published_at is None:
+        # Fall back to first-seen. Some feeds carry no date at all -- the four
+        # GitHubTrendingRSS feeds are the live example, a daily-regenerated list
+        # with no per-item timestamp.
+        #
+        # None used to survive all the way to the INSERT, where published_at is
+        # NOT NULL, and storage.insert_article booked the resulting IntegrityError
+        # as a duplicate URL. Every article from every dateless feed was therefore
+        # discarded in silence and its source reported "(never)" in the footer.
+        # First-seen is also the honest value: a feed that will not say when an
+        # item was published is telling us only that it is current now.
+        published_at = datetime.now(UTC)
+
     # Create article with source metadata
     return Article(
         url=url,

@@ -1,0 +1,38 @@
+# The reader's actual stack, injected into the stack synthesis prompt so the
+# "FOR YOUR STACK" recommendations are aimed at something real.
+#
+# This lived as a hardcoded string literal in stack_synth.py from 2026-05-27 and was
+# never edited once. By 2026-08-27 it still claimed six MCP servers against a real 15
+# registrations, and listed no VPS at all, in a pipeline that runs on one and mails a
+# subject line beginning "[VPS]". The model dutifully produced advice for that
+# fictional stack, including a recommendation to build a semantic tool-discovery
+# gateway for a token tax Claude Code had already removed via tool deferral.
+#
+# Bump last_reviewed whenever you edit `profile`. Past STALE_AFTER_DAYS the synth
+# logs a warning and tells the model the description may be out of date, so a stale
+# block degrades loudly instead of silently misaiming every recommendation.
+
+last_reviewed: 2026-08-27
+
+profile: |
+  - Primary AI tool: Claude Code CLI (Opus 5 via Vertex AI, region eu) — daily power user
+  - Agentic patterns: named agent teams in split panes, parallel worktree agents,
+    settings.json hooks across 9 event types, plugins, skills, deterministic Workflow
+    orchestration. Tool schemas are deferred behind ToolSearch, so MCP tool
+    descriptions are NOT loaded on every turn.
+  - MCP servers: ~13 distinct, ~15 registrations. Owner-built: news-reader,
+    second-brain, sch-mail, yahoo-mail, whatsapp, trading-data, outlook-bridge,
+    teams-bridge. Third-party: playwright, chrome-devtools, context7,
+    microsoft-learn, imessage. Traffic is dominated by the two browser servers.
+  - Languages: Python 3.12+ with uv (primary), TypeScript/Node (secondary)
+  - Frameworks: FastMCP, Jinja2, httpx, SQLite + FTS5
+  - LLM access: always the local `claude` CLI via subprocess, routed through Vertex AI.
+    Never the anthropic SDK. Model and region must be pinned together.
+  - Infrastructure: macOS (launchd) + a Hetzner VPS (systemd timers) running the
+    unattended pipelines; GitHub Actions; gcloud/Vertex AI. ~30 repos.
+  - Office automation: three separate M365 CLIs, one surface each — outlook-cli
+    (mail/calendar), teams-cli (chat), sharepoint-cli (files)
+  - Presentations: python-pptx with a brand system and a validator
+  - Trading intelligence: signals, census tracking, a multi-agent investment committee
+  - Role context: AGM at a large bank — leads Cards & Digital Business, AI adoption
+    champion. Reads this brief daily and acts on the "FOR YOUR STACK" section.

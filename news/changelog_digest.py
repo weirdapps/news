@@ -18,6 +18,7 @@ import subprocess
 import time
 
 from news.changelog_delta import DIGEST_CAP
+from news.config import vertex_cli_model_and_env
 from news.models import Article
 
 logger = logging.getLogger(__name__)
@@ -121,13 +122,15 @@ def digest_prose(delta: str, title: str, scope: str = "", timeout: int = _CLI_TI
         + delta
     )
 
+    model, run_env = vertex_cli_model_and_env("sonnet")
     try:
         result = subprocess.run(
-            ["claude", "--model", "sonnet", "--print"],
+            ["claude", "--model", model, "--print"],
             input=prompt,
             capture_output=True,
             text=True,
             timeout=timeout,
+            env=run_env,
         )
     except (subprocess.TimeoutExpired, OSError) as e:
         # No auth branch: the CLI takes ~200s to report a credential failure, so

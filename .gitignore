@@ -12,6 +12,7 @@ data/archive/
 data/*.lock
 data/*.err
 data/*.log
+data/llm_trace.jsonl
 
 # Python
 __pycache__/

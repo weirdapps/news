@@ -704,3 +704,150 @@ def test_a_raising_validate_still_allows_the_retry_to_succeed(mock_run):
 
     assert mock_run.call_count == 2
     assert result == good_result
+
+
+# --- per-call trace records -------------------------------------------------
+# llm_policy.trace() shipped complete and was never called from anywhere, so every
+# LLM call this system made was unattributed: no cost, no latency, no token count.
+# These cover the wiring, not trace() itself (which llm_policy owns).
+
+
+def _read_trace(path):
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_invoke_claude_writes_one_trace_record_per_call(mock_run, tmp_path):
+    """A clean turn leaves exactly one JSONL record naming the job and the decision."""
+    trace_file = tmp_path / "llm_trace.jsonl"
+    mock_run.return_value = Mock(stdout=_envelope(result='{"ok": 1}'), returncode=0)
+
+    invoke_claude("p", env={"NEWS_LLM_TRACE": str(trace_file)}, job="stack")
+
+    records = _read_trace(trace_file)
+    assert len(records) == 1
+    assert records[0]["job"] == "stack"
+    assert records[0]["call_site"] == "synthesizer.invoke_claude"
+    assert records[0]["outcome"] == "ok"
+    assert records[0]["action"] == "return"
+    assert isinstance(records[0]["latency_ms"], int)
+
+
+@patch("news.synthesizer.time.sleep")
+@patch("news.synthesizer.subprocess.run")
+def test_invoke_claude_traces_every_attempt_not_only_the_last(mock_run, _sleep, tmp_path):
+    """Two attempts must leave two records.
+
+    A single summary line would hide exactly what the trace exists to expose: that a
+    profile is silently burning its retry budget on rate limits before succeeding.
+    """
+    trace_file = tmp_path / "llm_trace.jsonl"
+    mock_run.side_effect = [
+        Mock(stdout=_envelope(result="429 RESOURCE_EXHAUSTED quota", is_error=True), returncode=0),
+        Mock(stdout=_envelope(result='{"ok": 1}'), returncode=0),
+    ]
+
+    invoke_claude("p", env={"NEWS_LLM_TRACE": str(trace_file)}, job="digest")
+
+    records = _read_trace(trace_file)
+    assert [r["outcome"] for r in records] == ["rate_limit", "ok"]
+    assert [r["action"] for r in records] == ["plain_retry", "return"]
+    assert records[-1]["attempt"] == 2
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_invoke_claude_records_usage_tokens_when_the_envelope_carries_them(mock_run, tmp_path):
+    trace_file = tmp_path / "llm_trace.jsonl"
+    envelope = json.dumps(
+        {
+            "result": '{"ok": 1}',
+            "stop_reason": "end_turn",
+            "is_error": False,
+            "usage": {"input_tokens": 1234, "output_tokens": 56},
+        }
+    )
+    mock_run.return_value = Mock(stdout=envelope, returncode=0)
+
+    invoke_claude("p", env={"NEWS_LLM_TRACE": str(trace_file)}, job="market")
+
+    record = _read_trace(trace_file)[0]
+    assert record["in_tok"] == 1234
+    assert record["out_tok"] == 56
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_invoke_claude_omits_token_keys_when_usage_is_absent_or_malformed(mock_run, tmp_path):
+    """Every failure path and every test double lacks `usage`; that must not raise."""
+    trace_file = tmp_path / "llm_trace.jsonl"
+    envelope = json.dumps({"result": '{"ok": 1}', "is_error": False, "usage": "not-a-dict"})
+    mock_run.return_value = Mock(stdout=envelope, returncode=0)
+
+    result = invoke_claude("p", env={"NEWS_LLM_TRACE": str(trace_file)}, job="topic")
+
+    record = _read_trace(trace_file)[0]
+    assert result == '{"ok": 1}'
+    assert "in_tok" not in record and "out_tok" not in record
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_invoke_claude_survives_an_unwritable_trace_path(mock_run, tmp_path):
+    """Telemetry must never fell the job it exists to explain."""
+    blocker = tmp_path / "blocker"
+    blocker.write_text("I am a file, not a directory")
+    mock_run.return_value = Mock(stdout=_envelope(result='{"ok": 1}'), returncode=0)
+
+    result = invoke_claude("p", env={"NEWS_LLM_TRACE": str(blocker / "trace.jsonl")}, job="digest")
+
+    assert result == '{"ok": 1}'
+
+
+# --- schema rejection -------------------------------------------------------
+# _validate_synthesis used to return issues that parse_synthesis_output logged and
+# then discarded, shipping the payload regardless. Fatal issues now set `error`,
+# which is the key every profile's validate callback checks.
+
+
+def test_parse_rejects_a_type_violation_as_fatal():
+    """A non-list sections field cannot be rendered, so it must reach the retry path."""
+    out = parse_synthesis_output('{"executive_brief": [], "sections": "oops"}')
+    assert "error" in out
+    assert not _production_validate('{"executive_brief": [], "sections": "oops"}')
+
+
+def test_parse_drops_one_malformed_section_but_keeps_the_digest():
+    """One bad section must not cost the whole digest its retry budget."""
+    raw = json.dumps(
+        {
+            "executive_brief": [{"text": "a bullet", "article_ids": [1]}],
+            "sections": [
+                {"category": "releases", "display_name": "Good", "synthesis": "text"},
+                {"category": "broken"},
+                "not even a dict",
+            ],
+        }
+    )
+    out = parse_synthesis_output(raw)
+    assert "error" not in out
+    assert [s["display_name"] for s in out["sections"]] == ["Good"]
+    assert out["sections"][0]["high_value"] is False
+    assert out["sections"][0]["article_ids"] == []
+
+
+def test_parse_coerces_bare_string_bullets_and_drops_unusable_ones():
+    raw = json.dumps(
+        {"executive_brief": ["bare string", {"text": "proper"}, 42, {"no_text": 1}], "sections": []}
+    )
+    out = parse_synthesis_output(raw)
+    assert "error" not in out
+    assert [b["text"] for b in out["executive_brief"]] == ["bare string", "proper"]
+
+
+def test_a_well_formed_empty_synthesis_is_not_an_error():
+    """Empty is an editorial verdict on a quiet day, not a schema failure.
+
+    Rejecting it would spend a retry and then ship the plain-text fallback, which is
+    worse than the quiet digest it replaced.
+    """
+    out = parse_synthesis_output('{"executive_brief": [], "sections": []}')
+    assert "error" not in out
+    assert _production_validate('{"executive_brief": [], "sections": []}')

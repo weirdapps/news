@@ -59,6 +59,34 @@ def _expand_env(value):
 _load_dotenv(_PROJECT_ROOT / ".env")
 
 
+# Vertex pairs a model with a region: >=4.7 lives in `eu`, <=4.6 in `europe-west1`.
+# The wrong pairing is a 429, not a 404, so it reads as a quota problem and gets
+# retried into the ground. synthesizer.invoke_claude resolves this per call; these
+# two constants exist so the standalone CLI callers (changelog_digest, the Mac-side
+# youtube_harvest) resolve it the same way instead of inheriting whichever region
+# the parent process happens to carry. On the VPS the parent carries `eu`, which is
+# precisely wrong for the sonnet tier both of them ask for.
+_TIER_DEFAULTS = {
+    "opus": ("VERTEX_MODEL_HEAVY", "claude-opus-5[1m]", "VERTEX_REGION_HEAVY", "eu"),
+    "sonnet": ("VERTEX_MODEL_LIGHT", "claude-sonnet-4-6", "VERTEX_REGION_LIGHT", "europe-west1"),
+}
+
+
+def vertex_cli_model_and_env(tier: str) -> tuple[str, dict[str, str]]:
+    """Resolve a tier alias to (exact model id, subprocess env with the region pinned).
+
+    Returns the bare alias untouched for an unknown tier, so a caller passing
+    something new degrades to today's behaviour rather than crashing.
+    """
+    keys = _TIER_DEFAULTS.get(tier.lower())
+    env = dict(os.environ)
+    if keys is None:
+        return (tier, env)
+    model_key, model_default, region_key, region_default = keys
+    env["CLOUD_ML_REGION"] = os.environ.get(region_key, region_default)
+    return (os.environ.get(model_key, model_default), env)
+
+
 def _profile_config_dir(profile: str = "digest") -> Path:
     """Return the config directory for a given profile.
 

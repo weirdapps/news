@@ -289,6 +289,7 @@ def synthesize_monitor(
         claude_command=claude_command,
         claude_args=claude_args,
         validate=lambda text: "error" not in parse_synthesis_output(text),
+        job="monitor",
     )
 
     if raw_output is None:

@@ -61,25 +61,36 @@ class _FakeClock:
 # --- digest_prose: the CLI contract -------------------------------------------
 
 
-def test_digest_prose_calls_the_claude_cli_with_the_house_argv():
+def test_digest_prose_calls_the_claude_cli_with_the_house_argv(monkeypatch):
     """Owner policy: every LLM call goes through the local CLI, never an SDK.
 
-    Also pins the flags that are deliberately absent. ``--output-format json``
+    Also pins the flags that are deliberately absent: ``--output-format json``
     returns RC=1 alongside an ``is_error`` envelope and prefixes stdout with an
-    ANSI clear when TERM is set, and an explicit ``env`` would strip the Vertex
-    configuration the CLI reads from the caller's environment.
+    ANSI clear when TERM is set.
+
+    ``env`` IS now passed, which the previous contract forbade. The reason it was
+    forbidden was that a hand-built env would strip the Vertex configuration the
+    CLI reads from the caller's environment; ``vertex_cli_model_and_env`` returns a
+    superset of ``os.environ`` instead of a fresh mapping, so that concern is met
+    by construction and asserted below.
     """
+    monkeypatch.setenv("VERTEX_MODEL_LIGHT", "claude-sonnet-4-6")
+    monkeypatch.setenv("VERTEX_REGION_LIGHT", "europe-west1")
+    monkeypatch.setenv("A_CALLER_ENV_VAR", "must-survive")
     completed = _completed(stdout="  Opus 5 replaces Opus 4.5 on claude.ai.  ")
     with patch("news.changelog_digest.subprocess.run", return_value=completed) as run:
         prose = digest_prose(_DELTA, _SYSTEM_PROMPT_TITLE)
 
     assert prose == "Opus 5 replaces Opus 4.5 on claude.ai."
-    assert run.call_args[0][0] == ["claude", "--model", "sonnet", "--print"]
+    # The exact provisioned id, not the bare alias: this call runs on the VPS, whose
+    # parent env carries CLOUD_ML_REGION=eu, and sonnet in eu is a 429.
+    assert run.call_args[0][0] == ["claude", "--model", "claude-sonnet-4-6", "--print"]
     kwargs = run.call_args[1]
     assert kwargs["capture_output"] is True
     assert kwargs["text"] is True
-    assert "env" not in kwargs
     assert "check" not in kwargs
+    assert kwargs["env"]["CLOUD_ML_REGION"] == "europe-west1"
+    assert kwargs["env"]["A_CALLER_ENV_VAR"] == "must-survive"
     prompt = kwargs["input"]
     assert _DELTA in prompt
     assert _SYSTEM_PROMPT_TITLE in prompt
