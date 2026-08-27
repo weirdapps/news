@@ -569,6 +569,19 @@ def test_migration_is_additive_and_idempotent_on_a_copy_of_the_production_databa
         conn = sqlite3.connect(copy)
         conn.row_factory = sqlite3.Row
         try:
+            # Reconstruct the pre-migration state on the copy rather than assuming it.
+            # This used to `assert "changelog_digest" not in before`, which made it a
+            # test that could only pass once: the moment the migration it guards
+            # actually ran against data/news.db it began failing on every machine that
+            # had one, and the guard it provides was lost with it. Dropping the two
+            # added columns is exact (they were plain ALTER TABLE ADD COLUMN, and
+            # carry no index), and costs ~2s against an 825 MB copy.
+            added = ["changelog_digest", "changelog_digest_source"]
+            existing = {r["name"] for r in conn.execute("PRAGMA table_info(articles)")}
+            for column in reversed(added):
+                if column in existing:
+                    conn.execute(f"ALTER TABLE articles DROP COLUMN {column}")
+
             before = [r["name"] for r in conn.execute("PRAGMA table_info(articles)")]
             rows_before = conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
             assert rows_before > 90_000, "not the production database"

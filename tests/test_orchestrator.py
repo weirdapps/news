@@ -2,8 +2,11 @@
 
 import asyncio
 import sqlite3
+import sys
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from main import (
     _select_digest_articles,
@@ -695,3 +698,72 @@ def test_stack_pipeline_makes_no_llm_call_when_nothing_carries_a_delta(tmp_path)
         asyncio.run(run_stack_pipeline())
 
     enrich.assert_not_called()
+
+
+# --- exit code contract -------------------------------------------------------
+# A withheld run used to exit 0. systemd therefore fired OnSuccess=, hc-success@
+# pinged Healthchecks green, and `systemctl --user list-units --failed` stayed
+# empty while the inbox held "synthesis unavailable". The dead-man's switch cannot
+# cover a failure the job reports as success.
+
+
+def test_a_delivered_run_reports_delivered():
+    import main as m
+
+    assert m._delivered(synthesis_ok=True, sent_ok=True)
+    assert m._delivered(synthesis_ok=True, sent_ok=None), "market is store-only, not undelivered"
+
+
+def test_a_withheld_or_undelivered_run_reports_degraded():
+    import main as m
+
+    assert not m._delivered(synthesis_ok=False, sent_ok=True), "alert email is not a digest"
+    assert not m._delivered(synthesis_ok=False, sent_ok=None)
+    assert not m._delivered(synthesis_ok=True, sent_ok=False), "digest that never reached the inbox"
+
+
+@pytest.mark.parametrize(
+    "delivered,expected_exit",
+    [(True, None), (False, 1)],
+    ids=["delivered→0", "withheld→1"],
+)
+def test_main_turns_the_verdict_into_an_exit_code(monkeypatch, tmp_path, delivered, expected_exit):
+    """The whole point: systemd has to be able to see a withheld run as a failure."""
+    import main as m
+
+    monkeypatch.setattr(sys, "argv", ["news", "--profile", "monitor", "--scheduled"])
+    monkeypatch.setattr(m, "install_llm_deadline", lambda profile: None)
+    monkeypatch.setattr(m, "acquire_lock", lambda path: True)
+    monkeypatch.setattr(m, "release_lock", lambda path: None)
+
+    async def _fake_pipeline(**kwargs):
+        return delivered
+
+    monkeypatch.setattr(m, "run_pipeline", _fake_pipeline)
+
+    if expected_exit is None:
+        m.main()  # must not raise SystemExit
+    else:
+        with pytest.raises(SystemExit) as exc:
+            m.main()
+        assert exc.value.code == expected_exit
+
+
+def test_the_lock_is_released_even_when_the_run_is_withheld(monkeypatch):
+    """sys.exit raises SystemExit, which must still pass through the finally block."""
+    import main as m
+
+    released = []
+    monkeypatch.setattr(sys, "argv", ["news", "--profile", "monitor", "--scheduled"])
+    monkeypatch.setattr(m, "install_llm_deadline", lambda profile: None)
+    monkeypatch.setattr(m, "acquire_lock", lambda path: True)
+    monkeypatch.setattr(m, "release_lock", lambda path: released.append(path))
+
+    async def _withheld(**kwargs):
+        return False
+
+    monkeypatch.setattr(m, "run_pipeline", _withheld)
+
+    with pytest.raises(SystemExit):
+        m.main()
+    assert len(released) == 1, "a withheld run must not leak the pipeline lock"

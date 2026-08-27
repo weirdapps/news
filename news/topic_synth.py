@@ -84,6 +84,7 @@ Return a JSON object with this exact structure:
   ],
   "sections": [
     {
+      "category": "sub_theme_key",
       "display_name": "Descriptive Sub-Theme Title",
       "synthesis": "2-3 paragraph synthesis connecting stories within this sub-theme",
       "opposing_views": "Note any conflicting perspectives between sources, or 'None noted'",
