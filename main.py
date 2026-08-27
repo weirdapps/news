@@ -96,6 +96,25 @@ _SYNTH_FAIL_REASON = (
 )
 
 
+def _delivered(synthesis_ok: bool, sent_ok: bool | None) -> bool:
+    """Did this run actually deliver a synthesized digest? Drives main()'s exit code.
+
+    Exit 0 was a lie systemd believed. A withheld run triggered `OnSuccess=`, so
+    hc-success@ pinged Healthchecks green while the inbox held a "synthesis
+    unavailable" notice, and `systemctl --user list-units --failed` stayed empty. A
+    dead-man's switch cannot cover a failure the job reports as a success, which left
+    the alert email as the only signal that anything was wrong.
+
+    Returned rather than raised so the verdict crosses exactly one boundary, main().
+    A pipeline that raised on a degraded run would make every caller, tests included,
+    handle an exception for an outcome that is not exceptional.
+
+    ``sent_ok=None`` means no send was attempted (market is store-only), which is not
+    a delivery failure. ``False`` is.
+    """
+    return synthesis_ok and sent_ok is not False
+
+
 def setup_logging() -> None:
     """Configure logging for the orchestrator."""
     logging.basicConfig(
@@ -524,8 +543,11 @@ async def run_pipeline(
     query: str | None = None,
     hours: int = 24,
     print_only: bool = False,
-) -> None:
+) -> bool:
     """Execute the appropriate pipeline based on profile.
+
+    Returns True when the run delivered a synthesized digest, False when it withheld
+    one (see _delivered). main() turns False into a non-zero exit.
 
     Args:
         run_type: "scheduled" or "adhoc"
@@ -535,19 +557,15 @@ async def run_pipeline(
         print_only: If True, print HTML to stdout instead of emailing (topic only)
     """
     if profile == "monitor":
-        await run_monitor_pipeline(run_type=run_type)
-        return
+        return await run_monitor_pipeline(run_type=run_type)
     if profile == "topic":
         assert query is not None, "topic profile requires --query"
-        await run_topic_pipeline(query=query, hours=hours, print_only=print_only)
-        return
+        return await run_topic_pipeline(query=query, hours=hours, print_only=print_only)
     if profile == "stack":
-        await run_stack_pipeline(run_type=run_type)
-        return
+        return await run_stack_pipeline(run_type=run_type)
     if profile == "market":
-        await run_market_pipeline(run_type=run_type)
-        return
-    await run_digest_pipeline(run_type=run_type)
+        return await run_market_pipeline(run_type=run_type)
+    return await run_digest_pipeline(run_type=run_type)
 
 
 def _setup_digest_pipeline(settings: dict, sources: dict):
@@ -644,7 +662,7 @@ def _select_digest_articles(all_recent: list, pipeline_config: dict):
     return capped_articles
 
 
-async def run_digest_pipeline(run_type: str = "scheduled") -> None:
+async def run_digest_pipeline(run_type: str = "scheduled") -> bool:
     """Execute the full news digest pipeline.
 
     Args:
@@ -889,9 +907,10 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     )
 
     logger.info(f"Pipeline complete in {duration:.1f}s")
+    return _delivered(synthesis_ok, email_sent)
 
 
-async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
+async def run_monitor_pipeline(run_type: str = "scheduled") -> bool:
     """Execute the brand monitoring pipeline.
 
     Args:
@@ -992,7 +1011,8 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
             sent_ok=True,
             duration_seconds=duration,
         )
-        return
+        # Nothing to say is a delivered outcome, not a withheld one.
+        return True
 
     # STORE: Insert new articles
     for article in processed_articles:
@@ -1166,9 +1186,10 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     )
 
     logger.info(f"Monitor pipeline complete in {duration:.1f}s")
+    return _delivered(synthesis_ok, email_sent)
 
 
-async def run_stack_pipeline(run_type: str = "scheduled") -> None:
+async def run_stack_pipeline(run_type: str = "scheduled") -> bool:
     """Execute the stack (AI/dev intelligence) pipeline."""
     start_time = datetime.now(UTC)
     logger = logging.getLogger(__name__)
@@ -1476,9 +1497,10 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
     )
 
     logger.info(f"Stack pipeline complete in {duration:.1f}s")
+    return _delivered(synthesis_ok, email_sent)
 
 
-async def run_market_pipeline(run_type: str = "scheduled") -> None:
+async def run_market_pipeline(run_type: str = "scheduled") -> bool:
     """Execute the market (market-moving news) pipeline — STORE-ONLY.
 
     Fetches + tags + synthesizes market-moving news and persists it to news.db
@@ -1640,13 +1662,14 @@ async def run_market_pipeline(run_type: str = "scheduled") -> None:
     )
 
     logger.info(f"Market pipeline complete in {duration:.1f}s")
+    return _delivered(synthesis_ok, None)
 
 
 async def run_topic_pipeline(
     query: str,
     hours: int = 24,
     print_only: bool = False,
-) -> None:
+) -> bool:
     """Execute the ad-hoc topic-brief pipeline.
 
     Args:
@@ -1829,6 +1852,7 @@ async def run_topic_pipeline(
     )
 
     logger.info(f"Topic pipeline complete in {duration:.1f}s")
+    return _delivered(synthesis_ok, email_sent or print_only)
 
 
 def main() -> None:
@@ -1910,7 +1934,7 @@ def main() -> None:
 
     try:
         # Run pipeline
-        asyncio.run(
+        delivered = asyncio.run(
             run_pipeline(
                 run_type=args.run_type,
                 profile=args.profile,
@@ -1919,6 +1943,12 @@ def main() -> None:
                 print_only=args.print_only,
             )
         )
+        if not delivered:
+            # A verdict, not a crash: the alert email is already out and the run is
+            # recorded, so no traceback. But exit non-zero, so systemd marks the unit
+            # failed and hc-fail@ pings Healthchecks instead of hc-success@.
+            logger.error(f"{args.profile} run degraded: no synthesized digest delivered")
+            sys.exit(1)
     except Exception as e:
         logger.error(f"Pipeline failed with exception: {e}", exc_info=True)
         sys.exit(1)

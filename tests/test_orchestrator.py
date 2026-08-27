@@ -2,8 +2,12 @@
 
 import asyncio
 import sqlite3
+import sys
+from contextlib import ExitStack
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from main import (
     _select_digest_articles,
@@ -15,6 +19,7 @@ from main import (
     log_run,
     release_lock,
     run_digest_pipeline,
+    run_monitor_pipeline,
     run_stack_pipeline,
 )
 from news.models import Article
@@ -695,3 +700,219 @@ def test_stack_pipeline_makes_no_llm_call_when_nothing_carries_a_delta(tmp_path)
         asyncio.run(run_stack_pipeline())
 
     enrich.assert_not_called()
+
+
+# --- exit code contract -------------------------------------------------------
+# A withheld run used to exit 0. systemd therefore fired OnSuccess=, hc-success@
+# pinged Healthchecks green, and `systemctl --user list-units --failed` stayed
+# empty while the inbox held "synthesis unavailable". The dead-man's switch cannot
+# cover a failure the job reports as success.
+
+
+def test_a_delivered_run_reports_delivered():
+    import main as m
+
+    assert m._delivered(synthesis_ok=True, sent_ok=True)
+    assert m._delivered(synthesis_ok=True, sent_ok=None), "market is store-only, not undelivered"
+
+
+def test_a_withheld_or_undelivered_run_reports_degraded():
+    import main as m
+
+    assert not m._delivered(synthesis_ok=False, sent_ok=True), "alert email is not a digest"
+    assert not m._delivered(synthesis_ok=False, sent_ok=None)
+    assert not m._delivered(synthesis_ok=True, sent_ok=False), "digest that never reached the inbox"
+
+
+@pytest.mark.parametrize(
+    "delivered,expected_exit",
+    [(True, None), (False, 1)],
+    ids=["delivered→0", "withheld→1"],
+)
+def test_main_turns_the_verdict_into_an_exit_code(monkeypatch, tmp_path, delivered, expected_exit):
+    """The whole point: systemd has to be able to see a withheld run as a failure."""
+    import main as m
+
+    monkeypatch.setattr(sys, "argv", ["news", "--profile", "monitor", "--scheduled"])
+    monkeypatch.setattr(m, "install_llm_deadline", lambda profile: None)
+    monkeypatch.setattr(m, "acquire_lock", lambda path: True)
+    monkeypatch.setattr(m, "release_lock", lambda path: None)
+
+    async def _fake_pipeline(**kwargs):
+        return delivered
+
+    monkeypatch.setattr(m, "run_pipeline", _fake_pipeline)
+
+    if expected_exit is None:
+        m.main()  # must not raise SystemExit
+    else:
+        with pytest.raises(SystemExit) as exc:
+            m.main()
+        assert exc.value.code == expected_exit
+
+
+def test_the_lock_is_released_even_when_the_run_is_withheld(monkeypatch):
+    """sys.exit raises SystemExit, which must still pass through the finally block."""
+    import main as m
+
+    released = []
+    monkeypatch.setattr(sys, "argv", ["news", "--profile", "monitor", "--scheduled"])
+    monkeypatch.setattr(m, "install_llm_deadline", lambda profile: None)
+    monkeypatch.setattr(m, "acquire_lock", lambda path: True)
+    monkeypatch.setattr(m, "release_lock", lambda path: released.append(path))
+
+    async def _withheld(**kwargs):
+        return False
+
+    monkeypatch.setattr(m, "run_pipeline", _withheld)
+
+    with pytest.raises(SystemExit):
+        m.main()
+    assert len(released) == 1, "a withheld run must not leak the pipeline lock"
+
+
+# --- the monitor's own verdict --------------------------------------------------
+# The 18:03 outage ran here: synthesis rejected, alert email sent, exit 0. These pin
+# both halves of the corrected contract on the profile that actually failed. The
+# monitor config (config/monitor/*.yaml) is gitignored, so everything it reads is
+# mocked rather than loaded.
+
+
+def _monitor_settings(tmp_path):
+    return {
+        "pipeline": {
+            "max_digest_articles": 100,
+            "max_articles_per_source": 10,
+            "min_article_length_words": 2,
+            "max_article_age_hours": 36,
+            "digest_window_hours": 24,
+            "skip_empty": True,
+        },
+        "email": {"recipient": "test@example.com"},
+        "storage": {
+            "db_path": str(tmp_path / "news.db"),
+            "run_log_path": str(tmp_path / "runs.log"),
+        },
+        "schedule": {"timezone": "Europe/Athens", "runs": ["18:00", "20:00"]},
+        "synthesis": {"max_retries": 1, "timeout": 60, "claude_command": "claude"},
+        "scoring": {},
+    }
+
+
+def _monitor_patches(tmp_path, conn, articles, synthesis):
+    """The mock set every monitor-pipeline test needs, minus the synthesis verdict."""
+    return [
+        patch("main.get_settings", return_value=_monitor_settings(tmp_path)),
+        patch("main.get_sources", return_value={"rss_feeds": []}),
+        patch("main.get_keywords", return_value={"display": {"monitor_label": "Test Monitor"}}),
+        patch("main.get_connection", return_value=conn),
+        patch("main.init_db"),
+        patch("main.get_last_digest", return_value=None),
+        patch("main.fetch_all_sources", new_callable=AsyncMock, return_value=(articles, [])),
+        patch("main.insert_article"),
+        patch("main.get_articles_since", return_value=articles),
+        patch("main.check_gcloud_auth", return_value=True),
+        patch("main.synthesize_monitor", return_value=synthesis),
+        patch("main.insert_digest", return_value=1),
+        patch("main.update_digest_sent"),
+    ]
+
+
+def _monitor_article():
+    return Article(
+        url="https://example.com/mention",
+        title="A bank was mentioned today",
+        source="Kathimerini",
+        content="A sentence long enough to survive the quality gate in these settings.",
+        categories=["nbg_direct"],
+        language="en",
+        published_at=datetime.now(UTC),
+    )
+
+
+def test_a_withheld_monitor_run_reports_degraded_and_still_alerts(tmp_path):
+    """Exactly the 18:03 shape: synthesis rejected, one alert email, verdict False."""
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+    article = _monitor_article()
+
+    with ExitStack() as stack:
+        for cm in _monitor_patches(tmp_path, conn, [article], ("fallback text", False)):
+            stack.enter_context(cm)
+        mock_send = stack.enter_context(patch("main.send_email", return_value=True))
+        delivered = asyncio.run(run_monitor_pipeline())
+
+    assert delivered is False, "a withheld monitor run must not report success to systemd"
+    assert mock_send.call_count == 1, "the alert email is still owed to the reader"
+    assert "synthesis unavailable" in mock_send.call_args.kwargs["subject"]
+
+
+def test_a_synthesized_monitor_run_reports_delivered(tmp_path):
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+    article = _monitor_article()
+    good = {
+        "executive_brief": [{"text": "A bullet", "article_ids": [0]}],
+        "alerts": [],
+        "company_mentions": [],
+        "competitor_watch": {},
+        "sentiment_summary": {},
+    }
+
+    with ExitStack() as stack:
+        for cm in _monitor_patches(tmp_path, conn, [article], (good, True)):
+            stack.enter_context(cm)
+        mock_send = stack.enter_context(patch("main.send_email", return_value=True))
+        stack.enter_context(patch("news.reviewer.review_and_log", return_value=good))
+        delivered = asyncio.run(run_monitor_pipeline())
+
+    assert delivered is True
+    assert "synthesis unavailable" not in mock_send.call_args.kwargs["subject"]
+
+
+def test_a_monitor_run_with_nothing_new_is_delivered_not_degraded(tmp_path):
+    """skip_empty short-circuits before synthesis. Nothing to say is not a failure."""
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+
+    with ExitStack() as stack:
+        for cm in _monitor_patches(tmp_path, conn, [], ("unused", False)):
+            stack.enter_context(cm)
+        mock_send = stack.enter_context(patch("main.send_email", return_value=True))
+        delivered = asyncio.run(run_monitor_pipeline())
+
+    assert delivered is True, "a quiet scan must not mark the unit failed"
+    assert mock_send.call_count == 0, "a quiet scan must not email at all"
+
+
+# --- verdict propagation through the dispatcher --------------------------------
+# run_pipeline is the single hop between a pipeline's verdict and main()'s exit
+# code. A branch that forgot its `return` would silently pin the exit code to 0 for
+# that one profile: the hardest version of this bug to notice, because the other
+# four would still alert correctly.
+
+
+@pytest.mark.parametrize(
+    "profile,target,kwargs",
+    [
+        ("digest", "run_digest_pipeline", {}),
+        ("monitor", "run_monitor_pipeline", {}),
+        ("stack", "run_stack_pipeline", {}),
+        ("market", "run_market_pipeline", {}),
+        ("topic", "run_topic_pipeline", {"query": "anything"}),
+    ],
+)
+@pytest.mark.parametrize("verdict", [True, False], ids=["delivered", "withheld"])
+def test_run_pipeline_propagates_every_profiles_verdict(
+    monkeypatch, profile, target, kwargs, verdict
+):
+    import main as m
+
+    async def _fake(**_):
+        return verdict
+
+    monkeypatch.setattr(m, target, _fake)
+    assert asyncio.run(m.run_pipeline(profile=profile, **kwargs)) is verdict
