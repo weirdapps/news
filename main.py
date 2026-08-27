@@ -758,6 +758,29 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     if synthesis_ok:
         # Contract: synthesize() returns dict on success, str on failure.
         assert isinstance(synthesis_result, dict)
+        # VERACITY REVIEW (before citation_filter, which flattens bullets to plain
+        # strings and destroys the article_ids the review needs). Strikes claims the
+        # cited article does not actually support -- the semantic half of the check
+        # whose deterministic half citation_filter already performs. Degrades to the
+        # unreviewed digest on any failure; never empties it.
+        from news.reviewer import review_synthesis
+
+        synthesis_result, review_stats = review_synthesis(
+            synthesis_result,
+            capped_articles,
+            job="digest",
+            timeout=config["synthesis"].get("review_timeout", 180),
+            claude_command=config["synthesis"].get("claude_command", "claude"),
+            claude_args=config["synthesis"].get("claude_args", []),
+        )
+        logger.info(
+            "Veracity review: reviewed=%s claims=%d struck=%d reason=%s",
+            review_stats["reviewed"],
+            review_stats["claims"],
+            review_stats["struck"],
+            review_stats["reason"] or "-",
+        )
+
         from news.citation_filter import (
             enrich_section_articles,
             filter_unsourced_bullets,
@@ -1013,6 +1036,29 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     if synthesis_ok:
         # Contract: synthesize_monitor() returns dict on success, str on failure.
         assert isinstance(synthesis_result, dict)
+        # VERACITY REVIEW (before citation_filter, which flattens bullets to plain
+        # strings and destroys the article_ids the review needs). Strikes claims the
+        # cited article does not actually support -- the semantic half of the check
+        # whose deterministic half citation_filter already performs. Degrades to the
+        # unreviewed digest on any failure; never empties it.
+        from news.reviewer import review_synthesis
+
+        synthesis_result, review_stats = review_synthesis(
+            synthesis_result,
+            capped_articles,
+            job="monitor",
+            timeout=config["synthesis"].get("review_timeout", 180),
+            claude_command=config["synthesis"].get("claude_command", "claude"),
+            claude_args=config["synthesis"].get("claude_args", []),
+        )
+        logger.info(
+            "Veracity review: reviewed=%s claims=%d struck=%d reason=%s",
+            review_stats["reviewed"],
+            review_stats["claims"],
+            review_stats["struck"],
+            review_stats["reason"] or "-",
+        )
+
         from news.citation_filter import (
             enrich_mentions,
             filter_competitor_watch,
@@ -1182,6 +1228,21 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
     # ENRICH: attach transcript abstracts before hashing and scoring. The
     # abstract is a separate field, so the hash input is untouched; doing it
     # here is what lets process_articles score on what was actually said.
+    # Fill in bodies for feeds that publish headlines without them, BEFORE hashing:
+    # content is hash input, unlike the transcript abstract which is a separate field.
+    # Opt-in per source via `extract_content: true`, bounded by a fetch cap and a
+    # wall-clock budget. Without this, Hugging Face Blog (median 0 content words) and
+    # Google Research Blog (3) lose every article to the 10-word quality gate.
+    from news.content_enrich import enrich_thin_articles
+
+    body_filled, body_tried = await enrich_thin_articles(
+        raw_articles,
+        sources,
+        min_words=config["pipeline"]["min_article_length_words"],
+    )
+    if body_tried:
+        logger.info(f"Content enrichment: {body_filled}/{body_tried} thin articles filled")
+
     enriched, video_total = enrich_articles(raw_articles, config["transcripts_db_path"])
     if video_total:
         logger.info(f"Transcript enrichment: {enriched}/{video_total} YouTube items enriched")
@@ -1307,6 +1368,29 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
     synthesis_data: dict
     if synthesis_ok:
         assert isinstance(synthesis_result, dict)
+        # VERACITY REVIEW (before citation_filter, which flattens bullets to plain
+        # strings and destroys the article_ids the review needs). Strikes claims the
+        # cited article does not actually support -- the semantic half of the check
+        # whose deterministic half citation_filter already performs. Degrades to the
+        # unreviewed digest on any failure; never empties it.
+        from news.reviewer import review_synthesis
+
+        synthesis_result, review_stats = review_synthesis(
+            synthesis_result,
+            capped_articles,
+            job="stack",
+            timeout=config["synthesis"].get("review_timeout", 180),
+            claude_command=config["synthesis"].get("claude_command", "claude"),
+            claude_args=config["synthesis"].get("claude_args", []),
+        )
+        logger.info(
+            "Veracity review: reviewed=%s claims=%d struck=%d reason=%s",
+            review_stats["reviewed"],
+            review_stats["claims"],
+            review_stats["struck"],
+            review_stats["reason"] or "-",
+        )
+
         from news.citation_filter import (
             filter_unsourced_bullets,
             filter_unsourced_sections,
