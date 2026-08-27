@@ -298,3 +298,35 @@ def test_contradictions_are_capped_and_non_strings_dropped(mock_run):
     _, stats = review_synthesis(_synthesis(), _articles(4), job="stack")
 
     assert stats["contradictions"] == ["c0", "c1", "c2", "c3", "c4"]
+
+
+# --- the per-profile wrapper -------------------------------------------------
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_review_and_log_passes_config_through_and_returns_the_synthesis(mock_run, caplog):
+    """One line per pipeline instead of eighteen pasted three times."""
+    import logging
+
+    from news.reviewer import review_and_log
+
+    mock_run.return_value = Mock(stdout=_envelope(_verdicts(**{"0": False})), returncode=0)
+    cfg = {"claude_command": "claude", "claude_args": ["--model", "opus"], "review_timeout": 42}
+
+    with caplog.at_level(logging.INFO, logger="news.reviewer"):
+        out = review_and_log(_synthesis(), _articles(4), job="stack", synthesis_config=cfg)
+
+    assert [b["text"] for b in out["executive_brief"]] == ["claim B"]
+    assert mock_run.call_args[1]["timeout"] == 42
+    assert any("Veracity review [stack]" in r.getMessage() for r in caplog.records)
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_review_and_log_survives_an_empty_synthesis_config(mock_run):
+    from news.reviewer import review_and_log
+
+    mock_run.return_value = Mock(stdout=_envelope(_verdicts()), returncode=0)
+    out = review_and_log(_synthesis(), _articles(4), job="digest", synthesis_config={})
+
+    assert len(out["executive_brief"]) == 2
+    assert mock_run.call_args[1]["timeout"] == 180

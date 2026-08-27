@@ -193,6 +193,40 @@ def _apply(synthesis: dict[str, Any], claims: list[dict[str, Any]], struck: set[
     return removed
 
 
+def review_and_log(
+    synthesis: dict[str, Any],
+    articles: list[Any],
+    *,
+    job: str,
+    synthesis_config: dict[str, Any],
+) -> dict[str, Any]:
+    """Run the review for one profile and log the outcome. Returns the synthesis.
+
+    Exists so the three rendering pipelines call one line instead of pasting the
+    same eighteen. main.py already carries five near-identical synthesize_* tails
+    and four render_*_html copies; adding a fourth-and-fifth copy of this would be
+    repeating the mistake, and it would also park the logic in the one module the
+    test suite barely reaches.
+    """
+    synthesis, stats = review_synthesis(
+        synthesis,
+        articles,
+        job=job,
+        timeout=synthesis_config.get("review_timeout", 180),
+        claude_command=synthesis_config.get("claude_command", "claude"),
+        claude_args=synthesis_config.get("claude_args", []),
+    )
+    logger.info(
+        "Veracity review [%s]: reviewed=%s claims=%d struck=%d reason=%s",
+        job,
+        stats["reviewed"],
+        stats["claims"],
+        stats["struck"],
+        stats["reason"] or "-",
+    )
+    return synthesis
+
+
 def review_synthesis(
     synthesis: dict[str, Any],
     articles: list[Any],
