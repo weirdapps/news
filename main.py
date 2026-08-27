@@ -82,9 +82,17 @@ _DEFAULT_LOCK_PATH = _PROJECT_ROOT / "data" / "pipeline.lock"
 
 # Shown in the failure-alert email when synthesis cannot be produced. We withhold
 # the unsynthesized article dump and send this one-line notice instead.
+#
+# It names no cause. It used to volunteer "e.g. an unrecoverable gcloud auth error
+# after a re-auth attempt", which is one of at least six reachable causes (timeout,
+# rate limit, refusal, empty output, transport error, schema rejection) and was the
+# wrong one on 27 Aug 2026: the pipeline was rejecting structurally sound monitor
+# output against the digest's schema. An alert that guesses its own cause sends the
+# reader after the wrong fault, so this points at the log that knows instead.
 _SYNTH_FAIL_REASON = (
-    "AI synthesis could not be produced this run — the model call failed "
-    "(e.g. an unrecoverable gcloud auth error after a re-auth attempt)."
+    "AI synthesis could not be produced this run: the model call failed or its "
+    "output did not satisfy the schema. See logs/news/*.err for the outcome and "
+    "data/llm_trace.jsonl for the per-attempt record."
 )
 
 

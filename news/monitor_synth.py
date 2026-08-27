@@ -12,6 +12,24 @@ from news.synthesizer import invoke_claude, parse_synthesis_output
 
 logger = logging.getLogger(__name__)
 
+# The monitor's schema (see _output_format_section) has no `sections` — the report
+# is company_mentions/alerts/competitor_watch, and render_monitor_html never looks
+# for one. `executive_brief` is the only top-level key it cannot render without, and
+# it is a list even on a quiet run (the prompt's rule 1 asks for empty arrays), so
+# requiring it rejects garbage without ever condemning an editorially-empty report.
+MONITOR_REQUIRED_KEYS = ("executive_brief",)
+
+
+def _monitor_validate(text: str) -> bool:
+    """Content check passed to invoke_claude: does this parse under the MONITOR schema?
+
+    Named rather than inlined so a test can pin the exact callback the pipeline uses.
+    Validating monitor output against the digest's required keys is what produced the
+    27 Aug 2026 "synthesis unavailable" run: two attempts, both structurally sound,
+    both rejected for a key the monitor prompt never asks for.
+    """
+    return "error" not in parse_synthesis_output(text, required=MONITOR_REQUIRED_KEYS)
+
 
 def _base_prompt(display: dict) -> str:
     """Build the brand-neutral base prompt from a display block."""
@@ -288,7 +306,7 @@ def synthesize_monitor(
         timeout=timeout,
         claude_command=claude_command,
         claude_args=claude_args,
-        validate=lambda text: "error" not in parse_synthesis_output(text),
+        validate=_monitor_validate,
         job="monitor",
     )
 
@@ -298,7 +316,7 @@ def synthesize_monitor(
         fallback = build_monitor_fallback(articles)
         return (fallback, False)
 
-    parsed = parse_synthesis_output(raw_output)
+    parsed = parse_synthesis_output(raw_output, required=MONITOR_REQUIRED_KEYS)
 
     if "error" not in parsed:
         logger.info("Monitor synthesis succeeded")
