@@ -155,6 +155,8 @@ rss_feeds:
     tier: 2
     language: "en"
   - name: "Changelog"
+    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
+    max_age_hours: 336
     url: "https://changelog.com/feed"
     category: "showcase"
     tier: 2
@@ -189,6 +191,8 @@ rss_feeds:
 
   # === YOUTUBE ===
   - name: "YouTube: Fireship"
+    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
+    max_age_hours: 336
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCsBjURrPoezykLs9EqgamOA"
     category: "tutorials"
     tier: 1
@@ -199,6 +203,8 @@ rss_feeds:
     tier: 2
     language: "en"
   - name: "YouTube: AI Explained"
+    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
+    max_age_hours: 720
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCNJ1Ymd5yFuUPtn21xtRbbw"
     category: "research"
     tier: 2
@@ -233,6 +239,8 @@ rss_feeds:
   # Weighted towards conference talks and practitioner deep dives, because
   # that content is video-native and has no RSS equivalent.
   - name: "YouTube: Anthropic"
+    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
+    max_age_hours: 720
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCrDwWp7EBBv4NwvScIpBDOA"
     category: "releases"
     tier: 1
@@ -258,6 +266,8 @@ rss_feeds:
     tier: 1
     language: "en"
   - name: "YouTube: Ai2"
+    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
+    max_age_hours: 1440
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCEqgmyWChwvt6MFGGlmUQCQ"
     category: "research"
     tier: 2
@@ -278,6 +288,8 @@ rss_feeds:
     tier: 2
     language: "en"
   - name: "YouTube: Dave Ebbelaar"
+    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
+    max_age_hours: 1440
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCn8ujwUInbJkBhffxqAPBVQ"
     category: "tutorials"
     tier: 2
@@ -313,26 +325,36 @@ rss_feeds:
     tier: 1
     language: "en"
   - name: "YouTube: NDC Conferences"
+    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
+    max_age_hours: 2160
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCTdw38Cw6jcm0atBPA39a0Q"
     category: "industry"
     tier: 2
     language: "en"
   - name: "YouTube: USENIX"
+    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
+    max_age_hours: 4320
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC4-GrpQBx6WCGwmwozP744Q"
     category: "research"
     tier: 1
     language: "en"
   - name: "YouTube: CMU Database Group"
+    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
+    max_age_hours: 4320
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCHnBsf2rH-K7pn09rb3qvkA"
     category: "research"
     tier: 2
     language: "en"
   - name: "YouTube: Jon Gjengset"
+    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
+    max_age_hours: 2160
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC_iD0xppBwwsrM9DegC5cQQ"
     category: "tutorials"
     tier: 2
     language: "en"
   - name: "YouTube: Hussein Nasser"
+    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
+    max_age_hours: 720
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC_ML5xP23TOWKUcc-oAE_Eg"
     category: "tutorials"
     tier: 2
@@ -391,6 +413,10 @@ rss_feeds:
   # Publisher feeds rather than Google News proxies: fresher, complete, and
   # not dependent on a query operator that can silently stop matching.
   - name: "Google Research Blog"
+    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
+    max_age_hours: 336
+    # Feed serves headlines with no body (median 3 words, measured 2026-08-27), so every item was dropped by the 10-word gate.
+    extract_content: true
     url: "https://research.google/blog/rss/"
     category: "research"
     tier: 1
@@ -401,6 +427,10 @@ rss_feeds:
     tier: 2
     language: "en"
   - name: "Hugging Face Blog"
+    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
+    max_age_hours: 336
+    # Feed serves headlines with no body (median 0 words, measured 2026-08-27), so every item was dropped by the 10-word gate.
+    extract_content: true
     url: "https://huggingface.co/blog/feed.xml"
     category: "releases"
     tier: 2
@@ -416,6 +446,8 @@ rss_feeds:
     tier: 2
     language: "en"
   - name: "MIT Tech Review AI"
+    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
+    max_age_hours: 168
     url: "https://www.technologyreview.com/topic/artificial-intelligence/feed"
     category: "industry"
     tier: 2
