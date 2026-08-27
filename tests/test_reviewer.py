@@ -253,3 +253,48 @@ def test_review_is_labelled_as_its_own_job_in_the_trace(mock_run, tmp_path):
 
     records = [json.loads(x) for x in trace.read_text().splitlines() if x.strip()]
     assert records and records[0]["job"] == "stack-review"
+
+
+def test_collect_claims_ignores_a_non_dict_section():
+    """The model occasionally emits a bare string where a section belongs."""
+    s = {"executive_brief": [], "sections": ["not a dict", {"synthesis": "x", "article_ids": [0]}]}
+    assert [c["index"] for c in collect_claims(s)] == [1]
+
+
+def test_striking_a_field_that_is_not_a_list_is_a_no_op():
+    """Defensive: a malformed synthesis must not make the strike pass raise.
+
+    Exercised directly. It cannot be reached through review_synthesis, because
+    collect_claims reads the same dict and would never yield a claim for a field
+    that is not a list -- which is exactly why the branch needs its own test.
+    """
+    from news.reviewer import _apply
+
+    claims = [{"field": "executive_brief", "index": 0, "text": "a", "ids": [0]}]
+    synthesis = {"executive_brief": "not a list"}
+
+    assert _apply(synthesis, claims, {0}) == 0
+    assert synthesis["executive_brief"] == "not a list"
+
+
+def test_striking_an_index_past_the_end_is_a_no_op():
+    from news.reviewer import _apply
+
+    claims = [{"field": "executive_brief", "index": 7, "text": "a", "ids": [0]}]
+    synthesis = {"executive_brief": [{"text": "kept"}]}
+
+    assert _apply(synthesis, claims, {0}) == 0
+    assert len(synthesis["executive_brief"]) == 1
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_contradictions_are_capped_and_non_strings_dropped(mock_run):
+    payload = {
+        "verdicts": [{"id": i, "supported": True, "reason": "r"} for i in range(4)],
+        "contradictions": [f"c{i}" for i in range(9)] + [None, 42],
+    }
+    mock_run.return_value = Mock(stdout=_envelope(payload), returncode=0)
+
+    _, stats = review_synthesis(_synthesis(), _articles(4), job="stack")
+
+    assert stats["contradictions"] == ["c0", "c1", "c2", "c3", "c4"]

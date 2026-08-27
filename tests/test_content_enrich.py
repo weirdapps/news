@@ -190,3 +190,70 @@ async def test_the_fetch_cap_is_enforced_and_announced(monkeypatch, caplog):
 async def test_nothing_to_do_makes_no_network_calls():
     arts = [_article("Fat Feed", "")]
     assert await enrich_thin_articles(arts, SOURCES, min_words=10) == (0, 0)
+
+
+@pytest.mark.asyncio
+async def test_readability_fallback_when_trafilatura_finds_nothing(monkeypatch):
+    """trafilatura returning None must fall through, not end the attempt."""
+    import news.content_enrich as ce
+
+    monkeypatch.setattr(ce, "_extract", ce._extract)  # keep the real one
+
+    class FakeTrafilatura:
+        @staticmethod
+        def extract(html):
+            return None
+
+    monkeypatch.setitem(__import__("sys").modules, "trafilatura", FakeTrafilatura)
+    html = "<html><body><div><p>" + ("fallback body " * 40) + "</p></div></body></html>"
+    out = ce._extract(html)
+
+    assert len(out.split()) > 10
+    assert "fallback" in out
+
+
+def test_extract_returns_empty_when_both_extractors_fail(monkeypatch):
+    import sys
+
+    import news.content_enrich as ce
+
+    class Boom:
+        @staticmethod
+        def extract(html):
+            raise RuntimeError("no")
+
+    monkeypatch.setitem(sys.modules, "trafilatura", Boom)
+    monkeypatch.setitem(sys.modules, "readability", Boom)
+    assert ce._extract("<html></html>") == ""
+
+
+@pytest.mark.asyncio
+async def test_the_wall_clock_budget_stops_the_pass_and_says_so(monkeypatch, caplog):
+    """A run that overspends on bodies is stealing from synthesis."""
+    import logging
+
+    import news.content_enrich as ce
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        async def get(self, url, **kw):  # pragma: no cover - budget expires first
+            raise AssertionError("should not fetch once the budget is spent")
+
+    monkeypatch.setattr(httpx, "AsyncClient", FakeClient)
+    arts = [_article("Thin Feed", "", url=f"https://x/{i}") for i in range(3)]
+
+    with caplog.at_level(logging.WARNING, logger="news.content_enrich"):
+        filled, tried = await ce.enrich_thin_articles(
+            arts, SOURCES, min_words=10, budget_seconds=-1
+        )
+
+    assert (filled, tried) == (0, 3)
+    assert any("budget" in r.getMessage() for r in caplog.records)
