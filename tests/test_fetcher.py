@@ -768,3 +768,46 @@ def test_changelog_model_headings_are_stripped_of_trailing_whitespace():
 
     assert articles[0].title == "Claude Opus 5 system prompt (July 24, 2026)"
     assert articles[0].url.endswith("#claude-opus-5-july-24-2026")
+
+
+# --- dateless feeds ---------------------------------------------------------
+
+
+def test_normalize_rss_entry_falls_back_to_first_seen_when_the_feed_has_no_date():
+    """A dateless entry must still get a published_at.
+
+    None survived to the INSERT, where published_at is NOT NULL, and the resulting
+    IntegrityError was booked as a duplicate URL. Every article from every dateless
+    feed was dropped in silence. The four GitHubTrendingRSS feeds are the live case.
+    """
+    from datetime import UTC, datetime
+
+    from news.fetcher import normalize_rss_entry
+
+    source = {"name": "GitHub Trending All", "category": "showcase", "language": "en"}
+    before = datetime.now(UTC)
+    article = normalize_rss_entry({"title": "some/repo", "link": "https://x/1"}, source)
+
+    assert article.published_at is not None
+    assert before <= article.published_at <= datetime.now(UTC)
+
+
+def test_dateless_entry_actually_persists():
+    """End-to-end guard on the bug: parse -> insert -> row exists."""
+    import sqlite3
+
+    from news.fetcher import normalize_rss_entry
+    from news.storage import init_db, insert_article
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+    source = {"name": "GitHub Trending All", "category": "showcase", "language": "en"}
+    article = normalize_rss_entry(
+        {"title": "some/repo", "link": "https://example.test/repo"}, source
+    )
+    article.pipeline = "stack"
+    article.compute_hash()
+
+    assert insert_article(conn, article) is True
+    assert conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0] == 1

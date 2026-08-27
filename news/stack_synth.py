@@ -8,11 +8,62 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import UTC, date, datetime
+from pathlib import Path
 from typing import Any
+
+import yaml
 
 from news.synthesizer import invoke_claude, parse_synthesis_output
 
 logger = logging.getLogger(__name__)
+
+_READER_STACK_PATH = Path(__file__).parent.parent / "config" / "stack" / "reader_stack.yaml"
+
+# Past this, the description is assumed to have drifted. Chosen to match the owner's
+# own consolidation trigger for date-pinned material.
+STALE_AFTER_DAYS = 30
+
+
+def load_reader_stack(path: Path | None = None, today: date | None = None) -> str:
+    """The reader's stack description, or "" if it cannot be read.
+
+    Returns "" rather than raising: a missing or malformed file should cost the brief
+    its personalisation, never the whole run. A stale file is still used, because a
+    three-month-old description is far better than none, but it is labelled as stale
+    in the prompt so the model can discount it, and it warns in the log.
+    """
+    path = path or _READER_STACK_PATH
+    try:
+        doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        profile = str(doc.get("profile") or "").strip()
+    except (OSError, yaml.YAMLError) as exc:
+        logger.warning("reader stack unreadable (%s): %s", path, exc)
+        return ""
+    if not profile:
+        logger.warning("reader stack at %s has no `profile` block", path)
+        return ""
+
+    reviewed = doc.get("last_reviewed")
+    if not isinstance(reviewed, date):
+        logger.warning("reader stack has no valid `last_reviewed`; treating as stale")
+        return profile + "\n\n(NOTE: this description is undated and may be out of date.)"
+
+    age = ((today or datetime.now(UTC).date()) - reviewed).days
+    if age > STALE_AFTER_DAYS:
+        logger.warning(
+            "reader stack is %d days old (reviewed %s, stale after %d) — "
+            "FOR YOUR STACK recommendations may be misaimed",
+            age,
+            reviewed,
+            STALE_AFTER_DAYS,
+        )
+        return (
+            f"{profile}\n\n(NOTE: this description was last verified {age} days ago and "
+            "may be out of date. Prefer recommendations that do not depend on its details.)"
+        )
+    return profile
+
 
 _SYSTEM_PROMPT = """You are a senior technology analyst preparing a daily intelligence brief for a hands-on AI practitioner and engineering leader.
 
@@ -35,18 +86,7 @@ You will receive articles from: dev blogs, Hacker News, GitHub trending, YouTube
 4. **Show & Tell** — Trending GitHub repos, Show HN projects, Product Hunt launches, interesting open source. Focus on repos with practical value.
 5. **Industry & People** — Funding rounds, acquisitions, key hires, competitive moves, regulation. Only include if strategically significant.
 
-**THE READER'S CURRENT STACK (use this to personalize recommendations):**
-- Primary AI tool: Claude Code CLI (Opus/Sonnet models via Vertex AI) — daily power user
-- Agentic patterns: multi-agent teams, parallel worktree agents, hooks, plugins, skills
-- MCP servers: custom-built (news-reader, second-brain/knowledge-store, trading-data, outlook-bridge, teams-bridge, sch-mail)
-- Languages: Python 3.12+ (primary), TypeScript/Node (secondary)
-- Frameworks: FastMCP for MCP servers, Jinja2 for templates, httpx for async HTTP, SQLite + FTS5 for local data
-- Email/calendar/Teams automation: outlook-cli, teams-cli, launchd scheduling
-- Presentations: python-pptx with brand system
-- Data pipelines: RSS ingestion, Claude CLI synthesis, email delivery
-- Trading intelligence: signal analysis, census tracking, investment committee (multi-agent)
-- Infrastructure: macOS, zsh, GitHub, Vercel (secondary), gcloud/Vertex AI
-- Role context: AGM at a large bank — leads Cards & Digital Business, AI adoption champion
+{reader_stack}
 
 **WHAT TO PRIORITIZE:**
 - Claude Code, MCP, Anthropic updates (reader's primary toolchain)
@@ -161,7 +201,17 @@ def build_stack_prompt(
     if previous_highlights:
         context["previous_highlights"] = previous_highlights
 
-    return f"""{_SYSTEM_PROMPT}
+    # str.replace, never str.format: _SYSTEM_PROMPT carries the literal { } of the
+    # output JSON schema, so format() raises KeyError on the first brace it meets.
+    stack = load_reader_stack()
+    block = (
+        f"**THE READER'S CURRENT STACK (use this to personalize recommendations):**\n{stack}"
+        if stack
+        else ""
+    )
+    system_prompt = _SYSTEM_PROMPT.replace("{reader_stack}", block)
+
+    return f"""{system_prompt}
 
 **CONTEXT:**
 {json.dumps(context, ensure_ascii=False)}
@@ -208,6 +258,7 @@ def synthesize_stack(
         claude_command=claude_command,
         claude_args=claude_args,
         validate=lambda text: "error" not in parse_synthesis_output(text),
+        job="stack",
     )
 
     if raw_output is None:

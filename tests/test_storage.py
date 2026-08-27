@@ -615,3 +615,67 @@ def test_urls_already_upgraded_reports_rows_holding_llm_prose(db):
     result = urls_already_upgraded(db, [upgraded.url, pending.url, "https://example.com/absent"])
 
     assert result == {upgraded.url}
+
+
+def test_insert_article_logs_non_duplicate_integrity_failures(caplog):
+    """A duplicate stays silent; any other constraint violation must be named.
+
+    Booking a NOT NULL violation as "duplicate URL" is what hid the dateless-feed
+    bug for months: the drop showed up only as a bumped duplicate counter.
+    """
+    import logging
+    import sqlite3
+
+    from news.storage import init_db, insert_article
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+
+    article = Article(
+        url="https://example.test/no-date",
+        title="t",
+        source="GitHub Trending All",
+        content="c" * 60,
+        categories=["showcase"],
+        language="en",
+    )
+    article.pipeline = "stack"
+    article.compute_hash()
+    article.published_at = None  # what a dateless feed used to produce
+
+    with caplog.at_level(logging.WARNING, logger="news.storage"):
+        assert insert_article(conn, article) is False
+
+    assert any("NOT NULL" in r.getMessage() for r in caplog.records)
+
+
+def test_insert_article_stays_silent_on_a_genuine_duplicate(caplog):
+    import logging
+    import sqlite3
+    from datetime import UTC, datetime
+
+    from news.storage import init_db, insert_article
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+
+    def _make():
+        a = Article(
+            url="https://example.test/dupe",
+            title="t",
+            source="S",
+            content="c" * 60,
+            categories=["showcase"],
+            language="en",
+            published_at=datetime.now(UTC),
+        )
+        a.pipeline = "stack"
+        a.compute_hash()
+        return a
+
+    assert insert_article(conn, _make()) is True
+    with caplog.at_level(logging.WARNING, logger="news.storage"):
+        assert insert_article(conn, _make()) is False
+    assert not caplog.records

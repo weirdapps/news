@@ -589,6 +589,18 @@ def _setup_digest_pipeline(settings: dict, sources: dict):
     }
 
 
+# Every kind of thing that counts as "a source". The footer reports a count and a
+# silent-source tally side by side, and they were computed from different key sets:
+# the count from rss_feeds alone, the tally from all four. A stack run printed
+# "79 sources ... 33 silent" where the 33 was out of 82. One tuple, one denominator.
+_SOURCE_KEYS = ("rss_feeds", "html_sources", "api_sources", "changelog_sources")
+
+
+def _configured_source_names(sources: dict) -> list[str]:
+    """Every configured source name across all source kinds."""
+    return [src["name"] for key in _SOURCE_KEYS for src in sources.get(key, []) if src.get("name")]
+
+
 def _source_health_note(conn, sources: dict, pipeline: str) -> str:
     """One-line footer note naming sources that have gone quiet for real.
 
@@ -597,12 +609,7 @@ def _source_health_note(conn, sources: dict, pipeline: str) -> str:
     a health report is not worth failing a digest over.
     """
     try:
-        configured = [
-            src["name"]
-            for key in ("rss_feeds", "html_sources", "api_sources", "changelog_sources")
-            for src in sources.get(key, [])
-            if src.get("name")
-        ]
+        configured = _configured_source_names(sources)
         return format_health_note(stale_sources(conn, configured, pipeline=pipeline))
     except Exception as e:
         logging.getLogger(__name__).warning(f"Source health check failed: {type(e).__name__}: {e}")
@@ -781,7 +788,7 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> None:
     next_digest = get_next_digest_time(current_time_str, config["schedule"]["runs"])
 
     # DELIVER: Render HTML and send email
-    source_count = len(sources["rss_feeds"])
+    source_count = len(_configured_source_names(sources))
     time_display = now_athens.strftime("%H:%M")
     date_display = now_athens.strftime("%a %-d %b").lower()
 
@@ -1038,7 +1045,7 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> None:
     next_scan = get_next_digest_time(current_time_str, config["schedule"]["runs"])
 
     # DELIVER: Render monitor HTML and send email
-    source_count = len(rss_feeds)
+    source_count = len(_configured_source_names(sources))
     time_display = now_athens.strftime("%H:%M")
     date_display = now_athens.strftime("%a %-d %b").lower()
 
@@ -1329,7 +1336,7 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> None:
     current_time_str = now_athens.strftime("%H:%M")
     next_run = get_next_digest_time(current_time_str, config["schedule"]["runs"])
 
-    source_count = len(rss_feeds)
+    source_count = len(_configured_source_names(sources))
     time_display = now_athens.strftime("%H:%M")
     date_display = now_athens.strftime("%a %-d %b").lower()
 

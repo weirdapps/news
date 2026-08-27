@@ -34,7 +34,7 @@ from youtube_transcript_api._errors import (
 # Ensure `news` imports resolve when launchd runs this by path.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from news.config import get_sources  # noqa: E402
+from news.config import get_sources, vertex_cli_model_and_env  # noqa: E402
 from news.transcripts import (  # noqa: E402
     init_transcript_db,
     pending_video_ids,
@@ -160,13 +160,15 @@ def distil(transcript: str, title: str) -> str:
     raw transcript so only the cheap half is retried.
     """
     prompt = _DISTIL_PROMPT.format(title=title, transcript=transcript)
+    model, run_env = vertex_cli_model_and_env("sonnet")
     try:
         result = subprocess.run(
-            ["claude", "--model", "sonnet", "--print"],
+            ["claude", "--model", model, "--print"],
             input=prompt,
             capture_output=True,
             text=True,
             timeout=_CLI_TIMEOUT,
+            env=run_env,
         )
     except (subprocess.TimeoutExpired, OSError) as e:
         logger.warning(f"distillation call failed: {type(e).__name__}: {e}")
