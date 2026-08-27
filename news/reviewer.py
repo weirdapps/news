@@ -51,6 +51,22 @@ _BULLET_FIELDS = ("executive_brief", "try_this", "recommendations", "what_change
 # Above this fraction, disbelieve the reviewer rather than the synthesis.
 STRIKE_CEILING = 0.5
 
+# The review's OWN output schema. It shares parse_synthesis_output with the synthesis
+# profiles, and that function defaults to the digest's required keys, so without this
+# the reviewer's {verdicts, contradictions} payload was judged against
+# {executive_brief, sections} and logged
+#   "Synthesis output unusable: executive_brief is NoneType ... model returned
+#    ['contradictions','verdicts','what_changed']"
+# at ERROR, twice, on every single review call. The review itself still succeeded --
+# the callback only ever inspected `verdicts` -- so this was pure false alarm in the
+# logs of the very stage whose job is catching false claims. Observed live on the
+# monitor run of 2026-08-27 20:03.
+#
+# Exactly the same defect as the monitor regression: a validator that does not know
+# which schema it is validating. Third instance in this file's short life, which is
+# why the default argument is the thing to distrust, not the caller.
+REVIEW_REQUIRED_KEYS = ("verdicts",)
+
 # Per cited article. Enough to judge support, small enough that the review prompt
 # stays a fraction of the ~62k-char synthesis prompt it follows.
 _SNIPPET_CHARS = 600
@@ -260,7 +276,9 @@ def review_synthesis(
         timeout=timeout,
         claude_command=claude_command,
         claude_args=claude_args,
-        validate=lambda text: isinstance(parse_synthesis_output(text).get("verdicts"), list),
+        validate=lambda text: isinstance(
+            parse_synthesis_output(text, required=REVIEW_REQUIRED_KEYS).get("verdicts"), list
+        ),
         job=f"{job}-review",
     )
     if raw is None:
@@ -270,7 +288,10 @@ def review_synthesis(
         logger.warning("Veracity review unavailable for %s; shipping unreviewed", job)
         return synthesis, stats
 
-    parsed = parse_synthesis_output(raw)
+    # required= again: this is the SECOND call on the review payload and the one the
+    # log actually came from. Fixing only the validate callback above left this one
+    # emitting the same false ERROR, which is what the end-to-end test caught.
+    parsed = parse_synthesis_output(raw, required=REVIEW_REQUIRED_KEYS)
     verdicts = parsed.get("verdicts")
     if not isinstance(verdicts, list):
         stats["reason"] = "reviewer returned no verdicts list"

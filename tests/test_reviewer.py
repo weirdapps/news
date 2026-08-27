@@ -330,3 +330,40 @@ def test_review_and_log_survives_an_empty_synthesis_config(mock_run):
 
     assert len(out["executive_brief"]) == 2
     assert mock_run.call_args[1]["timeout"] == 180
+
+
+def test_the_review_is_validated_against_its_own_schema_not_the_digest_s(caplog):
+    """The reviewer's payload is {verdicts, contradictions}, not {executive_brief, sections}.
+
+    parse_synthesis_output defaults to the digest's required keys, so calling it
+    bare logged 'Synthesis output unusable' at ERROR twice per review while the
+    review itself succeeded. Pure false alarm, in the logs of the stage whose whole
+    job is catching false claims. Observed live on the monitor run of 2026-08-27.
+    """
+    import logging
+
+    from news.reviewer import REVIEW_REQUIRED_KEYS
+    from news.synthesizer import parse_synthesis_output
+
+    payload = json.dumps({"verdicts": [{"id": 0, "supported": True}], "contradictions": []})
+
+    with caplog.at_level(logging.ERROR, logger="news.synthesizer"):
+        out = parse_synthesis_output(payload, required=REVIEW_REQUIRED_KEYS)
+
+    assert "error" not in out
+    assert isinstance(out["verdicts"], list)
+    assert not [r for r in caplog.records if "unusable" in r.getMessage()]
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_a_real_review_call_logs_no_schema_error(mock_run, caplog):
+    """End-to-end guard on the same thing, through the actual entrypoint."""
+    import logging
+
+    mock_run.return_value = Mock(stdout=_envelope(_verdicts()), returncode=0)
+
+    with caplog.at_level(logging.ERROR):
+        _, stats = review_synthesis(_synthesis(), _articles(4), job="monitor")
+
+    assert stats["reviewed"] is True
+    assert not [r for r in caplog.records if "unusable" in r.getMessage()]
