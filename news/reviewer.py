@@ -45,6 +45,27 @@ from news.synthesizer import invoke_claude, parse_synthesis_output
 
 logger = logging.getLogger(__name__)
 
+# The reviewer's schema is {verdicts, contradictions} (see _SYSTEM_PROMPT). It shares
+# parse_synthesis_output with the digest family, whose default required set is
+# ("executive_brief", "sections"), so every review call logged two ERROR lines for
+# keys the reviewer is never asked for and stamped a spurious `error` on its own
+# output. Harmless only because this profile validates on `verdicts` rather than on
+# the absence of `error`, which is luck, not design. Observed live 27 Aug 2026:
+#   Synthesis output unusable: executive_brief is NoneType; sections is NoneType
+#   (required=[executive_brief, sections], model returned [contradictions, verdicts,
+#   what_changed])
+# on a review that then passed all 7 claims. Two false ERRORs per run is how a real
+# one becomes invisible.
+REVIEWER_REQUIRED_KEYS = ("verdicts",)
+
+
+def _reviewer_validate(text: str) -> bool:
+    """Content check passed to invoke_claude. Named so a test can pin the real callback."""
+    return isinstance(
+        parse_synthesis_output(text, required=REVIEWER_REQUIRED_KEYS).get("verdicts"), list
+    )
+
+
 # Fields whose entries are {text, article_ids} dicts and are individually strikable.
 _BULLET_FIELDS = ("executive_brief", "try_this", "recommendations", "what_changed", "alerts")
 
@@ -260,7 +281,7 @@ def review_synthesis(
         timeout=timeout,
         claude_command=claude_command,
         claude_args=claude_args,
-        validate=lambda text: isinstance(parse_synthesis_output(text).get("verdicts"), list),
+        validate=_reviewer_validate,
         job=f"{job}-review",
     )
     if raw is None:
@@ -270,7 +291,7 @@ def review_synthesis(
         logger.warning("Veracity review unavailable for %s; shipping unreviewed", job)
         return synthesis, stats
 
-    parsed = parse_synthesis_output(raw)
+    parsed = parse_synthesis_output(raw, required=REVIEWER_REQUIRED_KEYS)
     verdicts = parsed.get("verdicts")
     if not isinstance(verdicts, list):
         stats["reason"] = "reviewer returned no verdicts list"
