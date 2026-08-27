@@ -1,5 +1,6 @@
 """Tests for NBG monitor pipeline components."""
 
+import json
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
@@ -742,3 +743,77 @@ def test_the_backoff_stub_reaches_this_module_too():
     started = real_time.monotonic()
     news.synthesizer.time.sleep(5)
     assert real_time.monotonic() - started < 1, "the conftest sleep stub is not active here"
+
+
+# --- monitor schema contract ------------------------------------------------
+# The monitor's output schema (monitor_synth._output_format_section) has no
+# `sections` key — its renderer reads company_mentions/alerts/competitor_watch.
+# It nonetheless validated through the digest-family checker, which treats a
+# missing `sections` list as fatal. On 27 Aug 2026 that turned every monitor run
+# into "synthesis unavailable": two attempts, both rejected, retry cap exhausted.
+
+
+def _monitor_payload(**overrides) -> str:
+    """A well-formed monitor payload, exactly as _output_format_section specifies."""
+    payload = {
+        "mention_count": 1,
+        "new_since_last": 1,
+        "sentiment_summary": {"positive": 1, "negative": 0, "neutral": 0, "trend": "improving"},
+        "alerts": [],
+        "company_mentions": [
+            {
+                "title": "A headline",
+                "source": "Kathimerini",
+                "type": "news",
+                "sentiment": "positive",
+                "summary": "A mention.",
+                "relevance": "high",
+                "article_ids": [0],
+            }
+        ],
+        "sector_context": "Sector paragraph.",
+        "competitor_watch": {},
+        "executive_brief": [{"text": "A bullet", "article_ids": [0]}],
+    }
+    payload.update(overrides)
+    return json.dumps(payload)
+
+
+def test_a_well_formed_monitor_payload_is_not_a_schema_failure():
+    """The monitor schema omits `sections` by design; that must not be fatal."""
+    from news.monitor_synth import MONITOR_REQUIRED_KEYS
+    from news.synthesizer import parse_synthesis_output
+
+    out = parse_synthesis_output(_monitor_payload(), required=MONITOR_REQUIRED_KEYS)
+
+    assert "error" not in out, out.get("error")
+    assert out["company_mentions"][0]["title"] == "A headline"
+
+
+def test_the_monitor_validate_callback_accepts_its_own_schema():
+    """Pins the callback synthesize_monitor actually passes to invoke_claude.
+
+    Asserting on parse_synthesis_output alone would leave the wiring untested —
+    the outage was the wiring, not the checker.
+    """
+    from news.monitor_synth import _monitor_validate
+
+    assert _monitor_validate(_monitor_payload())
+
+
+def test_the_monitor_still_rejects_output_it_cannot_render():
+    """Loosening the contract must not disarm it: garbage still spends a retry."""
+    from news.monitor_synth import _monitor_validate
+
+    assert not _monitor_validate('["a bare list, not an object"]')
+    assert not _monitor_validate('{"executive_brief": "not a list"}')
+    assert not _monitor_validate("I could not complete this request.")
+
+
+def test_the_digest_family_still_requires_sections():
+    """The monitor fix must not loosen the profiles that do render sections."""
+    from news.synthesizer import parse_synthesis_output
+
+    out = parse_synthesis_output('{"executive_brief": []}')
+    assert "error" in out
+    assert "sections" in out["error"]

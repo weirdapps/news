@@ -464,7 +464,17 @@ def invoke_claude(
         return None
 
 
-def _validate_synthesis(data: dict[str, Any]) -> list[str]:
+# Top-level keys whose absence (or wrong type) makes a payload unrenderable. This is
+# per-profile, not global: the digest family (digest, market, stack, topic) renders
+# `sections`, the brand monitor does not — its schema carries company_mentions,
+# alerts and competitor_watch instead. Validating the monitor against this set
+# rejected every well-formed monitor payload it ever produced.
+DIGEST_REQUIRED_KEYS = ("executive_brief", "sections")
+
+
+def _validate_synthesis(
+    data: dict[str, Any], required: tuple[str, ...] = DIGEST_REQUIRED_KEYS
+) -> list[str]:
     """Validate and repair synthesis structure in place. Returns FATAL issues only.
 
     Three outcomes, deliberately distinguished, because the old code collapsed them
@@ -480,13 +490,20 @@ def _validate_synthesis(data: dict[str, Any]) -> list[str]:
         this into an ``error`` key, which makes ``invoke_claude``'s validate callback
         fail, which reclassifies the turn as UNPARSEABLE and spends a retry -- the
         thing that never used to happen.
+
+    ``required`` decides which missing/mistyped top-level keys are FATAL rather than
+    ignorable. It exists because FATAL is only meaningful against the schema the
+    calling profile actually asked the model for: a monitor payload has no
+    ``sections`` by design, and judging it against the digest's set condemned every
+    one of them.
     """
     fatal: list[str] = []
     dropped: list[str] = []
 
     brief = data.get("executive_brief")
     if not isinstance(brief, list):
-        fatal.append(f"executive_brief is {type(brief).__name__}, expected list")
+        if "executive_brief" in required:
+            fatal.append(f"executive_brief is {type(brief).__name__}, expected list")
     else:
         kept_brief = []
         for i, item in enumerate(brief):
@@ -500,7 +517,8 @@ def _validate_synthesis(data: dict[str, Any]) -> list[str]:
 
     sections = data.get("sections")
     if not isinstance(sections, list):
-        fatal.append(f"sections is {type(sections).__name__}, expected list")
+        if "sections" in required:
+            fatal.append(f"sections is {type(sections).__name__}, expected list")
     else:
         required_section_keys = {"category", "display_name", "synthesis"}
         kept_sections = []
@@ -535,11 +553,16 @@ def _validate_synthesis(data: dict[str, Any]) -> list[str]:
     return fatal
 
 
-def parse_synthesis_output(raw: str) -> dict[str, Any]:
+def parse_synthesis_output(
+    raw: str, required: tuple[str, ...] = DIGEST_REQUIRED_KEYS
+) -> dict[str, Any]:
     """Parse Claude's output, extracting JSON from various formats.
 
     Args:
         raw: Raw string output from Claude
+        required: Top-level keys this profile cannot render without. Defaults to
+            the digest family's set; the brand monitor passes its own
+            (news.monitor_synth.MONITOR_REQUIRED_KEYS).
 
     Returns:
         Parsed JSON dict, or fallback dict with error message
@@ -570,9 +593,13 @@ def parse_synthesis_output(raw: str) -> dict[str, Any]:
             except json.JSONDecodeError:
                 pass
 
-    if parsed is None:
+    if parsed is None or not isinstance(parsed, dict):
         preview = raw[:500] if raw else "(empty)"
-        logger.error(f"Failed to parse Claude output as JSON. Raw output preview: {preview}")
+        # A top-level JSON array parses cleanly and then makes _validate_synthesis
+        # call .get on a list. _validate_or_reject catches that AttributeError so a
+        # run cannot die of it, but a function annotated `-> dict[str, Any]` should
+        # not need catching: reject the shape here, at the only place that knows it.
+        logger.error(f"Failed to parse Claude output as JSON object. Preview: {preview}")
         return {
             "executive_brief": ["Failed to parse synthesis output"],
             "what_changed": "Error occurred during synthesis",
@@ -583,9 +610,19 @@ def parse_synthesis_output(raw: str) -> dict[str, Any]:
     # Validate, repair in place, and reject what cannot be rendered. The `error` key
     # is the contract every profile's validate callback checks, so setting it here is
     # what converts a structural failure into a retry instead of a malformed email.
-    fatal = _validate_synthesis(parsed)
+    fatal = _validate_synthesis(parsed, required)
     if fatal:
-        logger.error("Synthesis output unusable: %s", "; ".join(fatal))
+        # Name the keys the model DID return. Without them a schema rejection is
+        # indistinguishable from a model outage in the log, and the run that
+        # exposed this validated the wrong profile's schema for two hours before
+        # anyone could tell.
+        observed = sorted(parsed.keys()) if isinstance(parsed, dict) else type(parsed).__name__
+        logger.error(
+            "Synthesis output unusable: %s (required=%s, model returned %s)",
+            "; ".join(fatal),
+            list(required),
+            observed,
+        )
         parsed["error"] = "Schema failure: " + "; ".join(fatal)
 
     return parsed
