@@ -21,6 +21,8 @@ import pytest
 
 from news.market_synth import _SYSTEM_PROMPT as MARKET_PROMPT
 from news.monitor_synth import MONITOR_REQUIRED_KEYS, _monitor_validate, _output_format_section
+from news.reviewer import _SYSTEM_PROMPT as REVIEWER_PROMPT
+from news.reviewer import REVIEW_REQUIRED_KEYS
 from news.stack_synth import _SYSTEM_PROMPT as STACK_PROMPT
 from news.synthesizer import _SYSTEM_PROMPT as DIGEST_PROMPT
 from news.synthesizer import DIGEST_REQUIRED_KEYS, parse_synthesis_output
@@ -30,6 +32,13 @@ from news.topic_synth import _topic_output_format
 def _digest_validate(text: str) -> bool:
     """The callback the four digest-family profiles pass to invoke_claude."""
     return "error" not in parse_synthesis_output(text)
+
+
+def _reviewer_validate(text: str) -> bool:
+    """Mirrors the inline lambda in reviewer.review_synthesis, keyed off the same set."""
+    return isinstance(
+        parse_synthesis_output(text, required=REVIEW_REQUIRED_KEYS).get("verdicts"), list
+    )
 
 
 _DIGEST_FAMILY_PAYLOAD = {
@@ -68,6 +77,11 @@ _MONITOR_PAYLOAD = {
     "executive_brief": [{"text": "A bullet", "article_ids": [0]}],
 }
 
+_REVIEWER_PAYLOAD = {
+    "verdicts": [{"id": 0, "supported": True, "reason": "the cited article says so"}],
+    "contradictions": [],
+}
+
 # (profile, the prompt text carrying its OUTPUT FORMAT block, its validate callback,
 #  the keys that callback treats as fatal, a payload matching that prompt)
 PROFILES = [
@@ -87,6 +101,13 @@ PROFILES = [
         _monitor_validate,
         MONITOR_REQUIRED_KEYS,
         _MONITOR_PAYLOAD,
+    ),
+    (
+        "reviewer",
+        REVIEWER_PROMPT,
+        _reviewer_validate,
+        REVIEW_REQUIRED_KEYS,
+        _REVIEWER_PAYLOAD,
     ),
 ]
 
@@ -142,8 +163,9 @@ def test_every_profile_still_rejects_output_it_cannot_render(
     """Loosening a contract must not disarm it: garbage still has to spend a retry."""
     assert not validate("I was unable to complete this request."), f"{profile}: prose accepted"
     assert not validate('["a bare array, not an object"]'), f"{profile}: bare array accepted"
-    assert not validate(json.dumps({**payload, "executive_brief": "not a list"})), (
-        f"{profile}: a mistyped executive_brief was accepted"
+    mistyped = required[0]
+    assert not validate(json.dumps({**payload, mistyped: "not a list"})), (
+        f"{profile}: a mistyped {mistyped} was accepted"
     )
 
 
@@ -165,10 +187,18 @@ def test_the_monitor_is_not_silently_given_the_digest_schema_again():
     assert "sections" in DIGEST_REQUIRED_KEYS, "the digest family still renders sections"
 
 
-def test_the_reviewer_validates_on_its_own_key_not_the_digest_schema():
-    """The reviewer already had a profile-specific check; pin it so it stays one."""
-    payload = json.dumps({"verdicts": [{"id": "s0", "verdict": "supported", "note": ""}]})
-    assert isinstance(parse_synthesis_output(payload).get("verdicts"), list)
-    assert "error" in parse_synthesis_output(payload), (
-        "reviewer output has no sections/executive_brief; it must NOT use the digest callback"
-    )
+def test_the_reviewer_does_not_log_a_schema_error_against_the_digest_keys():
+    """The third instance of the same mismatch, found by the log line added with the fix.
+
+    The reviewer validated on `verdicts`, which is correct, but the parse underneath it
+    still ran the digest's required set. So every review logged two ERRORs for keys the
+    reviewer is never asked for, and stamped a spurious `error` on its own output. It
+    worked only because this profile happens not to check for `error`. Two false ERRORs
+    per run is how a real one becomes invisible.
+    """
+    payload = json.dumps(_REVIEWER_PAYLOAD)
+    clean = parse_synthesis_output(payload, required=REVIEW_REQUIRED_KEYS)
+    assert "error" not in clean, clean.get("error")
+    assert isinstance(clean["verdicts"], list)
+    # and the default set still condemns it, which is why the reviewer must not use it
+    assert "error" in parse_synthesis_output(payload)
