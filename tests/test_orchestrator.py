@@ -767,3 +767,44 @@ def test_the_lock_is_released_even_when_the_run_is_withheld(monkeypatch):
     with pytest.raises(SystemExit):
         m.main()
     assert len(released) == 1, "a withheld run must not leak the pipeline lock"
+
+
+# --- verdict propagation through the dispatcher --------------------------------
+# run_pipeline is the single hop between a pipeline's verdict and main()'s exit
+# code. A branch that forgot its `return` would silently pin the exit code to 0 for
+# that one profile, which is the exact failure the verdict exists to prevent and the
+# hardest to notice: four profiles would still alert correctly.
+
+
+@pytest.mark.parametrize(
+    "profile,target,kwargs",
+    [
+        ("digest", "run_digest_pipeline", {}),
+        ("monitor", "run_monitor_pipeline", {}),
+        ("stack", "run_stack_pipeline", {}),
+        ("market", "run_market_pipeline", {}),
+        ("topic", "run_topic_pipeline", {"query": "anything"}),
+    ],
+)
+@pytest.mark.parametrize("verdict", [True, False], ids=["delivered", "withheld"])
+def test_run_pipeline_propagates_every_profiles_verdict(
+    monkeypatch, profile, target, kwargs, verdict
+):
+    import main as m
+
+    async def _fake(**_):
+        return verdict
+
+    monkeypatch.setattr(m, target, _fake)
+    assert asyncio.run(m.run_pipeline(profile=profile, **kwargs)) is verdict
+
+
+def test_an_unknown_profile_falls_through_to_the_digest():
+    """The dispatcher's default arm still has to return, not drop the verdict."""
+    import main as m
+
+    async def _withheld(**_):
+        return False
+
+    with patch.object(m, "run_digest_pipeline", _withheld):
+        assert asyncio.run(m.run_pipeline(profile="digest")) is False
