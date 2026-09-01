@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo
 # Ensure imports work when called from cron
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from news.auth import check_gcloud_auth
+from news.auth import PROBE_RETRY_WORST_CASE_SECONDS, check_gcloud_auth
 from news.changelog_digest import enrich_changelog_digests
 from news.config import (
     VALID_PROFILES,
@@ -433,10 +433,42 @@ def _may_wait_for_token_push(max_call_seconds: float, now: float | None = None) 
     return now + PUSH_WAIT_SECONDS + max_call_seconds <= resolve_deadline(now, os.environ)
 
 
+def _probe_retry_budget_seconds(max_call_seconds: float, now: float | None = None) -> float:
+    """Seconds this run can spend re-probing gcloud before it accepts the failure as real.
+
+    Same arithmetic as ``_may_wait_for_token_push`` above, asked of a much smaller
+    remedy: what is left after reserving one worst-case call is what the pre-flight may
+    spend proving a credential is genuinely dead rather than momentarily refused. It
+    shrinks as fetching and tagging spend the clock, reaching zero (the historic single
+    sample) for a run with nothing left to give.
+
+    Then capped at what ``check_gcloud_auth`` can actually spend, which is 112s and not
+    the 1710s of raw slack news-digest starts with. The cap is not cosmetic tidying:
+    ``_preflight_auth_ok`` RESERVES this figure before it asks whether the same slack
+    can also fund a token-push wait, so an uncapped value would deny the digest a wait
+    it can easily afford, while leaving it unreserved lets the two remedies run in
+    sequence off one pool of seconds counted once. Both are the double count
+    ``_deadline_reserve_seconds`` warns about, in opposite directions.
+    """
+    now = time.time() if now is None else now
+    slack = resolve_deadline(now, os.environ) - now - max_call_seconds
+    return max(0.0, min(slack, PROBE_RETRY_WORST_CASE_SECONDS))
+
+
 def _preflight_auth_ok(synthesis_config: dict) -> bool:
-    """Pre-flight gcloud check, permitting a token-push wait only if the budget funds it."""
+    """Pre-flight gcloud check, permitting a token-push wait only if the budget funds it.
+
+    One clock reading, and the cheap remedy is priced first: the wait permission is
+    asked from the far side of a fully spent re-probe budget, because if both remedies
+    fire they fire in that order and the seconds are only there once.
+    """
     max_call_seconds = float(synthesis_config.get("timeout", 300))
-    return check_gcloud_auth(may_wait_for_push=_may_wait_for_token_push(max_call_seconds))
+    now = time.time()
+    probe_retry_seconds = _probe_retry_budget_seconds(max_call_seconds, now=now)
+    return check_gcloud_auth(
+        may_wait_for_push=_may_wait_for_token_push(max_call_seconds, now=now + probe_retry_seconds),
+        probe_retry_seconds=probe_retry_seconds,
+    )
 
 
 def get_time_window(now: datetime, last_digest_at: datetime | None, tz_name: str) -> str:

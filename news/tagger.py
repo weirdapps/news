@@ -325,8 +325,8 @@ def extract_tickers_llm(
         return []
 
     # The latch is burned BEFORE the call, so a SKIPPED re-auth spends it too. That
-    # is deliberate, not an oversight: refresh_auth() collapses SKIPPED into False
-    # (news/auth.py:51-59), and each of the three SKIPPED causes is fine with a spent
+    # is deliberate, not an oversight: refresh_auth() in news/auth.py collapses SKIPPED
+    # into False, and each of the three SKIPPED causes is fine with a spent
     # latch. Cooldown — every later attempt in this process hits the same cooldown, so
     # the latch correctly prevents futile calls. Credentials already valid, or another
     # process mid-auth — the next article's call simply succeeds and never reaches this

@@ -17,6 +17,7 @@ one-email-per-slot contract silently breaks.
 import json
 import os
 import time as real_time
+from types import SimpleNamespace
 
 import pytest
 
@@ -25,8 +26,11 @@ from main import (
     _deadline_reserve_seconds,
     _llm_budget_seconds,
     _may_wait_for_token_push,
+    _preflight_auth_ok,
+    _probe_retry_budget_seconds,
     install_llm_deadline,
 )
+from news.auth import PROBE_RETRY_WORST_CASE_SECONDS
 from news.config import get_settings
 from news.llm_policy import PUSH_WAIT_SECONDS
 from news.synthesizer import invoke_claude
@@ -427,6 +431,93 @@ def test_a_full_push_wait_still_leaves_the_digest_room_to_synthesise_and_to_aler
     # Whatever happens next, render + send_email own the whole F1 reserve: one
     # max_call plus the systemd stop grace.
     assert sigterm - deadline == _CALL_TIMEOUT["digest"] + _GRACE == 390
+
+
+# --- The re-probe budget: derived the same way, spent on a far cheaper remedy -----
+
+
+@pytest.mark.parametrize("profile", ["digest", "monitor", "market", "stack"])
+def test_every_profile_can_fund_a_re_probe_even_when_it_cannot_fund_the_wait(profile):
+    """A zero for the three 600s units would be a bug: they are the ones this is for.
+
+    They are also exactly the units _may_wait_for_token_push correctly refuses, which is
+    the point of having a second remedy costing 112s rather than 1020.
+
+    All four arrive at the cap rather than at their own slack, because every one of them
+    starts with more room than the retry schedule can spend: 1710s for digest, 210s for
+    the rest. Handing that raw figure over would reserve seconds no re-probe can use.
+    """
+    t0 = 1_700_000_000.0
+    install_llm_deadline(profile, now=t0)
+
+    budget = _probe_retry_budget_seconds(_CALL_TIMEOUT[profile], now=t0)
+    assert budget == PROBE_RETRY_WORST_CASE_SECONDS == 112
+
+
+def test_a_run_that_has_spent_its_budget_re_probes_zero_times():
+    """Clock-evaluated, like the wait permission: a slow fetch spends the room.
+
+    Below the cap the raw slack is what is left, so the taper down to the historic
+    single sample is unaffected by capping the top.
+    """
+    t0 = 1_700_000_000.0
+    install_llm_deadline("market", now=t0)
+
+    assert _probe_retry_budget_seconds(_CALL_TIMEOUT["market"], now=t0 + 209) == 1.0
+    assert _probe_retry_budget_seconds(_CALL_TIMEOUT["market"], now=t0 + 210) == 0.0
+    assert _probe_retry_budget_seconds(_CALL_TIMEOUT["market"], now=t0 + 999) == 0.0
+
+
+def test_the_two_remedies_cannot_both_spend_the_same_slack():
+    """They run in sequence, so pricing both at the same instant charges one pool twice.
+
+    Walked at the latest instant the wait can be granted, where the digest has exactly
+    1020 + 300 left. Spend the re-probe budget out of that and the wait no longer fits,
+    which is the honest answer: 690 + 112 + 1020 + 300 overruns the deadline by 112s,
+    and on the far side of that deadline is the render and the alert email.
+    """
+    t0 = 1_700_000_000.0
+    install_llm_deadline("digest", now=t0)
+    latest_grant = t0 + 690
+
+    assert _may_wait_for_token_push(_CALL_TIMEOUT["digest"], now=latest_grant) is True
+    spent = _probe_retry_budget_seconds(_CALL_TIMEOUT["digest"], now=latest_grant)
+    assert spent == PROBE_RETRY_WORST_CASE_SECONDS
+    assert _may_wait_for_token_push(_CALL_TIMEOUT["digest"], now=latest_grant + spent) is False
+
+
+def test_the_pre_flight_reserves_the_re_probe_budget_before_it_prices_the_wait(monkeypatch):
+    """The double count lives at the call site, so pin what the call site actually passes.
+
+    Same instant as the test above. Reading the clock twice would be its own bug, so
+    only one reading is offered.
+    """
+    t0 = 1_700_000_000.0
+    install_llm_deadline("digest", now=t0)
+    monkeypatch.setattr("main.time", SimpleNamespace(time=lambda: t0 + 690))
+
+    passed = {}
+    monkeypatch.setattr("main.check_gcloud_auth", lambda **kwargs: passed.update(kwargs) or True)
+
+    assert _preflight_auth_ok({"timeout": _CALL_TIMEOUT["digest"]}) is True
+    assert passed == {
+        "may_wait_for_push": False,
+        "probe_retry_seconds": PROBE_RETRY_WORST_CASE_SECONDS,
+    }
+
+
+def test_a_digest_with_room_for_both_still_gets_its_wait():
+    """The reservation must not cost the one profile the wait was built for.
+
+    At the top of the run the digest holds 2010s: 112 of re-probing and then the full
+    1020 + 300 still fit, so capping and reserving the re-probe budget leaves the
+    2026-08-10 wait ruling exactly where it was.
+    """
+    t0 = 1_700_000_000.0
+    install_llm_deadline("digest", now=t0)
+
+    spent = _probe_retry_budget_seconds(_CALL_TIMEOUT["digest"], now=t0)
+    assert _may_wait_for_token_push(_CALL_TIMEOUT["digest"], now=t0 + spent) is True
 
 
 # --- FIX 2: unit-timeout table cross-check against live systemd -------------------
