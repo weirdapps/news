@@ -1,6 +1,6 @@
 # News Reader
 
-Personal news intelligence platform with three profiles sharing a five-stage pipeline.
+Personal news intelligence platform with five profiles sharing a five-stage pipeline.
 
 ## Profiles
 
@@ -9,6 +9,8 @@ Personal news intelligence platform with three profiles sharing a five-stage pip
 | `digest` | 5x daily — 00, 09, 13, 17, 21 Athens | Broad: business, AI, tech, Greece, banking |
 | `monitor` | Bi-hourly 08–22 Athens + 00:00 catch-up | NBG brand mentions + competitor tracking |
 | `topic` | Ad-hoc only (`--query`) | Single subject from a Google News RSS query |
+| `stack` | Daily, 13:00 Athens | AI, dev tools, and technology intelligence (releases, models, tooling) |
+| `market` | 5x daily, 03:35/07:35/11:35/15:35/19:35 Athens | Market-moving news: broad markets/macro, commodities/crypto, Greece/ATHEX. Store-only (no email); the trading Investment Brief reads it from `news.db` |
 
 ## Quick Reference
 
@@ -91,9 +93,23 @@ All three pipelines run as systemd timers on the Hetzner VPS (reached via the `v
 Data volume: `news/data/` → `/mnt/data/news-data/` (news.db ~620 MB).
 
 ```bash
-ssh vps systemctl status news-digest    # check timer status
-ssh vps journalctl -u news-digest -n 50 # recent logs
+ssh vps systemctl --user status news-digest     # check timer status
+ssh vps journalctl --user -u news-digest -n 50  # recent logs
+ssh vps 'tail -50 ~/logs/news/digest.err'       # the run's own output
 ```
+
+`--user` is not optional: these are systemd **user** units, owned by the `plessas` user manager.
+Drop it and you query the system manager instead, which knows nothing about them, and both commands
+then answer quietly and wrongly: `systemctl status news-digest` prints `Unit news-digest.service
+could not be found.`, `journalctl -u news-digest` prints `-- No entries --`, and both exit 0. The
+journal never raises a permission error because `plessas` is in neither `adm` nor `systemd-journal`,
+so the empty result reads as "the unit does not exist" and sends the operator after the wrong
+problem.
+
+The journal only carries systemd's own start/stop/exit lines. Each unit sends the run's stdout and
+stderr to a per-profile file via `StandardError=append:%h/logs/news/<profile>.err`, so
+`~/logs/news/{digest,monitor,stack,market}.err` on the VPS is where the pipeline log lines and
+Python tracebacks actually land. Read it before the journal when diagnosing a failed run.
 
 ## Known Issues
 
