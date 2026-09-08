@@ -1,11 +1,13 @@
-"""Tests for NBG monitor pipeline components."""
+"""Tests for the brand monitor pipeline components."""
 
 import json
 import sqlite3
+import warnings
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from brand_denylist import full_denylist, warn_if_person_list_missing
 
 from news.config import _profile_config_dir, get_keywords, get_settings, get_sources
 from news.deliver import build_monitor_subject, render_monitor_html
@@ -571,19 +573,11 @@ def test_monitor_synth_module_has_no_brand_specific_literals():
     import news.monitor_synth as ms
 
     src = open(ms.__file__).read()
-    for forbidden in [
-        "National Bank of Greece",
-        "NBG",
-        "Εθνική",
-        "Ethniki",
-        "Mylonas",
-        "Theofilidi",
-        "Plessas",
-        "Piraeus",
-        "Alpha Bank",
-        "Eurobank",
-    ]:
+    for forbidden in full_denylist():
         assert forbidden not in src, f"Found brand-specific literal: {forbidden}"
+    missing = warn_if_person_list_missing()
+    if missing:
+        warnings.warn(missing, stacklevel=2)
 
 
 # --- build_roster tests (Task 3) ---
@@ -637,14 +631,17 @@ def test_build_roster_includes_competitor_first_names():
 
 def test_build_roster_renders_native_then_english_when_both_present():
     """When leadership entry has both `name` (native) and `name_en`, output shows both."""
+    # Synthetic Greek/Latin pair. The behaviour under test is the arrow form for
+    # cross-language anchoring, which needs a native-script name and a Latin
+    # transliteration; it does not need a real person.
     keywords = {
         "company": {
-            "leadership": [{"name": "Πλέσσας", "name_en": "Plessas", "role": "AGM"}],
+            "leadership": [{"name": "Δοκιμάκης", "name_en": "Dokimakis", "role": "AGM"}],
         },
         "competitors": {},
     }
     out = build_roster(keywords)
-    assert "Πλέσσας → Plessas" in out  # arrow form for cross-language anchoring
+    assert "Δοκιμάκης → Dokimakis" in out  # arrow form for cross-language anchoring
 
 
 def test_roster_module_has_no_brand_specific_literals():
@@ -652,27 +649,11 @@ def test_roster_module_has_no_brand_specific_literals():
     import news.roster as roster_mod
 
     src = open(roster_mod.__file__).read()
-    forbidden = [
-        "Mylonas",
-        "Theofilidi",
-        "Plessas",
-        "Molyviatis",
-        "Karamouzis",
-        "Megalou",
-        "Psaltis",
-        "Karavias",
-        "NBG",
-        "Ethniki",
-        "Εθνική",
-        "Πολίτη",
-        "Πλέσσας",
-        "Θεοφιλίδη",
-        "Piraeus",
-        "Eurobank",
-        "Alpha Bank",
-    ]
-    for f in forbidden:
+    for f in full_denylist():
         assert f not in src, f"Found brand-specific literal in roster.py: {f}"
+    missing = warn_if_person_list_missing()
+    if missing:
+        warnings.warn(missing, stacklevel=2)
 
 
 def test_build_monitor_prompt_includes_roster_when_leadership_present():

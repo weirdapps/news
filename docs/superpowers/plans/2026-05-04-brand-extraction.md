@@ -149,9 +149,9 @@ def test_name_anchoring_section_empty_returns_empty_string():
 
 def test_name_anchoring_section_lists_leadership():
     out = _name_anchoring_section([
-        {"name_en": "Pavlos Mylonas", "role": "CEO"},
+        {"name_en": "Nikos Dokimakis", "role": "CEO"},
     ])
-    assert "Pavlos Mylonas" in out
+    assert "Nikos Dokimakis" in out
     assert "CEO" in out
 
 
@@ -397,7 +397,7 @@ def test_build_roster_no_specific_examples_in_module():
     """The roster module itself contains no brand-specific examples."""
     import news.roster as roster_mod
     src = open(roster_mod.__file__).read()
-    for forbidden in ["Mylonas", "Theofilidi", "Plessas", "Megalou", "Psaltis", "Karavias", "Ethniki"]:
+    for forbidden in full_denylist():  # institutions inline, person names from a gitignored file
         assert forbidden not in src, f"Found brand-specific literal: {forbidden}"
 ```
 

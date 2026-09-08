@@ -66,3 +66,6 @@ Thumbs.db
 .coverage
 .coverage.*
 htmlcov/
+
+# Person-name denylist for the brand-leak guard tests. Never commit: this repo is public.
+tests/brand_denylist.local.txt

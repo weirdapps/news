@@ -105,7 +105,7 @@ Returns the assembled roster string for inclusion in synthesis prompts.
 
 Generic transliteration *rules* are retained (e.g., "preserve the original
 surname suffix when transliterating", "never invent first names"), but all
-Greek-specific *examples* (e.g., "Θεοφιλίδη → Theofilidi") and named
+Greek-specific *examples* (e.g., "Δοκιμάκης → Dokimakis") and named
 executives are deleted from the source. The current Greek-aware behavior is
 preserved for the user's local case because their `keywords.yaml.company.leadership`
 provides the names + roles.

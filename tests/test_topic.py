@@ -1,8 +1,11 @@
 """Tests for the topic profile — ad-hoc topical news briefs from a CLI query."""
 
 import subprocess
+import warnings
 from datetime import UTC, datetime
 from pathlib import Path
+
+from brand_denylist import full_denylist, warn_if_person_list_missing
 
 from news.models import Article
 
@@ -178,17 +181,8 @@ def test_topic_synth_module_has_no_brand_specific_literals():
     import news.topic_synth as ts
 
     src = open(ts.__file__).read()
-    forbidden = [
-        "NBG",
-        "National Bank of Greece",
-        "Mylonas",
-        "Theofilidi",
-        "Plessas",
-        "Piraeus",
-        "Alpha Bank",
-        "Eurobank",
-        "Ethniki",
-        "Εθνική",
-    ]
-    for f in forbidden:
+    for f in full_denylist():
         assert f not in src, f"Found brand literal in topic_synth: {f}"
+    missing = warn_if_person_list_missing()
+    if missing:
+        warnings.warn(missing, stacklevel=2)
