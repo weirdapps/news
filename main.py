@@ -178,11 +178,26 @@ def release_lock(lock_path: str) -> None:
 # 2026-08-10 with `systemctl --user show news-<profile>.service -p TimeoutStartUSec`.
 # These four are the whole scheduled set; `topic` is run by hand and has no unit.
 # A profile missing from this map gets no deadline rather than a guessed one.
+#
+# stack went 600 to 1800 on 2026-09-15, and the reason is arithmetic rather than a
+# preference about how long the job may run. At 600 its budget was 600 - 150 - 90 =
+# 360s, while `_may_wait_for_token_push` needs `now + 1020 + 150 <= deadline`. No value
+# of `now` satisfies that, so the one remedy the VPS has for a dead ADC was unreachable
+# from this profile at every instant of every run, and a credential that could not mint
+# a token at the 13:00 slot was an automatic exit 1: 2026-09-03, -09-11 and -09-14. On
+# the last of those news-digest ran the same slot against the same dead credential,
+# waited for the Mac's push, and synthesised normally. 1800 leaves 1560s, which funds
+# the wait for a pre-flight arriving up to 278s into the run; across the fourteen runs
+# before the change the pre-flight arrived between 35s and 108s in.
+#
+# Raising this alone changes nothing: install_llm_deadline takes min(table, live), so
+# the unit file in claude-config/external/vps/systemd/ moves with it or the smaller of
+# the two still governs.
 _UNIT_TIMEOUT_SECONDS: dict[str, int] = {
     "digest": 2400,
     "monitor": 600,
     "market": 600,
-    "stack": 600,
+    "stack": 1800,
 }
 
 _PROFILE_TO_UNIT: dict[str, str] = {profile: f"news-{profile}" for profile in _UNIT_TIMEOUT_SECONDS}

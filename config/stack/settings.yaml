@@ -34,11 +34,12 @@ synthesis:
     - "--print"
     - "--model"
     - "opus"
-  # 150, not 300, and the unit timeout is why. This profile's unit is 600s, so the
-  # runner's deadline budget is 600 - timeout - 90 (shutdown grace). At 300 that left
-  # 210s and decide()'s forward-looking budget test could never fund a retry on any
-  # failure shape; at 150 it leaves 360s and a fast error (429, API error, empty,
-  # unparseable) gets its second attempt. Measured on the VPS over ~7 weeks: across
+  # 150, not 300, and the unit timeout is why. This profile's unit was 600s when the
+  # ruling was made, so the runner's deadline budget was 600 - timeout - 90 (shutdown
+  # grace). At 300 that left 210s and decide()'s forward-looking budget test could
+  # never fund a retry on any failure shape; at 150 it left 360s and a fast error
+  # (429, API error, empty, unparseable) gets its second attempt.
+  # Measured on the VPS over ~7 weeks: across
   # 589 successful synthesis calls on monitor/market/stack the median was 77s, p95
   # 108s, p99 125s and the maximum ever seen 250s. So 150 costs 4 calls that succeed
   # today (0.68%) -- two monitor, two stack, none market -- and it costs them
@@ -51,6 +52,13 @@ synthesis:
   # bought is a funded second attempt on every FAST failure, which today gets none at
   # all. Owner ruling 2026-08-10; full distribution in the Task 7 report. Do not raise
   # this without re-checking the budget arithmetic in main._llm_budget_seconds.
+  #
+  # The unit went to 1800s on 2026-09-15 so this profile could fund a token-push wait,
+  # which lifts the budget to 1560s and removes the constraint the 150 was chosen
+  # under. 150 is deliberately LEFT alone: the four calls it costs are slow because the
+  # WORK is slow, so they truncate on the retry too and a larger budget does not buy
+  # them back. Revisiting 150 versus 300 is a separate ruling and needs the measured
+  # distribution again, not this line's arithmetic.
   timeout: 150
   max_retries: 2
 

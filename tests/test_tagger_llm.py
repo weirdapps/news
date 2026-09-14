@@ -261,7 +261,8 @@ def test_the_default_timeout_is_the_documented_thirty_seconds(mock_run):
 #
 # During an auth outage, every LLM-tagged article costs a full 30 s timeout because
 # the CLI takes ~200 s to surface invalid_grant and times out first. With ~20 such
-# articles per run on news-monitor/market/stack (600 s budget), the unit SIGKILL s
+# articles per run on news-monitor/market (600 s budget, and news-stack's too until it
+# went to 1800 s on 2026-09-15), the unit SIGKILL s
 # before synthesis or its alert email. After N=3 consecutive failures the shutoff
 # engages, remaining articles pass through with rules-based tags only, and the unit
 # reaches synthesis as intended.
@@ -450,7 +451,8 @@ def test_threshold_times_timeout_leaves_room_for_synthesis_on_smallest_unit():
     # Read the tagger's own default from its signature — not hardcoded here.
     tagger_timeout = inspect.signature(extract_tickers_llm).parameters["timeout"].default
 
-    # Smallest unit is the binding constraint (monitor/market/stack at 600s).
+    # Smallest unit is the binding constraint (monitor/market at 600s; stack left the
+    # group on 2026-09-15 and no longer sets it).
     smallest_unit = min(_UNIT_TIMEOUT_SECONDS.values())
     smallest_profiles = [p for p, v in _UNIT_TIMEOUT_SECONDS.items() if v == smallest_unit]
     # Pessimistic: largest synthesis timeout among those profiles.

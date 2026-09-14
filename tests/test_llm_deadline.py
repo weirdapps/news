@@ -46,9 +46,10 @@ from news.synthesizer import invoke_claude
 # its 2400s unit never had the problem.
 _CALL_TIMEOUT = {"digest": 300, "monitor": 150, "market": 150, "stack": 150}
 _GRACE = 90
-_UNIT = {"digest": 2400, "monitor": 600, "market": 600, "stack": 600}
+_UNIT = {"digest": 2400, "monitor": 600, "market": 600, "stack": 1800}
 _DIGEST_BUDGET = 2400 - 300 - _GRACE  # 2010, unchanged by the 2026-08-10 ruling
 _TEN_MINUTE_BUDGET = 600 - 150 - _GRACE  # 360, was 210 before the ruling
+_STACK_BUDGET = 1800 - 150 - _GRACE  # 1560; stack left the 600s group on 2026-09-15
 
 
 @pytest.fixture(autouse=True)
@@ -71,7 +72,7 @@ def _no_inherited_deadline():
         ("digest", _DIGEST_BUDGET),
         ("monitor", _TEN_MINUTE_BUDGET),
         ("market", _TEN_MINUTE_BUDGET),
-        ("stack", _TEN_MINUTE_BUDGET),
+        ("stack", _STACK_BUDGET),
     ],
 )
 def test_each_scheduled_profile_gets_its_own_units_deadline(profile, expected_budget, monkeypatch):
@@ -359,15 +360,21 @@ def test_the_real_clock_is_what_the_deadline_is_measured_against():
 
 @pytest.mark.parametrize(
     ("profile", "permitted"),
-    [("digest", True), ("monitor", False), ("market", False), ("stack", False)],
+    [("digest", True), ("monitor", False), ("market", False), ("stack", True)],
 )
 def test_only_a_unit_whose_budget_affords_the_wait_may_take_it(profile, permitted):
     """Derived from the budget, never from the profile name.
 
-    Only news-digest passes: 2010s of budget against the 1020 + 300 the wait needs.
-    The three 600s profiles have 360s against a 1020 + 150 requirement, so lowering
-    their call timeout moved both sides and left them still — correctly — unable to
-    afford it. Their Task 5 anti-SIGKILL property survives the 2026-08-10 ruling.
+    news-digest passes on 2010s of budget against the 1020 + 300 the wait needs, and
+    news-stack on 1560s against 1020 + 150 after its unit went to 1800s on 2026-09-15.
+    news-monitor and news-market stay at 600s, so they have 360s against that same
+    1020 + 150 and still, correctly, cannot afford it. Their Task 5 anti-SIGKILL
+    property is why the raise was made per unit and not to the constant.
+
+    stack's entry is the 2026-09-14 regression in one line. At 600s the assertion below
+    was unsatisfiable at every `now`, so a dead ADC at the 13:00 slot meant an automatic
+    exit 1, three times in twelve days, while news-digest ran the same slot against the
+    same dead credential, waited for the Mac's push, and recovered.
     """
     t0 = 1_700_000_000.0
     install_llm_deadline(profile, now=t0)
@@ -438,14 +445,16 @@ def test_a_full_push_wait_still_leaves_the_digest_room_to_synthesise_and_to_aler
 
 @pytest.mark.parametrize("profile", ["digest", "monitor", "market", "stack"])
 def test_every_profile_can_fund_a_re_probe_even_when_it_cannot_fund_the_wait(profile):
-    """A zero for the three 600s units would be a bug: they are the ones this is for.
+    """A zero for news-monitor or news-market would be a bug: they are what this is for.
 
-    They are also exactly the units _may_wait_for_token_push correctly refuses, which is
-    the point of having a second remedy costing 112s rather than 1020.
+    They are also exactly the two units _may_wait_for_token_push still refuses, which is
+    the point of having a second remedy costing 112s rather than 1020. news-digest and,
+    since 2026-09-15, news-stack can fund both, and the cheap one is priced first.
 
     All four arrive at the cap rather than at their own slack, because every one of them
-    starts with more room than the retry schedule can spend: 1710s for digest, 210s for
-    the rest. Handing that raw figure over would reserve seconds no re-probe can use.
+    starts with more room than the retry schedule can spend: 1710s for digest, 1410s for
+    stack, 210s for the two that are left. Handing that raw figure over would reserve
+    seconds no re-probe can use.
     """
     t0 = 1_700_000_000.0
     install_llm_deadline(profile, now=t0)

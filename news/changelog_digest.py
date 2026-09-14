@@ -23,15 +23,18 @@ from news.models import Article
 
 logger = logging.getLogger(__name__)
 
-# 45s per call. The stack unit is 600s (main._UNIT_TIMEOUT_SECONDS), synthesis
-# reserves 150s (config/stack/settings.yaml) and shutdown grace another 90s
-# (main._SHUTDOWN_GRACE_SECONDS), leaving a 360s pre-synthesis window that the
+# 45s per call. The stack unit is 1800s since 2026-09-15 and was 600s when this was
+# set (main._UNIT_TIMEOUT_SECONDS), synthesis reserves 150s
+# (config/stack/settings.yaml) and shutdown grace another 90s
+# (main._SHUTDOWN_GRACE_SECONDS), leaving a 1560s pre-synthesis window that the
 # tagger already claims up to 90s of. Worst case here is a call that starts just
 # inside the wall-clock budget and runs the full timeout: 90 + 45 = 135s, and
-# 135 + 90 = 225 <= 360 with headroom. Measured against Vertex eu from the Mac:
+# 135 + 90 = 225, which cleared the old 360s window and clears 1560 by a mile.
+# Measured against Vertex eu from the Mac:
 # 18.8s for a 736-char platform prompt, 36.0s for a 22,703-char system prompt.
 # Raise it only after re-running that arithmetic; it is coupled to the synthesis
-# timeout through the same 600s unit.
+# timeout through the same unit, and the 2026-09-15 raise bought headroom for the
+# token-push wait rather than for this.
 _CLI_TIMEOUT = 45
 
 # 90s of wall clock for the whole enrichment, checked before each call rather

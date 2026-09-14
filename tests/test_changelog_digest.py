@@ -99,10 +99,11 @@ def test_digest_prose_calls_the_claude_cli_with_the_house_argv(monkeypatch):
 def test_digest_prose_pins_the_cli_timeout():
     """45s is arithmetic, not taste.
 
-    The stack unit is 600s; synthesis reserves 150s and shutdown grace 90s,
-    leaving 360s pre-synthesis that the tagger already claims up to 90s of. A
-    call starting just inside the 90s budget and running its full 45s is 135s,
-    so 135 + 90 = 225 <= 360. Raising this spends someone else's margin.
+    The stack unit is 1800s, and was 600s when this was set; synthesis reserves
+    150s and shutdown grace 90s, leaving 1560s pre-synthesis that the tagger
+    already claims up to 90s of. A call starting just inside the 90s budget and
+    running its full 45s is 135s, so 135 + 90 = 225, which cleared the old 360s
+    window and clears 1560 easily. Raising this spends someone else's margin.
     """
     with patch("news.changelog_digest.subprocess.run", return_value=_completed()) as run:
         digest_prose(_DELTA, _SYSTEM_PROMPT_TITLE)
