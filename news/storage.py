@@ -11,12 +11,30 @@ from news.models import Article, Digest
 logger = logging.getLogger(__name__)
 
 
+# How long a writer waits for a sibling pipeline to finish its transaction before
+# giving up. Python's default is five seconds, and five seconds is what the 13:00
+# digest died on: on 2026-09-16 it raised "database is locked" partway through
+# inserting 507 articles because the stack pipeline shares news.db, shares the 13:00
+# slot, and ran 526 s that day against 218 s the day before. The per-profile locks in
+# main.py exist so digest, monitor, stack and market CAN overlap, so the database has
+# to tolerate what those locks permit. insert_article commits once per article, so a
+# digest run has to win the write lock several hundred separate times.
+#
+# Waiting longer costs nothing when there is no contention, and a slow success beats
+# a fast failure when there is.
+BUSY_TIMEOUT_S = 60
+
+
 def get_connection(db_path: str | Path) -> sqlite3.Connection:
     """Open SQLite connection with row_factory, WAL mode, and foreign keys enabled."""
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=BUSY_TIMEOUT_S)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
+    # Belt and braces: the connect() timeout and the pragma set the same sqlite3
+    # busy handler, but only the pragma survives a caller that rebuilds the
+    # connection from this one's path.
+    conn.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_S * 1000}")
     return conn
 
 

@@ -692,3 +692,109 @@ def test_insert_article_stays_silent_on_a_genuine_duplicate(caplog):
     with caplog.at_level(logging.WARNING, logger="news.storage"):
         assert insert_article(conn, _make()) is False
     assert not caplog.records
+
+
+def test_get_connection_waits_out_a_concurrent_pipeline(tmp_path):
+    """The busy timeout must outlast a sibling pipeline's write, not Python's default.
+
+    On 2026-09-16 the 13:00 digest died with ``sqlite3.OperationalError: database
+    is locked`` after inserting part of 507 new articles. Nothing was wrong with
+    the data: the stack pipeline shares news.db and shares the 13:00 slot, it ran
+    526 s that day against 218 s the day before, and ``insert_article`` commits
+    once per article, so the digest had to win the write lock 507 separate times
+    while stack held it.
+
+    ``sqlite3.connect`` defaults to a five-second busy timeout, which is the whole
+    margin the two pipelines had. The per-profile locks in main.py exist precisely
+    so digest, monitor, stack and market CAN overlap, so the database has to
+    tolerate what those locks permit.
+    """
+    from news.storage import get_connection
+
+    conn = get_connection(tmp_path / "news.db")
+    try:
+        (busy_ms,) = conn.execute("PRAGMA busy_timeout").fetchone()
+    finally:
+        conn.close()
+
+    assert busy_ms >= 30_000, (
+        f"busy_timeout is {busy_ms} ms; a sibling pipeline's bulk insert outlasts that"
+    )
+
+
+def test_a_writer_holding_the_lock_does_not_raise_database_is_locked(tmp_path):
+    """A held write lock must make the second writer wait, not fail.
+
+    The pragma test above pins the number; this pins the mechanism it buys, so a
+    future refactor that opens a raw ``sqlite3.connect`` somewhere in this path is
+    caught by an actual contended lock and not only by a constant. It holds for a
+    fraction of a second, well inside even the old five-second default, so it is a
+    guard rather than the regression test: the pragma test is the one that was red.
+
+    Do NOT reach for ``time.sleep`` to hold the lock. ``_fast_synthesizer_policy``
+    in conftest stubs it suite-wide via ``news.synthesizer.time.sleep``, which is
+    the one shared ``time`` module, so the hold silently becomes a no-op and the
+    test passes without ever contending. That is how the first draft of this test
+    ran in 0.01 s. ``Event.wait`` is untouched by that fixture.
+    """
+    import threading
+
+    from news.storage import get_connection, init_db, insert_article
+
+    db_path = tmp_path / "news.db"
+    setup = get_connection(db_path)
+    init_db(setup)
+    setup.close()
+
+    holding = threading.Event()
+    release_now = threading.Event()
+    inserted = threading.Event()
+    failure: list[BaseException] = []
+
+    def _hold_the_write_lock():
+        # Opened in this thread: sqlite3 connections are not shareable across threads.
+        holder = get_connection(db_path)
+        try:
+            holder.execute("BEGIN IMMEDIATE")
+            holding.set()
+            release_now.wait(timeout=5)
+            holder.rollback()
+        finally:
+            holder.close()
+
+    article = Article(
+        url="https://example.test/contended",
+        title="t",
+        source="S",
+        content="c" * 60,
+        categories=["showcase"],
+        language="en",
+        published_at=datetime.now(UTC),
+    )
+    article.compute_hash()
+
+    def _write_against_the_held_lock():
+        writer = get_connection(db_path)
+        try:
+            insert_article(writer, article)
+            inserted.set()
+        except BaseException as exc:  # noqa: BLE001 - re-asserted on the main thread
+            failure.append(exc)
+        finally:
+            writer.close()
+
+    holder_thread = threading.Thread(target=_hold_the_write_lock)
+    writer_thread = threading.Thread(target=_write_against_the_held_lock)
+    holder_thread.start()
+    assert holding.wait(timeout=5), "the holder never took the write lock"
+
+    writer_thread.start()
+    assert not inserted.wait(timeout=0.3), "the writer was never actually blocked"
+    assert not failure, f"the writer gave up instead of waiting: {failure}"
+
+    release_now.set()
+    assert inserted.wait(timeout=10), "the writer never completed after the lock freed"
+    assert not failure, f"the writer raised after the lock freed: {failure}"
+
+    writer_thread.join()
+    holder_thread.join()
