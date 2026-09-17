@@ -1,6 +1,7 @@
 """Tests for the topic profile — ad-hoc topical news briefs from a CLI query."""
 
 import subprocess
+import sys
 import warnings
 from datetime import UTC, datetime
 from pathlib import Path
@@ -133,8 +134,14 @@ def test_build_topic_fallback_includes_titles():
 
 def test_topic_profile_requires_query():
     """python3 main.py --profile topic (without --query) exits non-zero."""
+    # sys.executable, NOT a bare "python3". The bare name resolves through
+    # PATH to Homebrew 3.14, which is not the venv running this test and has
+    # no pyyaml, so the child died at import and the assertion below read an
+    # ImportError traceback instead of the CLI's own argument error. The test
+    # passed for the wrong reason on any machine where both interpreters have
+    # the deps, and failed here.
     result = subprocess.run(
-        ["python3", "main.py", "--profile", "topic"],
+        [sys.executable, "main.py", "--profile", "topic"],
         capture_output=True,
         text=True,
         cwd=str(Path(__file__).resolve().parent.parent),
@@ -146,7 +153,7 @@ def test_topic_profile_requires_query():
 def test_query_flag_requires_topic_profile():
     """python3 main.py --query 'x' without --profile topic exits non-zero."""
     result = subprocess.run(
-        ["python3", "main.py", "--query", "x", "--profile", "digest"],
+        [sys.executable, "main.py", "--query", "x", "--profile", "digest"],
         capture_output=True,
         text=True,
         cwd=str(Path(__file__).resolve().parent.parent),
