@@ -279,12 +279,37 @@ def push_to_vps(db_path: Path, remote: str) -> bool:
     return True
 
 
-def main() -> int:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+def _configure_logging() -> None:
+    """Routine progress to stdout, WARNING and above to stderr.
+
+    basicConfig() with no `stream=` installs a StreamHandler on sys.stderr, so
+    every INFO line this script emitted went to the error stream. Under launchd
+    that is StandardErrorPath: the .err file had grown to several MB of ordinary
+    per-video progress while the .log file beside it sat at 0 bytes. An error
+    stream that carries routine output cannot be read as errors, which is the
+    whole reason to have two streams.
+
+    The split is by level, not by call site, so logger.error/logger.warning keep
+    reaching stderr unchanged and nothing else in the module has to know.
+    """
+    fmt = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+    out = logging.StreamHandler(sys.stdout)
+    out.setLevel(logging.DEBUG)
+    out.addFilter(lambda record: record.levelno < logging.WARNING)
+    out.setFormatter(fmt)
+
+    err = logging.StreamHandler(sys.stderr)
+    err.setLevel(logging.WARNING)
+    err.setFormatter(fmt)
+
+    logging.basicConfig(level=logging.INFO, handlers=[out, err])
+
+
+def main() -> int:
+    _configure_logging()
     parser = argparse.ArgumentParser(description="Harvest YouTube transcripts for a profile")
     parser.add_argument("--profile", default="stack")
     parser.add_argument("--limit", type=int, default=_DEFAULT_LIMIT)
