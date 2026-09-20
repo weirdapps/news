@@ -5,7 +5,7 @@ Personal news intelligence platform with five profiles sharing a five-stage pipe
 ## Profiles
 
 | Profile | Cadence | Scope |
-|---------|---------|-------|
+| --------- | --------- | ------- |
 | `digest` | 5x daily — 00, 09, 13, 17, 21 Athens | Broad: business, AI, tech, Greece, banking |
 | `monitor` | Bi-hourly 08–22 Athens + 00:00 catch-up | NBG brand mentions + competitor tracking |
 | `topic` | Ad-hoc only (`--query`) | Single subject from a Google News RSS query |
@@ -31,7 +31,7 @@ fetch → process → store → synthesize → deliver
 ```
 
 | Module | Stage | Responsibility |
-|--------|-------|----------------|
+| -------- | ------- | ---------------- |
 | `news/fetcher.py` | fetch | RSS feeds + optional NewsAPI/WebSearch, concurrent |
 | `news/processor.py` | process | Full text via trafilatura, relevance scoring |
 | `news/storage.py` | store | SQLite FTS5 (`data/news.db`, gitignored) |
@@ -85,7 +85,7 @@ CI: lint → test (GitHub Actions `ci.yml`). SonarCloud on push to master.
 All three pipelines run as systemd timers on the Hetzner VPS (reached via the `vps` SSH alias):
 
 | Timer | Schedule | Pipeline |
-|-------|----------|----------|
+| ------- | ---------- | ---------- |
 | `news-digest` | 00,09,13,17,21:00 Athens | digest |
 | `news-monitor` | 00,08,10,12,14,16,18,20,22:00 Athens | monitor |
 | `news-stack` | 13:00 Athens | tech/stack news (topic variant) |

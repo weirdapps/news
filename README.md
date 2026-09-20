@@ -11,7 +11,7 @@ The `claude` CLI subprocess is the only LLM surface. There is no `anthropic` SDK
 ## Profiles
 
 | Profile | Cadence | Scope | Delivery |
-|---------|---------|-------|----------|
+| --------- | --------- | ------- | ---------- |
 | `digest` | 5x daily (00, 09, 13, 17, 21 Athens) | Broad multi-topic news from `config/sources.yaml` (48 feeds shipped) | Email |
 | `monitor` | Bi-hourly 08 to 22 Athens + 00 catch-up | Brand mentions + competitor watch, driven by your `config/monitor/keywords.yaml` | Email, skipped when no new mentions |
 | `stack` | Once daily, 13:00 Athens | AI / dev intelligence from `config/stack/sources.yaml` (45 feeds shipped) | Email |
@@ -33,7 +33,7 @@ flowchart TD
 Each stage is one module under `news/`:
 
 | Stage | Module | Responsibility |
-|-------|--------|----------------|
+| ------- | -------- | ---------------- |
 | fetch | `news/fetcher.py` | Concurrent RSS pull, feed-less HTML listing scrape |
 | process | `news/processor.py`, `news/tagger.py` | Full text extraction, deduplication, category + ticker tagging, relevance scoring |
 | store | `news/storage.py` | SQLite (FTS5) at `data/news.db`, migrations, dedup by content hash |
@@ -108,7 +108,7 @@ python3 main.py --profile topic --query '"Claude Code"' --hours 72 --print
 ```
 
 | Flag | Default | Notes |
-|------|---------|-------|
+| ------ | --------- | ------- |
 | `--query "string"` | required | Plain text passed to a Google News RSS query. Wrap multi-word brand names in `"..."` for an exact-phrase match. |
 | `--hours N` | `24` | Lookback window, clamped to 1 to 168 (1 week max). |
 | `--print` | off | Render to stdout instead of emailing. Useful for terminal previews. |
@@ -122,7 +122,7 @@ Topic runs persist to `data/news.db` with `pipeline='topic'`, so the MCP server'
 The loader (`news/config.py`) reads `.env` at import time (real environment variables win over `.env`) and expands `${VAR}` / `${VAR:-default}` inside every YAML config.
 
 | Variable | Used by | Default | Purpose |
-|----------|---------|---------|---------|
+| ---------- | --------- | --------- | --------- |
 | `NEWS_RECIPIENT` | digest | `user@example.com` | Digest email recipient |
 | `NEWS_MONITOR_RECIPIENT` | monitor | `user@example.com` | Monitor email recipient |
 | `NEWS_STACK_RECIPIENT` | stack | `user@example.com` | Stack email recipient |
@@ -189,7 +189,7 @@ Failure handling: if the send call returns non-zero, `main.py` writes the render
 `run_mcp.sh` launches the `news-reader` MCP server defined in `news/mcp_server.py`. It exposes four tools over the shared `data/news.db`:
 
 | Tool | Description |
-|------|-------------|
+| ------ | ------------- |
 | `search_news` | Keyword search across article title + content, filterable by pipeline / category / ticker / days |
 | `digest_history` | Recent AI-curated syntheses (executive briefs + sections) for `pipeline='digest'` or `'monitor'` |
 | `news_stats` | Article counts, category distribution, source distribution, date range |
