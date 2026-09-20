@@ -6,6 +6,15 @@ data/transcripts.db
 data/transcripts.db-wal
 data/transcripts.db-shm
 data/news.db.*
+# ...and the DOTTED temp variant, which `data/news.db.*` does not match: sqlite
+# and the sync path write `data/.news.db.<random>` (plus -wal/-shm siblings) and
+# rename over the real file. Caught one at 560 MB and still growing on
+# 2026-09-20; `git check-ignore` said NOT IGNORED, and this repo is public, so it
+# was one `git add -A` away from a 1.3 GB private corpus in a public history.
+# Same shape as the `.env` / `.env.bak-*` gap recorded in sw-utils: an exact-path
+# ignore that the tool's own temp naming walks straight around.
+data/.news.db*
+data/.transcripts.db*
 data/run.log
 data/runs.log
 data/archive/
