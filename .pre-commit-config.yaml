@@ -22,7 +22,7 @@ repos:
   # Keep this rev in sync with the pinned ruff in .github/workflows/ci.yml so a
   # local pre-commit pass cannot disagree with CI.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.1
+    rev: v0.16.8
     hooks:
       - id: ruff
         args: [--fix]
