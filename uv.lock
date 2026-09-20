@@ -846,9 +846,11 @@ name = "newsreader"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "anyio" },
     { name = "cryptography" },
     { name = "feedparser" },
     { name = "httpx" },
+    { name = "httpx2" },
     { name = "jinja2" },
     { name = "lxml" },
     { name = "markupsafe" },
@@ -875,9 +877,11 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anyio", specifier = ">=4.14.2" },
     { name = "cryptography", specifier = ">=50.0.1" },
     { name = "feedparser" },
     { name = "httpx" },
+    { name = "httpx2", specifier = ">=2.12.0" },
     { name = "jinja2" },
     { name = "lxml" },
     { name = "markupsafe" },
