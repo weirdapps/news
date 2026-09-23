@@ -851,3 +851,103 @@ def test_a_well_formed_empty_synthesis_is_not_an_error():
     out = parse_synthesis_output('{"executive_brief": [], "sections": []}')
     assert "error" not in out
     assert _production_validate('{"executive_brief": [], "sections": []}')
+
+
+# --- the last API_ERROR attempt goes to the fallback tier ------------------------
+
+
+def _api_error():
+    return Mock(stdout=_envelope(result="API Error: 500 internal", is_error=True), returncode=0)
+
+
+def _fallback_env(monkeypatch, model="claude-opus-4-6[1m]", region="europe-west1"):
+    monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-5-5[1m]")
+    monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
+    monkeypatch.setenv("VERTEX_MODEL_FALLBACK", model)
+    if region is None:
+        monkeypatch.delenv("VERTEX_REGION_FALLBACK", raising=False)
+    else:
+        monkeypatch.setenv("VERTEX_REGION_FALLBACK", region)
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_the_last_api_error_attempt_uses_the_fallback_model_and_its_region(mock_run, monkeypatch):
+    """2026-09-23 15:41 and 16:04: news-market and news-monitor each spent all three
+    API_ERROR attempts on claude-opus-5-5[1m]@eu, the first calls after the switch to
+    that model, and gave up with VERTEX_MODEL_FALLBACK sitting unused in the env. The
+    attempt the API_ERROR row allows last now goes to the fallback, and the region flips
+    with the model: a 4.6 id in `eu` is the 429 this estate keeps relearning."""
+    _fallback_env(monkeypatch)
+    mock_run.side_effect = [
+        _api_error(),
+        _api_error(),
+        Mock(stdout=_envelope(result="OK_ON_FALLBACK"), returncode=0),
+    ]
+
+    result = invoke_claude("p", claude_args=["--print", "--model", "opus"])
+
+    assert result == "OK_ON_FALLBACK"
+    assert mock_run.call_count == 3
+    for call in mock_run.call_args_list[:2]:
+        assert "claude-opus-5-5[1m]" in call[0][0]
+        assert call[1]["env"]["CLOUD_ML_REGION"] == "eu"
+    last_cmd = mock_run.call_args_list[2][0][0]
+    last_env = mock_run.call_args_list[2][1]["env"]
+    assert "claude-opus-4-6[1m]" in last_cmd
+    assert "claude-opus-5-5[1m]" not in last_cmd
+    assert last_env["CLOUD_ML_REGION"] == "europe-west1"
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_three_api_errors_still_give_up_after_the_fallback_tries(mock_run, monkeypatch):
+    """The fallback is one more chance inside the same budget, not a fourth attempt."""
+    _fallback_env(monkeypatch)
+    mock_run.side_effect = [_api_error(), _api_error(), _api_error()]
+
+    assert invoke_claude("p", claude_args=["--print", "--model", "opus"]) is None
+    assert mock_run.call_count == 3
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_no_fallback_in_the_env_keeps_every_attempt_on_the_primary(mock_run, monkeypatch):
+    monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-5-5[1m]")
+    monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
+    monkeypatch.delenv("VERTEX_MODEL_FALLBACK", raising=False)
+    monkeypatch.delenv("VERTEX_REGION_FALLBACK", raising=False)
+    mock_run.side_effect = [_api_error(), _api_error(), _api_error()]
+
+    invoke_claude("p", claude_args=["--print", "--model", "opus"])
+
+    for call in mock_run.call_args_list:
+        assert "claude-opus-5-5[1m]" in call[0][0]
+        assert call[1]["env"]["CLOUD_ML_REGION"] == "eu"
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_a_fallback_without_a_region_takes_the_one_its_model_needs(mock_run, monkeypatch):
+    """Models up to 4.6 live in europe-west1 and 4.7 onwards in eu. A fallback model
+    exported without its region must not inherit the primary's."""
+    _fallback_env(monkeypatch, model="claude-opus-4-6[1m]", region=None)
+    mock_run.side_effect = [
+        _api_error(),
+        _api_error(),
+        Mock(stdout=_envelope(result="X"), returncode=0),
+    ]
+
+    invoke_claude("p", claude_args=["--print", "--model", "opus"])
+
+    assert mock_run.call_args_list[2][1]["env"]["CLOUD_ML_REGION"] == "europe-west1"
+
+
+@patch("news.synthesizer.subprocess.run")
+def test_rate_limits_and_refusals_never_reach_the_fallback(mock_run, monkeypatch):
+    """Scope: only API_ERROR's last attempt moves. A 429 is a quota question the same
+    tier answers after backoff, and the refusal row keeps its same-tier retry."""
+    _fallback_env(monkeypatch)
+    rate = Mock(stdout=_envelope(result="API Error: 429 quota", is_error=True), returncode=0)
+    mock_run.side_effect = [rate, rate, rate, rate]
+
+    invoke_claude("p", claude_args=["--print", "--model", "opus"])
+
+    for call in mock_run.call_args_list:
+        assert "claude-opus-4-6[1m]" not in call[0][0]
