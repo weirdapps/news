@@ -415,3 +415,48 @@ def test_stack_html_shows_the_source_health_note():
         health_note="1 sources silent: Broken Feed (9d)",
     )
     assert "Broken Feed (9d)" in html
+
+
+# --- the send must outwait the lock it queues behind -----------------------------
+
+
+def test_send_email_waits_longer_than_the_outlook_lock_it_asks_for():
+    """On the VPS every outlook-cli call goes through ~/scripts/outlook-cli, which
+    serialises the estate's Outlook consumers on one flock and waits for it. The send
+    used to give up at 60s while that wrapper would have queued for up to 180s, so
+    any real contention surfaced as "Email send timed out after 60s" (09-21 00:07 and
+    00:15, 09-22 00:03). The caller now names the wait it can afford and outwaits it.
+    """
+    import news.deliver as deliver
+
+    with patch("news.deliver.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0, stderr="")
+        send_email(subject="s", html_body="<p>x</p>", recipient="a@example.com")
+
+    kwargs = mock_run.call_args[1]
+    assert kwargs["env"]["OUTLOOK_CLI_LOCK_WAIT"] == str(deliver.OUTLOOK_LOCK_WAIT_SECONDS)
+    assert kwargs["timeout"] == deliver.SEND_TIMEOUT_SECONDS
+    assert deliver.SEND_TIMEOUT_SECONDS > deliver.OUTLOOK_LOCK_WAIT_SECONDS
+
+
+def test_the_send_still_fits_what_the_tightest_mailing_unit_keeps_for_it():
+    """news-monitor is a 600s unit: after its LLM deadline it keeps one worst-case call
+    (synthesis.timeout) plus the 90s shutdown grace for render and send. A send bounded
+    past that would be SIGTERMed mid-flight, which main.py cannot catch, and the slot's
+    one email would never leave. market is store-only, so monitor is the tightest."""
+    import news.deliver as deliver
+    from main import _SHUTDOWN_GRACE_SECONDS
+    from news.config import get_settings
+
+    call = get_settings(profile="monitor")["synthesis"]["timeout"]
+    assert deliver.SEND_TIMEOUT_SECONDS <= call + _SHUTDOWN_GRACE_SECONDS
+
+
+def test_a_send_that_times_out_says_how_long_it_waited(caplog):
+    import subprocess as sp
+
+    import news.deliver as deliver
+
+    with patch("news.deliver.subprocess.run", side_effect=sp.TimeoutExpired("outlook-cli", 1)):
+        assert send_email(subject="s", html_body="<p>x</p>", recipient="a@example.com") is False
+    assert f"after {deliver.SEND_TIMEOUT_SECONDS}s" in caplog.text

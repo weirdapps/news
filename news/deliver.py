@@ -17,6 +17,24 @@ logger = logging.getLogger(__name__)
 _TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 _ATHENS_TZ = ZoneInfo("Europe/Athens")
 
+# How long the send may queue for the shared Outlook lock, and how long it may take in all.
+#
+# On the VPS every outlook-cli call goes through ~/scripts/outlook-cli, a wrapper that
+# serialises the estate's Outlook consumers (sb-outlook-sync, factor-snapshot, hc-canary,
+# these profiles) on one flock over the browser profile and waits OUTLOOK_CLI_LOCK_WAIT for
+# it, 180s by default. The send used to give up at 60s, so any real contention surfaced
+# here as "Email send timed out after 60s" (09-21 00:07 and 00:15, 09-22 00:03) while the
+# wrapper would still have been queueing. The caller now NAMES the wait it can afford and
+# outwaits it by the time a send actually takes. The wrapper exits 75 without sending when
+# its wait expires, so the failure keeps its reason instead of becoming a timeout.
+#
+# The ceiling is the tightest unit that mails: news-monitor is 600s, and after its LLM
+# deadline it keeps one worst-case call (synthesis.timeout, 150s) plus the 90s shutdown
+# grace for render and send. 180s fits inside that 240s. Pinned by test_deliver.py. The
+# variable is harmless where no wrapper reads it (a Mac, or outlook-cli on PATH directly).
+OUTLOOK_LOCK_WAIT_SECONDS = 120
+SEND_TIMEOUT_SECONDS = OUTLOOK_LOCK_WAIT_SECONDS + 60
+
 # HTML entity constants for escaping
 _HTML_AMP = "&amp;"
 _HTML_BR_DOUBLE = "<br><br>"
@@ -261,8 +279,9 @@ def send_email(
             cmd,
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=SEND_TIMEOUT_SECONDS,
             check=False,
+            env={**os.environ, "OUTLOOK_CLI_LOCK_WAIT": str(OUTLOOK_LOCK_WAIT_SECONDS)},
         )
 
         if result.returncode == 0:
@@ -273,7 +292,7 @@ def send_email(
             return False
 
     except subprocess.TimeoutExpired:
-        logger.error("Email send timed out after 60s")
+        logger.error(f"Email send timed out after {SEND_TIMEOUT_SECONDS}s")
         return False
 
     except Exception as e:

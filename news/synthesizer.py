@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 
 from news.llm_policy import (
+    MAX_ATTEMPTS,
+    ROW_CAPS,
     Action,
     Attempt,
     Outcome,
@@ -24,6 +26,36 @@ from news.llm_policy import (
 from news.roster import build_roster
 
 logger = logging.getLogger(__name__)
+
+_MODEL_VERSION_RE = re.compile(r"claude-[a-z]+-(\d+)-(\d+)")
+
+
+def _region_for_model(model: str) -> str | None:
+    """The Vertex region a model id lives in, or None when the id does not say.
+
+    Models up to 4.6 are served from europe-west1 and 4.7 onwards from eu; the wrong
+    pairing is a 429 quota error, not a routing detail (~/.config/nbg-vertex/env).
+    """
+    m = _MODEL_VERSION_RE.search(model)
+    if not m:
+        return None
+    return "eu" if (int(m.group(1)), int(m.group(2))) >= (4, 7) else "europe-west1"
+
+
+def _fallback_tier() -> tuple[str, str] | None:
+    """(model, region) for the last API_ERROR attempt, or None when none is configured.
+
+    Read from the central env at call time, like the primary tier. The region travels
+    with the model: VERTEX_REGION_FALLBACK when it is exported, otherwise the one the
+    model's own version needs, never the primary's. An id whose region cannot be told
+    is not used at all, because guessing a region is how a fallback turns into a 429.
+    """
+    model = os.environ.get("VERTEX_MODEL_FALLBACK", "").strip()
+    if not model:
+        return None
+    region = os.environ.get("VERTEX_REGION_FALLBACK", "").strip() or _region_for_model(model)
+    return (model, region) if region else None
+
 
 _PROJECT_ROOT = Path(__file__).parent.parent
 
@@ -342,6 +374,9 @@ def invoke_claude(
                     )
         return (None, None)
 
+    # Set once, before the last attempt API_ERROR allows, and kept for the rest of the call.
+    tier_override: tuple[str, str] | None = None
+
     def _run_once() -> tuple[dict[str, Any] | None, str | None, BaseException | None]:
         """Run claude once. Returns (envelope, raw_stdout, exc).
 
@@ -350,7 +385,7 @@ def invoke_claude(
           - raw set only: subprocess ran but stdout was empty or not JSON (:298, :303)
           - envelope set: subprocess ran and stdout parsed as JSON (success or error envelope)
         """
-        model, region = _resolve_tier()
+        model, region = tier_override or _resolve_tier()
         args = list(bare_args)
         if model is not None:
             if "--model" in args:
@@ -429,12 +464,13 @@ def invoke_claude(
         # legible as three lines with the same job, not one summary that hides the
         # retries. `trace` swallows its own failures by contract.
         in_tok, out_tok = _envelope_tokens(envelope)
+        used_model, used_region = tier_override or (traced_model, traced_region)
         trace(
             trace_path,
             job=job,
             call_site="synthesizer.invoke_claude",
-            model=traced_model or "unresolved",
-            region=traced_region or "inherited",
+            model=used_model or "unresolved",
+            region=used_region or "inherited",
             outcome=outcome,
             action=decision.action,
             attempt=attempt,
@@ -456,6 +492,32 @@ def invoke_claude(
             continue
 
         if decision.action is Action.PLAIN_RETRY:
+            # THE LAST API_ERROR ATTEMPT GOES TO THE FALLBACK TIER. On 2026-09-23 at 15:41
+            # and 16:04, news-market and news-monitor spent all three API_ERROR attempts on
+            # claude-opus-5-5[1m]@eu -- the first calls after the switch to that model --
+            # and gave up with VERTEX_MODEL_FALLBACK unused. The same retry on the same
+            # model and region asks the same backend the same question; the last one the
+            # row (or the global cap) allows is spent on a different one instead. Only
+            # API_ERROR moves: a 429 is a quota question the same tier answers after
+            # backoff, and the refusal row keeps its same-tier retry.
+            if outcome is Outcome.API_ERROR and tier_override is None:
+                last_by_row = attempt.count(Outcome.API_ERROR) >= ROW_CAPS[Outcome.API_ERROR]
+                last_by_total = attempt.total + 1 >= MAX_ATTEMPTS
+                fallback = _fallback_tier()
+                if (
+                    (last_by_row or last_by_total)
+                    and fallback is not None
+                    and fallback != (traced_model, traced_region)
+                ):
+                    tier_override = fallback
+                    logger.warning(
+                        "API_ERROR x%d on %s@%s; the last attempt goes to the fallback %s@%s",
+                        attempt.count(Outcome.API_ERROR),
+                        traced_model or "inherited",
+                        traced_region or "inherited",
+                        fallback[0],
+                        fallback[1],
+                    )
             if decision.sleep_s:
                 time.sleep(decision.sleep_s)
             continue
