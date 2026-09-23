@@ -18,6 +18,7 @@ import logging
 import sqlite3
 import subprocess
 import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
@@ -27,6 +28,7 @@ import httpx
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import (
     NoTranscriptFound,
+    RequestBlocked,
     TranscriptsDisabled,
     VideoUnavailable,
 )
@@ -62,6 +64,11 @@ ABSTRACT_MAX_CHARS = 800
 # Bounds the work and the spend in any single hourly run. A backlog drains over
 # successive runs rather than firing hundreds of CLI calls at once.
 _DEFAULT_LIMIT = 25
+
+# After YouTube refuses this IP, stop asking for this long. Hourly runs against an
+# active block kept knocking from the very address the block is keyed on: from
+# 2026-09-22 22:52 every run for a day went 0 for 25 on IpBlocked, and exited 0.
+BLOCK_COOLDOWN = timedelta(hours=6)
 
 # The whole point of the feature: the uploader's description is written to sell
 # the click, so we ask for the substance and name the things to throw away.
@@ -137,16 +144,22 @@ def trim_to_sentence(text: str, limit: int) -> str:
 def fetch_transcript(video_id: str) -> tuple[str, str]:
     """Fetch a video's captions. Returns (text, status).
 
-    Status is 'ok', 'no_captions' when the video will never have captions, or
-    'fetch_failed' for anything transient such as an IP block or a timeout.
-    The distinction matters: no_captions is recorded as terminal, while
-    fetch_failed is retried on later runs up to the attempt ceiling.
+    Status is 'ok', 'no_captions' when the video will never have captions,
+    'blocked' when YouTube is refusing this IP, or 'fetch_failed' for anything
+    else transient such as a timeout. The distinction matters: no_captions is
+    recorded as terminal, while fetch_failed is retried on later runs up to the
+    attempt ceiling. harvest() stores 'blocked' as fetch_failed, because it says
+    nothing about the video, and uses it to stop asking.
     """
     try:
         snippets = YouTubeTranscriptApi().fetch(video_id)
         return " ".join(snippet.text for snippet in snippets).strip(), "ok"
     except (TranscriptsDisabled, NoTranscriptFound, VideoUnavailable):
         return "", "no_captions"
+    except RequestBlocked as e:
+        # IpBlocked is a subclass. Both are about this IP, not this video.
+        logger.warning(f"{video_id}: transcript fetch failed: {type(e).__name__}: {e}")
+        return "", "blocked"
     except Exception as e:
         logger.warning(f"{video_id}: transcript fetch failed: {type(e).__name__}: {e}")
         return "", "fetch_failed"
@@ -162,8 +175,10 @@ def distil(transcript: str, title: str) -> str:
     prompt = _DISTIL_PROMPT.format(title=title, transcript=transcript)
     model, run_env = vertex_cli_model_and_env("sonnet")
     try:
+        # --bare: a plain prose call needs no plugins, hooks or MCP servers, and
+        # without it every call cold-starts all of them.
         result = subprocess.run(
-            ["claude", "--model", model, "--print"],
+            ["claude", "--model", model, "--print", "--bare"],
             input=prompt,
             capture_output=True,
             text=True,
@@ -195,7 +210,7 @@ def harvest(
     conn.row_factory = sqlite3.Row
     init_transcript_db(conn)
 
-    stats = {"channels": 0, "attempted": 0, "ok": 0, "no_captions": 0, "failed": 0}
+    stats = {"channels": 0, "attempted": 0, "ok": 0, "no_captions": 0, "failed": 0, "blocked": 0}
 
     try:
         for name, channel_id in youtube_channels(sources):
@@ -226,6 +241,12 @@ def harvest(
                 if not text:
                     text, status = fetch_transcript(video_id)
 
+                # For the video a block is an ordinary retryable failure.
+                blocked = status == "blocked"
+                if blocked:
+                    status = "fetch_failed"
+                    stats["blocked"] += 1
+
                 # An 'ok' with no words is a caption track that exists but is
                 # empty; distilling it would send the model an empty prompt.
                 if status == "ok" and not text.strip():
@@ -254,10 +275,50 @@ def harvest(
                     stats["no_captions"] += 1
                 else:
                     stats["failed"] += 1
+
+                if blocked:
+                    # Every later fetch this run would be refused the same way,
+                    # each spending another pending video's attempt budget.
+                    logger.warning("YouTube is blocking this IP; stopping at the first refusal")
+                    return stats
     finally:
         conn.close()
 
     return stats
+
+
+def _cooldown_file(db_path: Path) -> Path:
+    """The state file holding when the current IP-block cooldown ends."""
+    return db_path.with_name(db_path.name + ".cooldown")
+
+
+def cooldown_until(db_path: Path, now: datetime | None = None) -> datetime | None:
+    """Return when the current IP-block cooldown ends, or None when there is none.
+
+    An unreadable state file is logged and ignored: failing open costs one run of
+    fetches, failing closed would stop the harvester for good.
+    """
+    path = _cooldown_file(db_path)
+    try:
+        until = datetime.fromisoformat(path.read_text().strip())
+        active = until > (now or datetime.now(UTC))
+    except FileNotFoundError:
+        return None
+    except (OSError, ValueError, TypeError) as e:
+        logger.warning(f"ignoring unreadable cooldown file {path}: {type(e).__name__}: {e}")
+        return None
+    return until if active else None
+
+
+def record_block(db_path: Path, blocked: bool, now: datetime | None = None) -> None:
+    """Start a cooldown after a run that hit an IP block; clear it after one that did not."""
+    path = _cooldown_file(db_path)
+    if not blocked:
+        path.unlink(missing_ok=True)
+        return
+    until = (now or datetime.now(UTC)) + BLOCK_COOLDOWN
+    path.write_text(until.isoformat() + "\n")
+    logger.warning(f"No transcript fetches until {until.astimezone():%Y-%m-%d %H:%M %Z}")
 
 
 def push_to_vps(db_path: Path, remote: str) -> bool:
@@ -317,16 +378,36 @@ def main() -> int:
     parser.add_argument("--remote", default="vps:~/SourceCode/news/data/transcripts.db")
     parser.add_argument("--no-push", action="store_true")
     args = parser.parse_args()
+    db_path = Path(args.db)
 
-    stats = harvest(get_sources(profile=args.profile), Path(args.db), limit=args.limit)
-    logger.info(
-        f"Harvest complete: {stats['channels']} channels, {stats['attempted']} attempted, "
-        f"{stats['ok']} ok, {stats['no_captions']} no captions, {stats['failed']} failed"
-    )
+    until = cooldown_until(db_path)
+    if until is not None:
+        # Non-zero like the run that started it: nothing new is being fetched, and a
+        # cooldown that exited 0 would grade green for five hours in six.
+        logger.warning(
+            f"IP-block cooldown until {until.astimezone():%Y-%m-%d %H:%M %Z}: skipping "
+            f"the fetch, pushing the existing store unchanged. Delete "
+            f"{_cooldown_file(db_path)} to retry sooner."
+        )
+        produced = False
+    else:
+        stats = harvest(get_sources(profile=args.profile), db_path, limit=args.limit)
+        logger.info(
+            f"Harvest complete: {stats['channels']} channels, {stats['attempted']} attempted, "
+            f"{stats['ok']} ok, {stats['no_captions']} no captions, {stats['failed']} failed"
+        )
+        record_block(db_path, stats["blocked"] > 0)
+        # Nothing attempted is a quiet hour or an empty channel list, and all
+        # no_captions is a correct answer. Only attempts that all failed are a failure.
+        produced = not (stats["attempted"] > 0 and stats["ok"] == 0 and stats["failed"] > 0)
+        if not produced:
+            logger.error(
+                f"Harvest produced nothing: {stats['failed']} of {stats['attempted']} "
+                "attempts failed"
+            )
 
-    if args.no_push:
-        return 0
-    return 0 if push_to_vps(Path(args.db), args.remote) else 1
+    pushed = args.no_push or push_to_vps(db_path, args.remote)
+    return 0 if produced and pushed else 1
 
 
 if __name__ == "__main__":

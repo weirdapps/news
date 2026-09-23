@@ -6,6 +6,8 @@ data/transcripts.db
 data/transcripts.db-wal
 data/transcripts.db-shm
 data/news.db.*
+# Includes the harvester's IP-block cooldown state file, transcripts.db.cooldown.
+data/transcripts.db.*
 # ...and the DOTTED temp variant, which `data/news.db.*` does not match: sqlite
 # and the sync path write `data/.news.db.<random>` (plus -wal/-shm siblings) and
 # rename over the real file. Caught one at 560 MB and still growing on
@@ -50,6 +52,10 @@ secrets/
 # Tracked .example.yaml templates show forkers the structure to follow.
 config/monitor/sources.yaml
 config/monitor/keywords.yaml
+# ...and every backup of them, which carries the same private content. The exact
+# names above walk straight past `sources.yaml.bak-<date>`: five such copies once
+# sat untracked and un-ignored in a checkout, one `git add -A` from publication.
+config/monitor/*.bak*
 
 # Personal launchd plists (per-machine deployment artifacts).
 # Tracked .example.plist templates show forkers the schema.

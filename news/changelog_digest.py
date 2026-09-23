@@ -127,8 +127,10 @@ def digest_prose(delta: str, title: str, scope: str = "", timeout: int = _CLI_TI
 
     model, run_env = vertex_cli_model_and_env("sonnet")
     try:
+        # --bare: a plain prose call needs no plugins, hooks or MCP servers, and
+        # without it every call cold-starts all of them.
         result = subprocess.run(
-            ["claude", "--model", model, "--print"],
+            ["claude", "--model", model, "--print", "--bare"],
             input=prompt,
             capture_output=True,
             text=True,

@@ -19,7 +19,15 @@ def _mock_proc(stdout_text, returncode=0):
 
 
 @patch("news.tagger.subprocess.run")
-def test_llm_returns_tickers(mock_run):
+def test_llm_returns_tickers(mock_run, monkeypatch):
+    """The call is --bare, with the tier alias resolved to an exact id and region.
+
+    Without --bare each per-article call cold-started a full Claude Code with the
+    host's plugins, hooks and MCP servers. Without the resolution, the bare "sonnet"
+    alias meant whatever the host's alias mapping said, in the parent's region.
+    """
+    monkeypatch.setenv("VERTEX_MODEL_LIGHT", "claude-sonnet-4-6")
+    monkeypatch.setenv("VERTEX_REGION_LIGHT", "europe-west1")
     mock_run.return_value = _mock_proc(
         json.dumps({"result": json.dumps({"tickers": ["AAPL", "MSFT"]})})
     )
@@ -27,10 +35,12 @@ def test_llm_returns_tickers(mock_run):
     assert out == ["AAPL", "MSFT"]
     cmd = mock_run.call_args[0][0]
     assert cmd[0] == "claude"
-    assert "--model" in cmd
-    assert "sonnet" in cmd
+    assert "--bare" in cmd
+    assert cmd[cmd.index("--model") + 1] == "claude-sonnet-4-6"
+    assert "sonnet" not in cmd  # the bare alias must not survive
     assert "--output-format" in cmd
     assert "json" in cmd
+    assert mock_run.call_args[1]["env"]["CLOUD_ML_REGION"] == "europe-west1"
 
 
 @patch("news.tagger.subprocess.run")
@@ -80,11 +90,14 @@ def test_llm_returns_empty_on_nonzero_exit(mock_run):
 
 
 @patch("news.tagger.subprocess.run")
-def test_llm_passes_custom_model(mock_run):
+def test_llm_passes_custom_model(mock_run, monkeypatch):
+    monkeypatch.setenv("VERTEX_MODEL_HEAVY", "claude-opus-5-5[1m]")
+    monkeypatch.setenv("VERTEX_REGION_HEAVY", "eu")
     mock_run.return_value = _mock_proc(json.dumps({"result": json.dumps({"tickers": []})}))
     extract_tickers_llm("text", model="opus")
     cmd = mock_run.call_args[0][0]
-    assert "opus" in cmd
+    assert cmd[cmd.index("--model") + 1] == "claude-opus-5-5[1m]"
+    assert mock_run.call_args[1]["env"]["CLOUD_ML_REGION"] == "eu"
 
 
 @patch("news.tagger.running_on_linux", return_value=False)
@@ -217,6 +230,85 @@ def test_a_nonzero_exit_is_logged_at_error(mock_run, caplog):
         assert extract_tickers_llm("text") == []
 
     assert any(r.levelno == logging.ERROR for r in caplog.records)
+
+
+# --- A non-zero exit must say why -----------------------------------------------
+#
+# With --output-format json a Vertex error arrives as an is_error envelope on STDOUT
+# with stderr empty. The non-zero branch logged stderr alone, so digest.err read
+# "stderr: (none)" for every such failure, and a credential envelope never reached
+# the auth branch.
+
+_QUOTA_ENVELOPE = json.dumps(
+    {"type": "result", "is_error": True, "result": "API Error: 429 RESOURCE_EXHAUSTED"}
+)
+_AUTH_ENVELOPE = json.dumps(
+    {"type": "result", "is_error": True, "result": "API Error: invalid_grant"}
+)
+
+
+@patch("news.tagger.subprocess.run")
+def test_a_nonzero_exit_logs_the_vertex_error_from_stdout(mock_run, caplog):
+    mock_run.return_value = _mock_proc(_QUOTA_ENVELOPE, returncode=1)
+
+    with caplog.at_level(logging.ERROR, logger="news.tagger"):
+        assert extract_tickers_llm("text") == []
+
+    assert any("429" in r.message and r.levelno == logging.ERROR for r in caplog.records)
+
+
+@patch("news.tagger.running_on_linux", return_value=True)
+@patch("news.tagger.refresh_auth")
+@patch("news.tagger.subprocess.run")
+def test_a_credential_envelope_on_a_nonzero_exit_reaches_the_auth_branch(
+    mock_run, mock_refresh, mock_linux, caplog
+):
+    mock_run.return_value = _mock_proc(_AUTH_ENVELOPE, returncode=1)
+
+    with caplog.at_level(logging.ERROR, logger="news.tagger"):
+        assert extract_tickers_llm("text") == []
+
+    assert any("credential error on Linux" in r.message for r in caplog.records)
+    mock_refresh.assert_not_called()
+
+
+@patch("news.tagger.subprocess.run")
+def test_nonzero_exits_carrying_a_non_auth_envelope_still_trip_the_shutoff(mock_run):
+    """Parsing the envelope must not turn a failure into a normal response.
+
+    Mutation-resistance: if _invoke_once returned every parsed envelope, a quota
+    error would reach the success branch, reset the counter, and never trip.
+    """
+    from news.tagger import _LLM_SHUTOFF_THRESHOLD
+
+    mock_run.return_value = _mock_proc(_QUOTA_ENVELOPE, returncode=1)
+    for i in range(_LLM_SHUTOFF_THRESHOLD):
+        extract_tickers_llm(f"article {i}")
+
+    calls = mock_run.call_count
+    extract_tickers_llm("article after shutoff")
+    assert mock_run.call_count == calls
+
+
+@patch("news.tagger.running_on_linux", return_value=True)
+@patch("news.tagger.refresh_auth")
+@patch("news.tagger.subprocess.run")
+def test_credential_errors_on_linux_trip_the_shutoff(mock_run, mock_refresh, mock_linux):
+    """A credential envelope on a non-zero exit used to count as a plain failure.
+
+    Routing it to the auth branch instead must not stop it tripping the breaker.
+    Mutation-resistance: drop the count from the Linux give-up and every article
+    keeps paying for a CLI call.
+    """
+    from news.tagger import _LLM_SHUTOFF_THRESHOLD
+
+    mock_run.return_value = _mock_proc(_AUTH_ENVELOPE, returncode=1)
+    for i in range(_LLM_SHUTOFF_THRESHOLD):
+        extract_tickers_llm(f"article {i}")
+
+    calls = mock_run.call_count
+    extract_tickers_llm("article after shutoff")
+    assert mock_run.call_count == calls
 
 
 @patch("news.tagger.subprocess.run")

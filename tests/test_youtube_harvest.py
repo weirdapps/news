@@ -5,14 +5,22 @@ Everything is mocked: no network, no real transcript API, no claude CLI call.
 
 import logging
 import sqlite3
+import sys
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, patch
+
+import pytest
 
 from news.transcripts import MAX_ATTEMPTS, init_transcript_db, upsert_transcript
 from scripts.youtube_harvest import (
     ABSTRACT_MAX_CHARS,
+    BLOCK_COOLDOWN,
+    cooldown_until,
     distil,
     fetch_transcript,
     harvest,
+    main,
+    record_block,
     trim_to_sentence,
     videos_in_feed,
     youtube_channels,
@@ -110,6 +118,18 @@ def test_fetch_transcript_marks_a_blocked_request_retryable():
     assert (text, status) == ("", "fetch_failed")
 
 
+def test_fetch_transcript_reports_an_ip_block_as_blocked():
+    """IpBlocked is about this IP, not this video, so it gets its own status."""
+    from youtube_transcript_api import IpBlocked
+
+    with patch("scripts.youtube_harvest.YouTubeTranscriptApi") as api:
+        api.return_value.fetch.side_effect = IpBlocked("G55HSGpuh1M")
+
+        text, status = fetch_transcript("G55HSGpuh1M")
+
+    assert (text, status) == ("", "blocked")
+
+
 # --- Distillation -------------------------------------------------------------
 
 
@@ -131,6 +151,7 @@ def test_distil_calls_the_claude_cli_and_returns_the_abstract(monkeypatch):
     assert argv[0] == "claude"
     assert "--model" in argv and "claude-sonnet-4-6" in argv
     assert "sonnet" not in argv  # the bare alias must not survive
+    assert "--bare" in argv  # no plugins, hooks or MCP servers cold-started per video
     assert run.call_args[1]["env"]["CLOUD_ML_REGION"] == "europe-west1"
 
 
@@ -397,3 +418,122 @@ def test_distil_logs_stdout_on_failure_because_that_is_where_vertex_errors_land(
             assert distil("transcript", "title") == ""
 
     assert "429" in caplog.text
+
+
+# --- IP block: stop asking, and say so ------------------------------------------
+# From 2026-09-22 22:52 every hourly run went 0 for 25 on IpBlocked for a day and
+# still exited 0, so the job graded green while the transcript feed sat empty.
+
+
+def test_harvest_stops_at_the_first_ip_block_and_keeps_the_video_retryable(tmp_path):
+    """Later fetches would be refused the same way, each burning a video's attempts."""
+    db_path = tmp_path / "transcripts.db"
+
+    with (
+        patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
+        patch("scripts.youtube_harvest.fetch_transcript", return_value=("", "blocked")) as fetch,
+    ):
+        stats = harvest(_FIRESHIP_SOURCES, db_path, limit=10)
+
+    # SAMPLE_ATOM has two pending videos; the run stops after the first refusal.
+    assert fetch.call_count == 1
+    assert (stats["attempted"], stats["failed"], stats["blocked"]) == (1, 1, 1)
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT status FROM transcripts WHERE video_id='G55HSGpuh1M'").fetchone()
+    conn.close()
+    # The block says nothing about the video, so it stays retryable.
+    assert row["status"] == "fetch_failed"
+
+
+def _stats(**counts):
+    stats = {"channels": 1, "attempted": 0, "ok": 0, "no_captions": 0, "failed": 0, "blocked": 0}
+    stats.update(counts)
+    return stats
+
+
+def _run_main(tmp_path, monkeypatch, stats=None, pushed=True):
+    """Run main() with the harvest and the push mocked. Returns (rc, harvest, push)."""
+    db_path = tmp_path / "transcripts.db"
+    monkeypatch.setattr(sys, "argv", ["youtube_harvest.py", "--db", str(db_path)])
+    with (
+        patch("scripts.youtube_harvest._configure_logging"),
+        patch("scripts.youtube_harvest.get_sources", return_value={}),
+        patch("scripts.youtube_harvest.harvest", return_value=stats or _stats()) as harvest_mock,
+        patch("scripts.youtube_harvest.push_to_vps", return_value=pushed) as push_mock,
+    ):
+        rc = main()
+    return rc, harvest_mock, push_mock
+
+
+@pytest.mark.parametrize(
+    ("counts", "expected_rc"),
+    [
+        ({"attempted": 25, "failed": 25}, 1),  # every attempt failed
+        ({"attempted": 25, "no_captions": 1, "failed": 24}, 1),
+        ({}, 0),  # nothing new, or an empty channel list: a quiet hour, not a failure
+        ({"attempted": 2, "no_captions": 2}, 0),  # a correct answer, not a failure
+        ({"attempted": 25, "ok": 3, "failed": 22}, 0),  # partial progress
+    ],
+)
+def test_main_fails_only_a_run_whose_attempts_all_failed(
+    tmp_path, monkeypatch, counts, expected_rc
+):
+    rc, _, push = _run_main(tmp_path, monkeypatch, _stats(**counts))
+
+    assert rc == expected_rc
+    push.assert_called_once()  # the push happens either way
+
+
+def test_main_fails_when_the_push_fails(tmp_path, monkeypatch):
+    rc, _, _ = _run_main(tmp_path, monkeypatch, _stats(attempted=1, ok=1), pushed=False)
+
+    assert rc == 1
+
+
+def test_a_blocked_run_starts_a_cooldown_that_skips_the_fetch_but_still_pushes(
+    tmp_path, monkeypatch
+):
+    """The VPS copy must stay the full store, so the push survives the cooldown."""
+    blocked = _stats(attempted=1, failed=1, blocked=1)
+    rc, _, _ = _run_main(tmp_path, monkeypatch, blocked)
+    assert rc == 1
+    assert cooldown_until(tmp_path / "transcripts.db") is not None
+
+    rc, harvest_mock, push = _run_main(tmp_path, monkeypatch)
+
+    harvest_mock.assert_not_called()
+    push.assert_called_once()
+    # Still a run that fetched nothing: a cooldown exiting 0 would grade green.
+    assert rc == 1
+
+
+def test_the_cooldown_lasts_its_window_and_then_lapses(tmp_path):
+    db_path = tmp_path / "transcripts.db"
+    start = datetime(2026, 9, 23, 12, 0, tzinfo=UTC)
+    record_block(db_path, True, now=start)
+
+    assert cooldown_until(db_path, now=start + BLOCK_COOLDOWN - timedelta(minutes=1))
+    assert cooldown_until(db_path, now=start + BLOCK_COOLDOWN + timedelta(minutes=1)) is None
+
+
+def test_an_unblocked_run_clears_the_cooldown(tmp_path):
+    db_path = tmp_path / "transcripts.db"
+    record_block(db_path, True)
+
+    record_block(db_path, False)
+
+    assert cooldown_until(db_path) is None
+    assert not (tmp_path / "transcripts.db.cooldown").exists()
+
+
+def test_an_unreadable_cooldown_file_is_ignored(tmp_path, caplog):
+    """Failing closed on a garbled file would stop the harvester for good."""
+    db_path = tmp_path / "transcripts.db"
+    (tmp_path / "transcripts.db.cooldown").write_text("not a timestamp\n")
+
+    with caplog.at_level(logging.WARNING, logger="scripts.youtube_harvest"):
+        assert cooldown_until(db_path) is None
+
+    assert "unreadable cooldown file" in caplog.text

@@ -22,6 +22,7 @@ from typing import Any
 import yaml
 
 from news.auth import refresh_auth
+from news.config import vertex_cli_model_and_env
 from news.llm_policy import running_on_linux
 
 logger = logging.getLogger(__name__)
@@ -151,7 +152,39 @@ def _reset_llm_shutoff() -> None:
     _llm_shutoff = False
 
 
-def _invoke_once(cmd: list[str], prompt: str, timeout: int) -> dict[str, Any] | None:
+def _count_llm_failure() -> list[str]:
+    """Count one LLM give-up toward the shutoff. Returns the empty tag list to hand back."""
+    global _llm_consecutive_failures, _llm_shutoff
+    _llm_consecutive_failures += 1
+    if _llm_consecutive_failures >= _LLM_SHUTOFF_THRESHOLD:
+        _llm_shutoff = True
+        logger.error(
+            "tagger: %d consecutive LLM failures, disabling LLM tagging for "
+            "this run. Remaining market-adjacent articles will be tagged by "
+            "rules only. Check for an auth outage or CLI issue.",
+            _llm_consecutive_failures,
+        )
+    return []
+
+
+def _failure_detail(proc: subprocess.CompletedProcess, envelope: Any) -> str:
+    """What to log for a non-zero exit: stderr, else the envelope's result, else stdout.
+
+    With ``--output-format json`` a Vertex error (a 429, a credential failure) arrives
+    as an ``is_error`` envelope on STDOUT with stderr empty, which is why this path
+    used to log ``stderr: (none)`` and nothing else.
+    """
+    stderr = (proc.stderr or "").strip()
+    if stderr:
+        return stderr[:300]
+    if isinstance(envelope, dict) and envelope.get("result"):
+        return str(envelope["result"]).strip()[:300]
+    return (proc.stdout or "").strip()[:300] or "(no output on stderr or stdout)"
+
+
+def _invoke_once(
+    cmd: list[str], prompt: str, timeout: int, env: dict[str, str] | None = None
+) -> dict[str, Any] | None:
     """Run the claude CLI once. Returns the parsed JSON envelope, or None on failure.
 
     Every None return logs at ERROR, and the four causes are distinguishable in the
@@ -166,6 +199,10 @@ def _invoke_once(cmd: list[str], prompt: str, timeout: int) -> dict[str, Any] | 
     A timeout is deliberately NOT inferred to be an auth error. A slow model raises
     the identical exception, and acting on the guess would spend the one-shot re-auth
     budget on a hunch.
+
+    A non-zero exit returns None, except when its stdout is a credential-error
+    envelope: that one is returned so the caller's auth branch can see it, which it
+    never could while this path threw stdout away.
     """
     try:
         proc = subprocess.run(
@@ -174,6 +211,7 @@ def _invoke_once(cmd: list[str], prompt: str, timeout: int) -> dict[str, Any] | 
             capture_output=True,
             text=True,
             timeout=timeout,
+            env=env,
         )
     except subprocess.TimeoutExpired:
         logger.error(
@@ -187,10 +225,22 @@ def _invoke_once(cmd: list[str], prompt: str, timeout: int) -> dict[str, Any] | 
         logger.error("tagger: could not invoke claude CLI (%s) — article tagged empty", exc)
         return None
     if proc.returncode != 0:
+        try:
+            envelope = json.loads(proc.stdout or "")
+        except (json.JSONDecodeError, ValueError):
+            envelope = None
+        detail = _failure_detail(proc, envelope)
+        if isinstance(envelope, dict) and _is_auth_error(envelope):
+            logger.error(
+                "tagger: claude CLI exited %s with a credential error: %s",
+                proc.returncode,
+                detail,
+            )
+            return envelope
         logger.error(
-            "tagger: claude CLI exited %s — article tagged empty. stderr: %s",
+            "tagger: claude CLI exited %s — article tagged empty. %s",
             proc.returncode,
-            (proc.stderr or "")[:300] or "(none)",
+            detail,
         )
         return None
     raw = (proc.stdout or "").strip()
@@ -275,11 +325,18 @@ def extract_tickers_llm(
     for a seventh of the wall clock. Re-auth on a credential outage remains synthesis's
     job, where the policy loop and the per-slot alert live.
 
-    After _LLM_SHUTOFF_THRESHOLD consecutive CLI invocation failures (None from
-    _invoke_once), LLM tagging is disabled for the rest of the run via _llm_shutoff.
-    Remaining articles pass through with rules-based tags so the unit reaches synthesis.
+    After _LLM_SHUTOFF_THRESHOLD consecutive give-ups (a None from _invoke_once, or a
+    credential error it could not recover from), LLM tagging is disabled for the rest
+    of the run via _llm_shutoff. Remaining articles pass through with rules-based tags
+    so the unit reaches synthesis.
+
+    The call is ``--bare`` and the tier alias is resolved to an exact model id with its
+    region pinned. Without ``--bare`` every per-article call cold-started a full Claude
+    Code (plugins, hooks and the host's MCP servers), which made tagging most of a
+    digest run's wall clock. Without the resolution, "sonnet" meant whatever the host's
+    alias mapping happened to say, in whichever region the parent process carried.
     """
-    global _reauth_attempted, _llm_consecutive_failures, _llm_shutoff
+    global _reauth_attempted, _llm_consecutive_failures
 
     # Circuit breaker: skip LLM tagging entirely when too many consecutive failures
     # have occurred. Rules-based tags still apply; only the LLM pass is bypassed.
@@ -287,9 +344,10 @@ def extract_tickers_llm(
         return []
 
     prompt = _TAGGER_PROMPT + text[:max_chars]
-    cmd = ["claude", "--model", model, "--print", "--output-format", "json"]
+    resolved_model, run_env = vertex_cli_model_and_env(model)
+    cmd = ["claude", "--bare", "--model", resolved_model, "--print", "--output-format", "json"]
 
-    envelope = _invoke_once(cmd, prompt, timeout)
+    envelope = _invoke_once(cmd, prompt, timeout, run_env)
 
     if not _is_auth_error(envelope):
         if envelope is None:
@@ -297,32 +355,26 @@ def extract_tickers_llm(
             # Count this as a consecutive failure and engage the shutoff if the threshold
             # is reached. On the VPS an auth outage always surfaces as a timeout here
             # (the CLI takes ~200s to surface invalid_grant; the 30s limit fires first).
-            _llm_consecutive_failures += 1
-            if _llm_consecutive_failures >= _LLM_SHUTOFF_THRESHOLD:
-                _llm_shutoff = True
-                logger.error(
-                    "tagger: %d consecutive LLM failures — disabling LLM tagging for "
-                    "this run. Remaining market-adjacent articles will be tagged by "
-                    "rules only. Check for an auth outage or CLI issue.",
-                    _llm_consecutive_failures,
-                )
-            return []
+            return _count_llm_failure()
         # CLI responded normally; reset the consecutive-failure counter.
         _llm_consecutive_failures = 0
         return _tickers_from_envelope(envelope)
 
-    # Auth failure path — mirrors check_gcloud_auth's Linux guard and refresh delegation
+    # Auth failure path — mirrors check_gcloud_auth's Linux guard and refresh delegation.
+    # Every give-up below counts toward the shutoff. A credential envelope that arrives
+    # with a non-zero exit used to be a plain None failure, and reaching this branch
+    # instead must not stop it tripping the breaker.
     if running_on_linux():
         # No remedy on the VPS: waiting for the Mac's 15-minute token push can exceed
         # TimeoutStartSec (600 s) and SIGKILL the service.
         logger.error(
             "tagger: credential error on Linux — no re-auth possible, article tagged empty"
         )
-        return []
+        return _count_llm_failure()
 
     if _reauth_attempted:
         logger.error("tagger: credential error; re-auth budget exhausted — article tagged empty")
-        return []
+        return _count_llm_failure()
 
     # The latch is burned BEFORE the call, so a SKIPPED re-auth spends it too. That
     # is deliberate, not an oversight: refresh_auth() in news/auth.py collapses SKIPPED
@@ -336,12 +388,12 @@ def extract_tickers_llm(
     _reauth_attempted = True
     if not refresh_auth():
         logger.error("tagger: re-auth failed — article tagged empty")
-        return []
+        return _count_llm_failure()
 
-    envelope = _invoke_once(cmd, prompt, timeout)
+    envelope = _invoke_once(cmd, prompt, timeout, run_env)
     if _is_auth_error(envelope):
         logger.error("tagger: credential error persists after re-auth — article tagged empty")
-        return []
+        return _count_llm_failure()
 
     # Re-auth succeeded and the CLI worked — clear the consecutive-failure counter so
     # the next auth outage starts from zero rather than inheriting the pre-reauth count.

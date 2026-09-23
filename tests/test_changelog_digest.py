@@ -73,6 +73,9 @@ def test_digest_prose_calls_the_claude_cli_with_the_house_argv(monkeypatch):
     CLI reads from the caller's environment; ``vertex_cli_model_and_env`` returns a
     superset of ``os.environ`` instead of a fresh mapping, so that concern is met
     by construction and asserted below.
+
+    ``--bare`` IS passed: a prose call needs no plugins, hooks or MCP servers, and
+    without it every call cold-starts all of them.
     """
     monkeypatch.setenv("VERTEX_MODEL_LIGHT", "claude-sonnet-4-6")
     monkeypatch.setenv("VERTEX_REGION_LIGHT", "europe-west1")
@@ -84,7 +87,7 @@ def test_digest_prose_calls_the_claude_cli_with_the_house_argv(monkeypatch):
     assert prose == "Opus 5 replaces Opus 4.5 on claude.ai."
     # The exact provisioned id, not the bare alias: this call runs on the VPS, whose
     # parent env carries CLOUD_ML_REGION=eu, and sonnet in eu is a 429.
-    assert run.call_args[0][0] == ["claude", "--model", "claude-sonnet-4-6", "--print"]
+    assert run.call_args[0][0] == ["claude", "--model", "claude-sonnet-4-6", "--print", "--bare"]
     kwargs = run.call_args[1]
     assert kwargs["capture_output"] is True
     assert kwargs["text"] is True
