@@ -305,7 +305,7 @@ def extract_tickers_llm(
 ) -> list[str]:
     """Call the local `claude` CLI to extract tickers. Returns sorted unique uppercase list.
 
-    Routes via Vertex AI (corporate-billed) — never the anthropic SDK with a personal API key.
+    Routes via Vertex AI — never the anthropic SDK with a personal API key.
     Returns [] on any error. On a credential failure, attempts one re-auth on macOS (using the
     module-level one-shot latch) before giving up. On Linux, the wait for the Mac's token push
     would exceed TimeoutStartSec (600 s) and trigger SIGKILL, so re-auth is skipped and the

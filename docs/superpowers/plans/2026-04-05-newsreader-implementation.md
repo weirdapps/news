@@ -2003,7 +2003,7 @@ from news.models import Article
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """You are a personal news analyst for a senior banking executive at National Bank of Greece.
+_SYSTEM_PROMPT = """You are a personal news analyst.
 Your job is to synthesize news articles into an intelligence brief.
 
 RULES:

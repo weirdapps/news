@@ -589,7 +589,7 @@ git commit -m "feat(tagger): rules-based ticker extraction (cashtag + name dict)
 
 **Critical: NO `anthropic` SDK dependency.** All LLM calls in this codebase MUST go through the local `claude` CLI via subprocess — which on this machine is configured to route via Vertex AI. Adding the SDK would bypass that routing, which is wrong. Reuse the existing `invoke_claude()` helper in `news/synthesizer.py:143-203`.
 
-**Model choice:** Default to `sonnet` (Sonnet 4.6) per user preference — cost is covered, quality is the constraint. The synthesizer already accepts `claude_args` like `["--model", "sonnet"]` from settings.yaml — same pattern.
+**Model choice:** Default to `sonnet` (Sonnet 4.6) per user preference: quality is the constraint. The synthesizer already accepts `claude_args` like `["--model", "sonnet"]` from settings.yaml — same pattern.
 
 - [ ] **Step 1: Add `tagger` config block to `settings.yaml`**
 
