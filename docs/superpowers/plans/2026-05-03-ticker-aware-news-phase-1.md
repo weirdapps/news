@@ -6,7 +6,7 @@
 
 **Architecture:** Mirror the existing `article_categories` junction-table pattern with a parallel `article_tickers(article_url, ticker)` junction. Tag tickers at ingest using a two-stage tagger: rules first (cashtag regex + curated `name → ticker` dictionary), Anthropic Haiku fallback for articles in market-relevant categories where rules find nothing. Backfill the existing 49K articles with the same tagger. Extend `mcp__news-reader__search_news` with a `ticker` filter and add a new `recent_for_tickers` tool. Patch the trading committee's `load_news_feed()` SQL to optionally restrict by portfolio tickers.
 
-**Tech Stack:** Python 3.12+, SQLite + FTS5, FastMCP, `claude` CLI via subprocess (reuses the pattern in `news/synthesizer.py:143-203` — routes via Vertex AI / NBG-billed; never the anthropic SDK), pytest with in-memory SQLite. Reuses existing `news/storage.py`, `news/processor.py`, `news/query.py`, `news/mcp_server.py`. Static ticker dictionary auto-generated from `~/SourceCode/etorotrade/yahoofinance/output/etoro.csv`. LLM tagging defaults to Sonnet (configurable).
+**Tech Stack:** Python 3.12+, SQLite + FTS5, FastMCP, `claude` CLI via subprocess (reuses the pattern in `news/synthesizer.py:143-203` — routes via Vertex AI; never the anthropic SDK), pytest with in-memory SQLite. Reuses existing `news/storage.py`, `news/processor.py`, `news/query.py`, `news/mcp_server.py`. Static ticker dictionary auto-generated from `~/SourceCode/etorotrade/yahoofinance/output/etoro.csv`. LLM tagging defaults to Sonnet (configurable).
 
 **Out of scope (deferred to Phase 2 and Phase 3):**
 - yfinance ticker fetcher (Phase 2 — adds new articles per portfolio + watchlist)
@@ -580,14 +580,14 @@ git commit -m "feat(tagger): rules-based ticker extraction (cashtag + name dict)
 
 ---
 
-## Task 6: LLM fallback tagger via `claude` CLI (Vertex-routed, NBG-billed)
+## Task 6: LLM fallback tagger via `claude` CLI (Vertex-routed)
 
 **Files:**
 - Modify: `~/news/news/tagger.py`
 - Modify: `~/news/config/settings.yaml` (add `tagger` block)
 - Test: `~/news/tests/test_tagger_llm.py`
 
-**Critical: NO `anthropic` SDK dependency.** All LLM calls in this codebase MUST go through the local `claude` CLI via subprocess — which on this machine is configured to route via Vertex AI and is billed to National Bank of Greece. Adding the SDK would route through the user's personal API key billing, which is wrong. Reuse the existing `invoke_claude()` helper in `news/synthesizer.py:143-203`.
+**Critical: NO `anthropic` SDK dependency.** All LLM calls in this codebase MUST go through the local `claude` CLI via subprocess — which on this machine is configured to route via Vertex AI. Adding the SDK would bypass that routing, which is wrong. Reuse the existing `invoke_claude()` helper in `news/synthesizer.py:143-203`.
 
 **Model choice:** Default to `sonnet` (Sonnet 4.6) per user preference — cost is covered, quality is the constraint. The synthesizer already accepts `claude_args` like `["--model", "sonnet"]` from settings.yaml — same pattern.
 
@@ -598,7 +598,7 @@ In `~/news/config/settings.yaml`, after the existing `synthesis:` block (around 
 ```yaml
 tagger:
   enabled: true
-  model: "sonnet"          # Sonnet by default (NBG-billed via Vertex)
+  model: "sonnet"          # Sonnet by default (via Vertex)
   timeout_seconds: 30
   max_text_chars: 4000     # Truncate input to bound latency
   fallback_categories:     # Only call LLM for articles in these categories
@@ -727,7 +727,7 @@ def extract_tickers_llm(
 ) -> list[str]:
     """Call the local `claude` CLI to extract tickers. Returns sorted unique uppercase list.
 
-    Routes via Vertex AI (NBG-billed) — never the anthropic SDK with personal API key.
+    Routes via Vertex AI, never the anthropic SDK.
     Returns [] on any error (CLI missing, non-zero exit, malformed JSON, timeout).
     """
     prompt = _TAGGER_PROMPT + text[:max_chars]
@@ -782,7 +782,7 @@ Expected: `['AAPL', 'MSFT']` (or a superset). If it returns `[]`, the `claude` C
 
 ```bash
 git add news/tagger.py tests/test_tagger_llm.py config/settings.yaml
-git commit -m "feat(tagger): LLM fallback via claude CLI (Vertex/NBG-billed, Sonnet default)"
+git commit -m "feat(tagger): LLM fallback via claude CLI (Vertex, Sonnet default)"
 ```
 
 ---

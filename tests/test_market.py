@@ -73,6 +73,26 @@ def test_build_market_prompt_includes_articles_and_schema():
     assert "macro_rates" in prompt
 
 
+def test_load_persona_defaults_when_local_file_missing_or_empty(tmp_path):
+    from news.market_synth import _DEFAULT_PERSONA, load_persona
+
+    assert load_persona(tmp_path / "absent.txt") == _DEFAULT_PERSONA
+    empty = tmp_path / "empty.txt"
+    empty.write_text("  \n", encoding="utf-8")
+    assert load_persona(empty) == _DEFAULT_PERSONA
+
+
+def test_build_market_prompt_uses_local_persona(tmp_path, monkeypatch):
+    import news.market_synth as ms
+
+    persona = tmp_path / "persona.local.txt"
+    persona.write_text("The reader is a test fixture.\n", encoding="utf-8")
+    monkeypatch.setattr(ms, "_PERSONA_PATH", persona)
+    prompt = ms.build_market_prompt([_mk_article("Fed holds rates steady")])
+    assert "The reader is a test fixture." in prompt
+    assert "{reader_profile}" not in prompt
+
+
 def test_market_fallback_lists_headlines():
     from news.market_synth import build_market_fallback
 

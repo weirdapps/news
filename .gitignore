@@ -57,6 +57,10 @@ config/monitor/keywords.yaml
 # sat untracked and un-ignored in a checkout, one `git add -A` from publication.
 config/monitor/*.bak*
 
+# Personal reader profile for the market synthesis prompt (loaded if present;
+# news/market_synth.py falls back to a neutral default). Trailing * covers backups.
+config/market/persona.local.txt*
+
 # Personal launchd plists (per-machine deployment artifacts).
 # Tracked .example.plist templates show forkers the schema.
 launchd/com.news.digest.plist

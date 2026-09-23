@@ -14,15 +14,39 @@ from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 from typing import Any
 
 from news.synthesizer import invoke_claude, parse_synthesis_output
 
 logger = logging.getLogger(__name__)
 
+# The reader profile is personal, so it lives in a gitignored local file on each host
+# that runs the pipeline. Without it the prompt falls back to a neutral profile.
+_PERSONA_PATH = Path(__file__).parent.parent / "config" / "market" / "persona.local.txt"
+
+_DEFAULT_PERSONA = (
+    "The reader runs a global, long-biased equity book. Home currency EUR. "
+    "They want ONE thing: **what is moving markets, and why it matters to a book like theirs.**"
+)
+
+
+def load_persona(path: Path | None = None) -> str:
+    """The reader profile from the local persona file, or the neutral default."""
+    path = path or _PERSONA_PATH
+    try:
+        text = path.read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        return _DEFAULT_PERSONA
+    except OSError as exc:
+        logger.warning("market persona unreadable (%s): %s", path, exc)
+        return _DEFAULT_PERSONA
+    return text or _DEFAULT_PERSONA
+
+
 _SYSTEM_PROMPT = """You are a senior markets strategist writing the market-moving-news section of a daily investment brief for a professional investor.
 
-The reader runs a global, long-biased equity book (~$1.1M, ~44 holdings): US mega-cap tech (NVDA, MSFT, GOOG, AMZN, AVGO), Greater-China & HK (Alibaba, Tencent, Geely, Great Wall, ICBC), Japan (Itochu, Kawasaki, Suzuki), Europe (Deutsche Telekom, VW, Santander, UniCredit), gold (GLD), a Greek ETF (ATHEX), plus selective EM and small crypto exposure. Home currency EUR. They want ONE thing: **what is moving markets, and why it matters to a book like theirs.**
+{reader_profile}
 
 You will receive market/macro/commodity/crypto/Greece news articles. Your job:
 
@@ -36,7 +60,7 @@ You will receive market/macro/commodity/crypto/Greece news articles. Your job:
 3. **sectors_themes** — Sector rotations and themes (semis/AI, EV, banks, healthcare, luxury, defense).
 4. **commodities_energy** — Oil, gas, gold, metals, OPEC.
 5. **crypto** — Bitcoin/ether, ETF flows, regulation — only if genuinely market-moving.
-6. **greece_athex** — Greek market / ATHEX / Greek banks (reader is NBG + holds a Greek ETF).
+6. **greece_athex** — Greek market / ATHEX / Greek banks.
 
 **RULES:**
 1. Curate ruthlessly — quality over quantity. Skip entire sections if nothing meaningful happened.
@@ -108,7 +132,11 @@ def build_market_prompt(
     if previous_highlights:
         context["previous_highlights"] = previous_highlights
 
-    return f"""{_SYSTEM_PROMPT}
+    # str.replace, never str.format: _SYSTEM_PROMPT carries the literal { } of the
+    # output JSON schema.
+    system_prompt = _SYSTEM_PROMPT.replace("{reader_profile}", load_persona())
+
+    return f"""{system_prompt}
 
 **CONTEXT:**
 {json.dumps(context, ensure_ascii=False)}

@@ -40,7 +40,7 @@ fetch → process → store → synthesize → deliver
 | `news/topic_synth.py` | synthesize (topic) | Topic-focused prompt + Google News RSS builder |
 | `news/deliver.py` | deliver | Jinja2 HTML → outlook-cli |
 
-LLM calls go through the local `claude` CLI subprocess (Vertex AI, NBG-billed) — see `news/synthesizer.py:143-203`.
+LLM calls go through the local `claude` CLI subprocess (Vertex AI) — see `news/synthesizer.py:143-203`.
 
 ## Tech Stack
 
@@ -58,6 +58,8 @@ config/monitor/             # monitor profile
   sources.yaml              # brand RSS feeds (gitignored — copy from *.example.*)
   keywords.yaml             # brand identity: names, leadership, competitors (gitignored)
   settings.yaml
+config/market/              # market profile
+  persona.local.txt         # reader profile for the market prompt (gitignored; neutral default if absent)
 config/topic/               # topic profile
   settings.yaml
 ```
