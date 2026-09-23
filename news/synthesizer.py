@@ -323,7 +323,7 @@ def invoke_claude(
         """Map the opus/sonnet tier alias in bare_args to (exact id, region).
 
         The bare "opus" alias resolves to an unprovisioned eu quota bucket (429); the
-        heavy-tier id claude-opus-5[1m] is the provisioned model. Region must track
+        heavy-tier id claude-opus-5-5[1m] is the provisioned model. Region must track
         the model: Opus -> eu, Sonnet -> europe-west1 (central ~/.config/nbg-vertex/env).
         """
         if "--model" in bare_args:
@@ -332,7 +332,7 @@ def invoke_claude(
                 tier = bare_args[i].lower()
                 if "opus" in tier:
                     return (
-                        os.environ.get("VERTEX_MODEL_HEAVY", "claude-opus-5[1m]"),
+                        os.environ.get("VERTEX_MODEL_HEAVY", "claude-opus-5-5[1m]"),
                         os.environ.get("VERTEX_REGION_HEAVY", "eu"),
                     )
                 if "sonnet" in tier:

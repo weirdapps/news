@@ -67,7 +67,7 @@ _load_dotenv(_PROJECT_ROOT / ".env")
 # the parent process happens to carry. On the VPS the parent carries `eu`, which is
 # precisely wrong for the sonnet tier both of them ask for.
 _TIER_DEFAULTS = {
-    "opus": ("VERTEX_MODEL_HEAVY", "claude-opus-5[1m]", "VERTEX_REGION_HEAVY", "eu"),
+    "opus": ("VERTEX_MODEL_HEAVY", "claude-opus-5-5[1m]", "VERTEX_REGION_HEAVY", "eu"),
     "sonnet": ("VERTEX_MODEL_LIGHT", "claude-sonnet-4-6", "VERTEX_REGION_LIGHT", "europe-west1"),
 }
 
