@@ -176,6 +176,72 @@ def parse_rss_feed(xml_content: str, source_config: dict[str, Any]) -> list[Arti
     return articles
 
 
+# Third-party XML: never resolve entities or reach the network while parsing it.
+_SAFE_XML_PARSER = lxml.etree.XMLParser(resolve_entities=False, no_network=True)
+_SITEMAP_NS = {
+    "s": "http://www.sitemaps.org/schemas/sitemap/0.9",
+    "news": "http://www.google.com/schemas/sitemap-news/0.9",
+}
+
+
+def _sitemap_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.strip()).astimezone(UTC)
+    except ValueError:
+        return None
+
+
+def parse_news_sitemap(xml_content: bytes | str, source_config: dict[str, Any]) -> list[Article]:
+    """Extract articles from a Google News sitemap (outlets that publish no RSS).
+
+    Each <url> carries the article link, its headline and its publication time,
+    and nothing else, so the article body stays empty: give such a source
+    min_words: 0, and require_mention if it covers everything the outlet prints.
+
+    Args:
+        xml_content: Raw sitemap XML
+        source_config: source configuration with name, category, language
+
+    Returns:
+        List of Article instances; empty when the markup is not a news sitemap
+    """
+    raw = xml_content.encode("utf-8") if isinstance(xml_content, str) else xml_content
+    try:
+        root = lxml.etree.fromstring(raw, parser=_SAFE_XML_PARSER)
+    except lxml.etree.XMLSyntaxError:
+        return []
+
+    articles: list[Article] = []
+    for node in root.findall("s:url", _SITEMAP_NS):
+        url = (node.findtext("s:loc", namespaces=_SITEMAP_NS) or "").strip()
+        title = " ".join(
+            (node.findtext("news:news/news:title", namespaces=_SITEMAP_NS) or "").split()
+        )
+        if not url or not title:
+            continue
+        published_at = (
+            _sitemap_datetime(
+                node.findtext("news:news/news:publication_date", namespaces=_SITEMAP_NS)
+            )
+            or _sitemap_datetime(node.findtext("s:lastmod", namespaces=_SITEMAP_NS))
+            or datetime.now(UTC)
+        )
+        articles.append(
+            Article(
+                url=url,
+                title=title,
+                source=source_config["name"],
+                content="",
+                categories=[source_config["category"]],
+                language=source_config["language"],
+                published_at=published_at,
+            )
+        )
+    return articles
+
+
 async def _fetch_single_feed(
     source: dict[str, Any],
     client: httpx.AsyncClient,
@@ -199,7 +265,10 @@ async def _fetch_single_feed(
                 follow_redirects=True,
             )
             response.raise_for_status()
-            articles = parse_rss_feed(response.text, source)
+            if source.get("format") == "news_sitemap":
+                articles = parse_news_sitemap(response.content, source)
+            else:
+                articles = parse_rss_feed(response.text, source)
             return articles, None
         except Exception as e:
             error_msg = f"{source['name']}: {type(e).__name__}: {str(e)}"

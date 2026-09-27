@@ -539,6 +539,17 @@ def test_regulator_mention_earns_the_regulatory_bonus():
     assert _brand_score("Central Bank of Ruritania raises capital buffers", keywords) == 35
 
 
+def test_competitor_false_positive_phrase_is_not_a_mention():
+    """A software product sharing a competitor's name ("Linedata Prima") is not the
+    competitor. competitors.<key>.false_positives are cut out before matching."""
+    keywords = {
+        "competitors": {"prima": {"names": ["Prima"], "false_positives": ["Linedata Prima"]}}
+    }
+    assert _brand_score("Insurer deploys Linedata Prima for fund accounting", keywords) == 0
+    assert _brand_score("Prima raises its guidance", keywords) == 40
+    assert _brand_score("Linedata Prima rollout ends; Prima raises its guidance", keywords) == 40
+
+
 def test_company_competitor_and_regulator_bonuses_add_up():
     keywords = {
         "company": {"names": ["AcmeCorp"]},

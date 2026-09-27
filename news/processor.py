@@ -128,11 +128,20 @@ def brand_mentions(article: Article, keywords_config: dict) -> set[str]:
             if isinstance(name, str)
         )
     )
-    competitor_names = [
-        name
-        for comp in (keywords_config.get("competitors") or {}).values()
-        for name in comp.get("names") or []
-    ]
+    competitors = keywords_config.get("competitors") or {}
+    competitor_names = [name for comp in competitors.values() for name in comp.get("names") or []]
+    # A product that shares a competitor's name is not the competitor.
+    competitor_false_positives = _names_pattern(
+        tuple(
+            phrase
+            for comp in competitors.values()
+            for phrase in comp.get("false_positives") or []
+            if isinstance(phrase, str)
+        )
+    )
+    competitor_text = (
+        competitor_false_positives.sub(" ", text) if competitor_false_positives else text
+    )
     regulator_names = keywords_config.get("regulators") or []
 
     found: set[str] = set()
@@ -141,7 +150,7 @@ def brand_mentions(article: Article, keywords_config: dict) -> set[str]:
         own_text = entities.sub(" ", own_text)
     if mentions_any(own_text, company.get("names") or []):
         found.add("company")
-    if mentions_any(text, competitor_names):
+    if mentions_any(competitor_text, competitor_names):
         found.add("competitor")
     if mentions_any(text, regulator_names):
         found.add("regulator")
