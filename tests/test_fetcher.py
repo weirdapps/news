@@ -1,5 +1,7 @@
+import json
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from email.utils import format_datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -14,6 +16,7 @@ from news.fetcher import (
     parse_api_items,
     parse_changelog_sections,
     parse_html_listing,
+    parse_json_items,
     parse_news_sitemap,
     parse_rss_feed,
 )
@@ -936,3 +939,324 @@ def test_dateless_entry_actually_persists():
 
     assert insert_article(conn, article) is True
     assert conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0] == 1
+
+
+# --- JSON press offices (newsrooms that publish no RSS) --------------------------
+
+_PRESS_JSON = {
+    "articleResponse": {
+        "Total": 2,
+        "Articles": [
+            {
+                "Title": "  ANNOUNCEMENT ON PURCHASE OF OWN SHARES\r\n ",
+                "Link": "/press/23-09-26-own-shares",
+                "FullDateDateTime": "2026-09-23T00:00:00+00:00",
+            },
+            {
+                "Title": "ANNOUNCEMENT ON PURCHASE OF OWN SHARES",
+                "Link": "/press/16-09-26-own-shares",
+                "FullDateDateTime": "2026-09-16T00:00:00+00:00",
+            },
+        ],
+    }
+}
+
+_JSON_CFG = {
+    "name": "Acme Press",
+    "url": "https://acme.example/api/press?lang=el",
+    "category": "company_direct",
+    "tier": 1,
+    "language": "gr",
+    "format": "json",
+    "method": "POST",
+    "body": {"Skip": 0, "PageSize": 10},
+    "items_key": "Articles",
+    "title": "{Title}",
+    "link": "https://acme.example{Link}",
+    "date": "FullDateDateTime",
+}
+
+
+def test_parse_json_items_maps_fields_through_the_configured_templates():
+    articles = parse_json_items(json.dumps(_PRESS_JSON), _JSON_CFG)
+
+    assert [a.url for a in articles] == [
+        "https://acme.example/press/23-09-26-own-shares",
+        "https://acme.example/press/16-09-26-own-shares",
+    ]
+    assert articles[0].title == "ANNOUNCEMENT ON PURCHASE OF OWN SHARES"
+    assert articles[0].source == "Acme Press"
+    assert articles[0].categories == ["company_direct"]
+
+
+def test_parse_json_items_reads_a_date_only_stamp_as_the_end_of_that_day():
+    """A press office stamps releases with the date alone; midnight would age a
+    late-evening release out of the 24h window before anyone saw it."""
+    [first, _] = parse_json_items(json.dumps(_PRESS_JSON), _JSON_CFG)
+
+    assert first.published_at == datetime(2026, 9, 24, tzinfo=UTC)
+
+
+def test_parse_json_items_keeps_a_recurring_title_distinct_by_date():
+    """Weekly notices share one title. Without the date in the hashed body the second
+    week is dropped as a duplicate of the first, and so is any later board notice."""
+    first, second = parse_json_items(json.dumps(_PRESS_JSON), _JSON_CFG)
+    first.compute_hash()
+    second.compute_hash()
+
+    assert first.content_hash != second.content_hash
+
+
+def test_parse_json_items_reads_greek_month_abbreviations():
+    # The newsroom API writes July in capitals with a stray tonos on the upsilon,
+    # U+038E. Built from its code point so the fixture carries the exact character.
+    july = "ΙΟ" + chr(0x38E) + "Λ. 30, 2026"
+    payload = {
+        "results": {
+            "data": [{"title": "Record half-year", "url": "/news/h1", "publishDateString": july}]
+        }
+    }
+    cfg = {
+        **_JSON_CFG,
+        "method": "GET",
+        "items_key": "data",
+        "title": "{title}",
+        "link": "https://acme.example{url}",
+        "date": "publishDateString",
+    }
+
+    [article] = parse_json_items(json.dumps(payload), cfg)
+
+    assert article.published_at == datetime(2026, 7, 31, tzinfo=UTC)
+
+
+def test_parse_json_items_reads_json_embedded_in_a_page_script():
+    """Some newsrooms render server-side and ship the items as escaped JSON state."""
+    page = (
+        '<html><body><script id="my-app-state" type="application/json">'
+        "{&q;route&q;:{&q;items&q;:[{&q;Subtitle&q;:&q;Acme wins\\nan award&q;,"
+        "&q;ParentUrl&q;:&q;/press&q;,&q;Slug&q;:&q;award-2026&q;,"
+        "&q;Date&q;:&q;2026-09-24T10:40:00Z&q;}]}}"
+        "</script></body></html>"
+    )
+    cfg = {
+        **_JSON_CFG,
+        "method": "GET",
+        "script_id": "my-app-state",
+        "items_key": "items",
+        "title": "{Subtitle}",
+        "link": "https://acme.example{ParentUrl}/{Slug}",
+        "date": "Date",
+    }
+
+    [article] = parse_json_items(page, cfg)
+
+    assert article.url == "https://acme.example/press/award-2026"
+    assert article.title == "Acme wins an award"
+    assert article.published_at == datetime(2026, 9, 24, 10, 40, tzinfo=UTC)
+
+
+def test_parse_json_items_returns_nothing_when_the_shape_is_unexpected():
+    assert parse_json_items("<html>blocked</html>", _JSON_CFG) == []
+    assert parse_json_items(json.dumps({"other": []}), _JSON_CFG) == []
+
+
+def _mock_async_client(mock_client_cls, get_pages=None, post_payload=None):
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    def respond(body):
+        resp = Mock()
+        resp.text = body if isinstance(body, str) else body.decode()
+        resp.content = body.encode() if isinstance(body, str) else body
+        resp.raise_for_status = Mock()
+        return resp
+
+    if get_pages is not None:
+        mock_client.get = AsyncMock(side_effect=lambda url, **kw: respond(get_pages[url]))
+    if post_payload is not None:
+        mock_client.post = AsyncMock(return_value=respond(post_payload))
+    mock_client_cls.return_value = mock_client
+    return mock_client
+
+
+@pytest.mark.asyncio
+async def test_fetch_all_sources_posts_the_configured_body_for_a_json_source():
+    with patch("news.fetcher.httpx.AsyncClient") as mock_client_cls:
+        client = _mock_async_client(mock_client_cls, post_payload=json.dumps(_PRESS_JSON))
+
+        articles, errors = await fetch_all_sources({"rss_feeds": [_JSON_CFG]})
+
+    assert errors == []
+    assert len(articles) == 2
+    assert client.post.call_args.kwargs["json"] == {"Skip": 0, "PageSize": 10}
+
+
+# --- Paging ----------------------------------------------------------------------
+
+
+def _issuer_rss(items):
+    """RSS page of exchange filings: (ticker, title, datetime) per item."""
+    entries = "".join(
+        f"<item><title>{title}</title>"
+        f"<link>https://exchange.example/a/{ticker}-{int(when.timestamp())}</link>"
+        f"<description>please see the attachment</description>"
+        f"<pubDate>{format_datetime(when)}</pubDate>"
+        f"<hlxcd:helex-company-data><hlxcd:company-name>{ticker} S.A.</hlxcd:company-name>"
+        f"<hlxcd:company-ticker-symbol>{ticker}</hlxcd:company-ticker-symbol>"
+        f"</hlxcd:helex-company-data></item>"
+        for ticker, title, when in items
+    )
+    return (
+        '<?xml version="1.0" encoding="utf-8"?><rss version="2.0" '
+        'xmlns:hlxcd="https://exchange.example/hlxcd"><channel><title>x</title>'
+        f"{entries}</channel></rss>"
+    )
+
+
+_EXCHANGE_CFG = {
+    "name": "Exchange",
+    "url": "https://exchange.example/rss",
+    "category": "company_stock",
+    "language": "en",
+    "issuers": ["ACME"],
+    "paging": {"mode": "date_cursor", "param": "date", "lookback_hours": 12, "max_pages": 5},
+}
+
+
+@pytest.mark.asyncio
+async def test_date_cursor_paging_walks_back_from_the_oldest_item_of_every_page():
+    """The cursor comes from the oldest item on the page, tracked issuer or not."""
+    now = datetime.now(UTC).replace(microsecond=0)
+    oldest_on_first = now - timedelta(hours=3)
+    pages = {
+        "https://exchange.example/rss": _issuer_rss(
+            [
+                ("ACME", "Board of Directors", now - timedelta(hours=1)),
+                ("WIDG", "Notice", oldest_on_first),
+            ]
+        ),
+        "https://exchange.example/rss?date="
+        + oldest_on_first.strftime("%Y-%m-%dT%H:%M:%SZ"): _issuer_rss(
+            [
+                ("ACME", "Purchase of own shares", now - timedelta(hours=11)),
+                ("WIDG", "Notice", now - timedelta(hours=13)),
+            ]
+        ),
+    }
+    with patch("news.fetcher.httpx.AsyncClient") as mock_client_cls:
+        client = _mock_async_client(mock_client_cls, get_pages=pages)
+
+        articles, errors = await fetch_all_sources({"rss_feeds": [_EXCHANGE_CFG]})
+
+    assert errors == []
+    assert client.get.call_count == 2, "the second page reached past the 12h horizon"
+    assert [a.title for a in articles] == [
+        "ACME S.A.: Board of Directors",
+        "ACME S.A.: Purchase of own shares",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_offset_paging_advances_the_offset_by_the_page_size():
+    now = datetime.now(UTC).replace(microsecond=0)
+
+    def sitemap(items):
+        urls = "".join(
+            f"<url><loc>https://wire.example/{slug}</loc><news:news>"
+            f"<news:publication_date>{when.isoformat()}</news:publication_date>"
+            f"<news:title>{slug}</news:title></news:news></url>"
+            for slug, when in items
+        )
+        return (
+            '<?xml version="1.0" encoding="UTF-8"?><urlset '
+            'xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+            'xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">'
+            f"{urls}</urlset>"
+        )
+
+    cfg = {
+        "name": "Wire",
+        "url": "https://wire.example/sitemap?outputType=xml&size=2",
+        "category": "sector",
+        "language": "en",
+        "format": "news_sitemap",
+        "paging": {
+            "mode": "offset",
+            "param": "from",
+            "step": 2,
+            "lookback_hours": 12,
+            "max_pages": 5,
+        },
+    }
+    pages = {
+        cfg["url"]: sitemap([("a", now - timedelta(hours=1)), ("b", now - timedelta(hours=2))]),
+        cfg["url"] + "&from=2": sitemap(
+            [("c", now - timedelta(hours=5)), ("d", now - timedelta(hours=14))]
+        ),
+    }
+    with patch("news.fetcher.httpx.AsyncClient") as mock_client_cls:
+        client = _mock_async_client(mock_client_cls, get_pages=pages)
+
+        articles, errors = await fetch_all_sources({"rss_feeds": [cfg]})
+
+    assert errors == []
+    assert client.get.call_count == 2
+    assert [a.title for a in articles] == ["a", "b", "c", "d"]
+
+
+@pytest.mark.asyncio
+async def test_paging_says_so_when_it_stops_at_the_page_cap(caplog):
+    """No silent caps: stopping before the horizon is logged."""
+    now = datetime.now(UTC).replace(microsecond=0)
+    t1, t2 = now - timedelta(hours=1), now - timedelta(hours=2)
+    cfg = {**_EXCHANGE_CFG, "paging": {**_EXCHANGE_CFG["paging"], "max_pages": 2}}
+    pages = {
+        "https://exchange.example/rss": _issuer_rss([("ACME", "One", t1)]),
+        "https://exchange.example/rss?date=" + t1.strftime("%Y-%m-%dT%H:%M:%SZ"): _issuer_rss(
+            [("ACME", "Two", t2)]
+        ),
+    }
+    with patch("news.fetcher.httpx.AsyncClient") as mock_client_cls:
+        _mock_async_client(mock_client_cls, get_pages=pages)
+        with caplog.at_level(logging.WARNING, logger="news.fetcher"):
+            articles, _ = await fetch_all_sources({"rss_feeds": [cfg]})
+
+    assert len(articles) == 2
+    assert "stopped at 2 pages" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_paging_stops_when_the_cursor_does_not_move():
+    """A feed that ignores the cursor returns the same page forever."""
+    now = datetime.now(UTC).replace(microsecond=0)
+    t1 = now - timedelta(hours=1)
+    same = _issuer_rss([("ACME", "One", t1)])
+    pages = {
+        "https://exchange.example/rss": same,
+        "https://exchange.example/rss?date=" + t1.strftime("%Y-%m-%dT%H:%M:%SZ"): same,
+    }
+    with patch("news.fetcher.httpx.AsyncClient") as mock_client_cls:
+        client = _mock_async_client(mock_client_cls, get_pages=pages)
+
+        articles, errors = await fetch_all_sources({"rss_feeds": [_EXCHANGE_CFG]})
+
+    assert errors == []
+    assert client.get.call_count == 2
+    assert len(articles) == 1
+
+
+def test_issuer_filings_with_a_recurring_title_hash_differently_by_date():
+    now = datetime.now(UTC).replace(microsecond=0)
+    xml = _issuer_rss(
+        [
+            ("ACME", "Board of Directors", now - timedelta(days=90)),
+            ("ACME", "Board of Directors", now),
+        ]
+    )
+    older, newer = parse_rss_feed(xml, _EXCHANGE_CFG)
+    older.compute_hash()
+    newer.compute_hash()
+
+    assert older.content_hash != newer.content_hash

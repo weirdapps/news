@@ -56,6 +56,11 @@ competitors:
     symbols:
       - "EUROB.AT"
 
+# Phrases for a story about your sector as a whole, which names no single
+# company. They earn scoring.sector_mention and open the require_mention gate.
+sector_terms:
+  - "your industry sector"
+
 # Regulatory bodies. A mention earns settings.yaml scoring.regulatory_mention.
 regulators:
   - "Bank of Greece"

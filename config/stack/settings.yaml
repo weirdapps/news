@@ -2,14 +2,11 @@
 # Daily AI/dev intelligence at 13:00 Athens
 
 pipeline:
-  relevance_threshold: 15
-  max_articles_per_category: 10
   max_article_age_hours: 36
   min_article_length_words: 10
   digest_window_hours: 36
   max_digest_articles: 150
   max_articles_per_source: 8
-  dedup_hash_chars: 200
 
 email:
   recipient: ${NEWS_STACK_RECIPIENT:-user@example.com}
@@ -25,8 +22,6 @@ storage:
   # Written by scripts/youtube_harvest.py on the Mac (YouTube blocks the VPS by
   # IP) and rsynced here. Read-only on this side; absent means no enrichment.
   transcripts_db_path: ~/SourceCode/news/data/transcripts.db
-  archive_dir: ~/SourceCode/news/data/archive
-  archive_after_days: 30
 
 synthesis:
   claude_command: ${NEWS_CLAUDE_COMMAND:-claude}
@@ -63,8 +58,6 @@ synthesis:
   max_retries: 2
 
 scoring:
-  company_mention: 0
-  greek_banking: 0
   claude_mention: 30
   category_match: 10
   tier_1_bonus: 15
