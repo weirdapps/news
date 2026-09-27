@@ -83,6 +83,11 @@ scoring:
   # Company direct mention — highest priority
   company_mention: 80
 
+  # Group entity mention (keywords.yaml company.entities) without the company
+  # itself. Below company_mention: most headlines naming a securities arm are its
+  # research notes on other companies. Defaults to company_mention when absent.
+  entity_mention: 60
+
   # Greek banking sector mention
   greek_banking: 40
 

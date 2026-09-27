@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import datetime
 from typing import Any
 
+from news.processor import fold, html_to_text
 from news.roster import build_roster
 from news.synthesizer import invoke_claude, parse_synthesis_output
 
@@ -65,6 +67,28 @@ def _disambiguation_section(false_positives: list[str]) -> str:
 **FALSE POSITIVE FILTERING (CRITICAL):**
 Phrases that look like the company name but are NOT — exclude articles where these are the only match:
 {lines}
+"""
+
+
+def _entities_section(entities: dict, short_name: str) -> str:
+    """Build the group-entities section, or '' when none are configured.
+
+    The prompt's first job is to verify which articles genuinely mention the
+    company, and a story about a subsidiary need not name the parent at all.
+    """
+    lines = []
+    for entity in (entities or {}).values():
+        names = entity.get("names") or []
+        if not names:
+            continue
+        also = f" (also written: {', '.join(names[1:])})" if len(names) > 1 else ""
+        lines.append(f"  - {names[0]}{also}")
+    if not lines:
+        return ""
+    return f"""
+**GROUP ENTITIES:**
+These belong to the {short_name} group. An article about any of them counts as a mention of {short_name}: keep it, and name the entity in its summary:
+{chr(10).join(lines)}
 """
 
 
@@ -155,6 +179,20 @@ This monitor runs every 2 hours during business hours. Each report must STAND AL
 Return ONLY valid JSON. No preamble, no markdown formatting."""
 
 
+def _snippet(article: Any) -> str:
+    """Plain-text body excerpt, or '' when the body only repeats the headline.
+
+    Feed bodies are HTML, and a Google News body is the headline wrapped in a
+    link plus the outlet's name, so the raw first 300 characters were mostly the
+    redirect URL: tokens spent telling the model nothing.
+    """
+    text = html_to_text(article.content or "")
+    title_words = set(re.findall(r"\w+", fold(article.title or "")))
+    if all(word in title_words for word in re.findall(r"\w+", fold(text))):
+        return ""
+    return text[:300]
+
+
 def _build_article_entry(article: Any, index: int, last_run_at: datetime | None) -> dict:
     """Build a single article entry for the monitor prompt."""
     is_new = True
@@ -166,7 +204,7 @@ def _build_article_entry(article: Any, index: int, last_run_at: datetime | None)
         "title": article.title,
         "source": article.source,
         "category": article.categories[0] if article.categories else "unknown",
-        "snippet": article.content[:300] if article.content else "",
+        "snippet": _snippet(article),
         "language": article.language,
         "is_new": is_new,
     }
@@ -175,6 +213,10 @@ def _build_article_entry(article: Any, index: int, last_run_at: datetime | None)
         entry["age_hours"] = round(
             (article.fetched_at - article.published_at).total_seconds() / 3600
         )
+
+    others = set(article.also_reported_by or []) - {article.source}
+    if others:
+        entry["also_reported_by_count"] = len(others)
 
     return entry
 
@@ -207,6 +249,7 @@ def build_monitor_prompt(
     sections = [
         _base_prompt(display),
         _disambiguation_section(company.get("false_positives", [])),
+        _entities_section(company.get("entities", {}), short_name),
         _competitor_section(competitors),
         build_roster(keywords_config),
         _output_format_section(short_name),

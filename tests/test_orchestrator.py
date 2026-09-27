@@ -159,6 +159,19 @@ def test_setup_digest_pipeline_collects_age_overrides_from_every_source_type(tmp
     assert config["source_max_age"] == {"The Agent Daily": 720}
 
 
+def test_setup_digest_pipeline_collects_word_floor_overrides(tmp_path):
+    sources = {
+        "rss_feeds": [
+            {"name": "TechCrunch", "tier": 1},
+            {"name": "Exchange Filings", "tier": 1, "min_words": 0},
+        ],
+    }
+
+    config = _setup_digest_pipeline(_settings_for_setup(tmp_path), sources)
+
+    assert config["source_min_words"] == {"Exchange Filings": 0}
+
+
 def test_setup_digest_pipeline_applies_declared_tiers_to_api_sources(tmp_path):
     """A tier declared on a non-RSS source must not silently score as tier 2."""
     sources = {
@@ -886,6 +899,123 @@ def test_a_monitor_run_with_nothing_new_is_delivered_not_degraded(tmp_path):
 
     assert delivered is True, "a quiet scan must not mark the unit failed"
     assert mock_send.call_count == 0, "a quiet scan must not email at all"
+
+
+def test_a_monitor_run_keeps_nothing_unmentioned_from_a_require_mention_source(tmp_path):
+    """A whole-section publisher feed contributes only articles naming something tracked."""
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+    off_topic = Article(
+        url="https://outlet.example/tomatoes",
+        title="Tomato prices rise at the central market",
+        source="Outlet Economy",
+        content="A sentence long enough to survive the quality gate in these settings.",
+        categories=["sector"],
+        language="en",
+        published_at=datetime.now(UTC),
+    )
+    gated_sources = {
+        "rss_feeds": [
+            {
+                "name": "Outlet Economy",
+                "url": "https://outlet.example/rss",
+                "category": "sector",
+                "language": "en",
+                "require_mention": True,
+            }
+        ]
+    }
+    keywords = {"display": {"monitor_label": "Test Monitor"}, "company": {"names": ["AcmeCorp"]}}
+
+    with ExitStack() as stack:
+        for cm in _monitor_patches(tmp_path, conn, [off_topic], ("unused", False)):
+            stack.enter_context(cm)
+        stack.enter_context(patch("main.get_sources", return_value=gated_sources))
+        stack.enter_context(patch("main.get_keywords", return_value=keywords))
+        mock_insert = stack.enter_context(patch("main.insert_article"))
+        mock_send = stack.enter_context(patch("main.send_email", return_value=True))
+        delivered = asyncio.run(run_monitor_pipeline())
+
+    assert delivered is True
+    assert mock_insert.call_count == 0, "an off-topic article from a gated feed must not be stored"
+    assert mock_send.call_count == 0, "with nothing tracked left, the scan is quiet"
+
+
+def test_a_monitor_run_keeps_a_filing_whose_body_is_boilerplate(tmp_path):
+    """The monitor honours a source's min_words: exchange filings say 'see attached'."""
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+    filing = Article(
+        url="https://exchange.example/announcements/1",
+        title="ACME BANK S.A.: Board of Directors",
+        source="Exchange Filings",
+        content="<p>please see the attached announcement</p>",
+        categories=["company_stock"],
+        language="en",
+        published_at=datetime.now(UTC),
+    )
+    settings = _monitor_settings(tmp_path)
+    settings["pipeline"]["min_article_length_words"] = 10
+    sources = {
+        "rss_feeds": [
+            {
+                "name": "Exchange Filings",
+                "url": "https://exchange.example/rss",
+                "category": "company_stock",
+                "language": "en",
+                "min_words": 0,
+            }
+        ]
+    }
+
+    with ExitStack() as stack:
+        for cm in _monitor_patches(tmp_path, conn, [filing], ("fallback text", False)):
+            stack.enter_context(cm)
+        stack.enter_context(patch("main.get_settings", return_value=settings))
+        stack.enter_context(patch("main.get_sources", return_value=sources))
+        mock_insert = stack.enter_context(patch("main.insert_article"))
+        stack.enter_context(patch("main.send_email", return_value=True))
+        asyncio.run(run_monitor_pipeline())
+
+    assert mock_insert.call_count == 1, "the filing must survive the quality gate"
+
+
+def test_a_monitor_run_gives_one_prompt_slot_to_a_story_carried_by_several_feeds(tmp_path):
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+    own_feed = _monitor_article()
+    google_copy = Article(
+        url="https://news.google.com/rss/articles/CBMi-copy",
+        title=f"{own_feed.title} - Daily Outlet",
+        source="Bank Query",
+        content=own_feed.content,
+        categories=["company_direct"],
+        language="en",
+        published_at=own_feed.published_at,
+    )
+    good = {
+        "executive_brief": [{"text": "A bullet", "article_ids": [0]}],
+        "alerts": [],
+        "company_mentions": [],
+        "competitor_watch": {},
+        "sentiment_summary": {},
+    }
+
+    with ExitStack() as stack:
+        for cm in _monitor_patches(tmp_path, conn, [own_feed, google_copy], (good, True)):
+            stack.enter_context(cm)
+        mock_synth = stack.enter_context(
+            patch("main.synthesize_monitor", return_value=(good, True))
+        )
+        stack.enter_context(patch("main.send_email", return_value=True))
+        stack.enter_context(patch("news.reviewer.review_and_log", return_value=good))
+        asyncio.run(run_monitor_pipeline())
+
+    prompted = mock_synth.call_args.kwargs["articles"]
+    assert len(prompted) == 1, "the Google News copy of the same headline must not take a slot"
 
 
 # --- verdict propagation through the dispatcher --------------------------------

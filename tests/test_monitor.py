@@ -566,6 +566,90 @@ def test_build_monitor_prompt_skips_empty_sections():
     assert "Solo Co" in prompt
     assert "FALSE POSITIVE FILTERING" not in prompt  # skipped
     assert "COMPETITOR CONTEXT" not in prompt  # skipped
+    assert "GROUP ENTITIES" not in prompt  # skipped
+
+
+def test_build_monitor_prompt_tells_the_model_group_entities_count_as_the_company():
+    """Without this the model's 'verify it mentions the company' step drops subsidiary news."""
+    keywords = {
+        "display": {"full_name": "Acme Bank", "short_name": "ACME"},
+        "company": {
+            "false_positives": [],
+            "leadership": [],
+            "entities": {
+                "acme_am": {"names": ["Acme Asset Management", "Ακμή ΑΕΔΑΚ"]},
+                "acme_pay": {"names": ["Acme Pay"]},
+            },
+        },
+        "competitors": {},
+    }
+    prompt = build_monitor_prompt([], keywords, None, "last hour")
+    assert "GROUP ENTITIES" in prompt
+    assert "Acme Asset Management" in prompt
+    assert "Ακμή ΑΕΔΑΚ" in prompt
+    assert "Acme Pay" in prompt
+    assert "counts as a mention of ACME" in prompt
+
+
+def _prompt_articles(prompt: str) -> list[dict]:
+    context = prompt.split("**CONTEXT:**", 1)[1].split("**INSTRUCTIONS:**", 1)[0]
+    return json.loads(context)["articles"]
+
+
+def test_prompt_snippet_is_plain_text_not_feed_markup():
+    article = Article(
+        url="https://example.com/a",
+        title="Acme lifts its guidance",
+        source="Outlet Feed",
+        content="<p>Acme raised its <b>full-year</b> guidance &amp; its dividend.</p>",
+        categories=["company_direct"],
+        language="en",
+    )
+    [entry] = _prompt_articles(build_monitor_prompt([article], _TEST_KEYWORDS, None, "last hour"))
+    assert entry["snippet"] == "Acme raised its full-year guidance & its dividend."
+
+
+def test_prompt_snippet_is_dropped_when_it_only_repeats_the_headline():
+    """A Google News body is the headline wrapped in a link plus the outlet name."""
+    article = Article(
+        url="https://news.google.com/rss/articles/CBMiabc",
+        title="Acme lifts its guidance - Outlet",
+        source="Acme Query",
+        content=(
+            '<a href="https://news.google.com/rss/articles/CBMiabc" target="_blank">'
+            'Acme lifts its guidance</a>&nbsp;&nbsp;<font color="#6f6f6f">Outlet</font>'
+        ),
+        categories=["company_direct"],
+        language="en",
+    )
+    [entry] = _prompt_articles(build_monitor_prompt([article], _TEST_KEYWORDS, None, "last hour"))
+    assert entry["snippet"] == ""
+
+
+def test_prompt_entry_counts_the_other_feeds_that_carried_the_story():
+    """Breadth of coverage is a prominence signal the model cannot see otherwise."""
+    wide = Article(
+        url="https://example.com/wide",
+        title="Acme wins award",
+        source="Feed A",
+        content="",
+        categories=["company_direct"],
+        language="en",
+        also_reported_by=["Feed B", "Feed C", "Feed B"],
+    )
+    narrow = Article(
+        url="https://example.com/narrow",
+        title="Acme hires CFO",
+        source="Feed A",
+        content="",
+        categories=["company_direct"],
+        language="en",
+    )
+    wide_entry, narrow_entry = _prompt_articles(
+        build_monitor_prompt([wide, narrow], _TEST_KEYWORDS, None, "last hour")
+    )
+    assert wide_entry["also_reported_by_count"] == 2
+    assert "also_reported_by_count" not in narrow_entry
 
 
 def test_monitor_synth_module_has_no_brand_specific_literals():
