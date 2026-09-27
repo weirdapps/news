@@ -178,10 +178,6 @@ def parse_rss_feed(xml_content: str, source_config: dict[str, Any]) -> list[Arti
 
 # Third-party XML: never resolve entities or reach the network while parsing it.
 _SAFE_XML_PARSER = lxml.etree.XMLParser(resolve_entities=False, no_network=True)
-_SITEMAP_NS = {
-    "s": "http://www.sitemaps.org/schemas/sitemap/0.9",
-    "news": "http://www.google.com/schemas/sitemap-news/0.9",
-}
 
 
 def _sitemap_datetime(value: str | None) -> datetime | None:
@@ -214,18 +210,16 @@ def parse_news_sitemap(xml_content: bytes | str, source_config: dict[str, Any]) 
         return []
 
     articles: list[Article] = []
-    for node in root.findall("s:url", _SITEMAP_NS):
-        url = (node.findtext("s:loc", namespaces=_SITEMAP_NS) or "").strip()
-        title = " ".join(
-            (node.findtext("news:news/news:title", namespaces=_SITEMAP_NS) or "").split()
-        )
+    # {*} matches any namespace: the sitemap and sitemap-news namespaces are
+    # identifiers, and matching by local name also accepts a variant URI.
+    for node in root.findall("{*}url"):
+        url = (node.findtext("{*}loc") or "").strip()
+        title = " ".join((node.findtext("{*}news/{*}title") or "").split())
         if not url or not title:
             continue
         published_at = (
-            _sitemap_datetime(
-                node.findtext("news:news/news:publication_date", namespaces=_SITEMAP_NS)
-            )
-            or _sitemap_datetime(node.findtext("s:lastmod", namespaces=_SITEMAP_NS))
+            _sitemap_datetime(node.findtext("{*}news/{*}publication_date"))
+            or _sitemap_datetime(node.findtext("{*}lastmod"))
             or datetime.now(UTC)
         )
         articles.append(
