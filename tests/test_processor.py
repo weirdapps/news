@@ -550,6 +550,47 @@ def test_competitor_false_positive_phrase_is_not_a_mention():
     assert _brand_score("Linedata Prima rollout ends; Prima raises its guidance", keywords) == 40
 
 
+def test_sector_term_earns_the_sector_bonus():
+    keywords = {"sector_terms": ["Ruritanian banks"]}
+    scoring = {**_BRAND_ONLY_SCORING, "sector_mention": 20}
+    article = _make_article(title="Ruritanian banks post record profits")
+    assert compute_relevance_score(article, scoring, keywords_config=keywords) == 20
+
+
+def test_generic_sector_story_opens_the_require_mention_gate():
+    """A story about the country's banks as a group names no single bank."""
+    keywords = {"company": {"names": ["AcmeCorp"]}, "sector_terms": ["Ruritanian banks"]}
+    sector = _make_article(
+        title="Ruritanian banks post record profits",
+        url="https://outlet.example/s",
+        source="Outlet Economy",
+    )
+    miss = _make_article(
+        title="Tomato prices rise", url="https://outlet.example/t", source="Outlet Economy"
+    )
+
+    processed, _ = process_articles(
+        [sector, miss],
+        existing_hashes=set(),
+        categories_config={},
+        scoring_config={},
+        source_tiers={},
+        min_words=1,
+        keywords_config=keywords,
+        require_mention_sources={"Outlet Economy"},
+    )
+
+    assert [a.url for a in processed] == ["https://outlet.example/s"]
+
+
+def test_competitor_bonus_reads_competitor_mention():
+    """competitor_mention is the key; greek_banking is read only as a legacy fallback."""
+    keywords = {"competitors": {"xyz": {"names": ["XYZ Bank"]}}}
+    article = _make_article(title="XYZ Bank cuts fees")
+    scoring = {"competitor_mention": 40, "greek_banking": 5}
+    assert compute_relevance_score(article, scoring, keywords_config=keywords) == 40
+
+
 def test_company_competitor_and_regulator_bonuses_add_up():
     keywords = {
         "company": {"names": ["AcmeCorp"]},

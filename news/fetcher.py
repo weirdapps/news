@@ -6,12 +6,14 @@ their server-rendered listing pages for article links + titles instead.
 """
 
 import asyncio
+import json
 import logging
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
+from string import Formatter
 from typing import Any
-from urllib.parse import urljoin
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 import feedparser
 import httpx
@@ -20,6 +22,7 @@ import lxml.html
 
 from news.changelog_delta import changelog_delta, select_predecessor
 from news.models import Article
+from news.processor import fold, html_to_text
 
 logger = logging.getLogger(__name__)
 
@@ -169,8 +172,11 @@ def parse_rss_feed(xml_content: str, source_config: dict[str, Any]) -> list[Arti
         company = entry.get("hlxcd_company-name", "").strip()
         if issuers and company:
             # Filing titles are generic ("ANNOUNCEMENT ON PURCHASE OF OWN SHARES")
-            # and repeat across issuers, so they would collide in the content hash.
+            # and repeat across issuers and across weeks, so the company name goes in
+            # the title and the filing time in the body: without both, next month's
+            # board notice hashes like this month's and is dropped as a duplicate.
             article.title = f"{company}: {article.title}"
+            article.content = f"{article.published_at:%Y-%m-%d %H:%M} {article.content}"
         articles.append(article)
 
     return articles
@@ -236,12 +242,246 @@ def parse_news_sitemap(xml_content: bytes | str, source_config: dict[str, Any]) 
     return articles
 
 
+# Angular TransferState escaping, used by server-rendered newsrooms that ship their
+# items as JSON inside a <script> tag. "&a;" is undone last, or "&a;q;" would
+# unescape twice.
+_TRANSFER_STATE_ESCAPES = (("&q;", '"'), ("&s;", "'"), ("&l;", "<"), ("&g;", ">"), ("&a;", "&"))
+
+_MONTHS = {
+    "ιαν": 1, "φεβ": 2, "μαρ": 3, "απρ": 4, "μαι": 5, "ιουν": 6, "ιουλ": 7,
+    "αυγ": 8, "σεπ": 9, "οκτ": 10, "νοε": 11, "δεκ": 12,
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6, "jul": 7,
+    "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+}  # fmt: skip
+_MONTH_NAME_DATE_RE = re.compile(r"([^\W\d_]+)\.?\s+(\d{1,2}),?\s+(\d{4})")
+_NUMERIC_DATE_RE = re.compile(r"(\d{1,2})[./-](\d{1,2})[./-](\d{4})")
+
+
+def _loose_date(value: Any) -> tuple[datetime | None, bool]:
+    """Parse the date formats newsrooms use: ISO 8601, "SEP. 7, 2026" in Greek or
+    English, and dd.mm.yyyy. Returns (moment in UTC, whether it carries no time)."""
+    text = str(value or "").strip()
+    if not text:
+        return None, False
+    try:
+        moment = datetime.fromisoformat(text)
+        if moment.tzinfo is None:
+            moment = moment.replace(tzinfo=UTC)
+        moment = moment.astimezone(UTC)
+        return moment, (moment.hour, moment.minute, moment.second) == (0, 0, 0)
+    except ValueError:
+        pass
+    folded = fold(text)
+    named = _MONTH_NAME_DATE_RE.search(folded)
+    if named:
+        word, day, year = named.groups()
+        month = _MONTHS.get(word[:4]) or _MONTHS.get(word[:3])
+        if month:
+            try:
+                return datetime(int(year), month, int(day), tzinfo=UTC), True
+            except ValueError:
+                return None, False
+    numeric = _NUMERIC_DATE_RE.search(folded)
+    if numeric:
+        day, month, year = (int(g) for g in numeric.groups())
+        try:
+            return datetime(year, month, day, tzinfo=UTC), True
+        except ValueError:
+            return None, False
+    return None, False
+
+
+def _find_list(node: Any, key: str) -> list | None:
+    """The first list stored under `key`, depth first. Robust to where a page puts
+    its components, which a fixed path into the state is not."""
+    if isinstance(node, dict):
+        if isinstance(node.get(key), list):
+            return node[key]
+        children = list(node.values())
+    elif isinstance(node, list):
+        children = node
+    else:
+        return None
+    for child in children:
+        found = _find_list(child, key)
+        if found is not None:
+            return found
+    return None
+
+
+def _fill(template: str, item: dict[str, Any]) -> str | None:
+    """Format `template` with the item's fields; None when a referenced field is empty."""
+    names = [name for _, name, _, _ in Formatter().parse(template) if name]
+    if any(item.get(name) in (None, "") for name in names):
+        return None
+    return template.format_map({name: item[name] for name in names})
+
+
+def parse_json_items(text: str, source_config: dict[str, Any]) -> list[Article]:
+    """Extract articles from a newsroom that serves JSON instead of RSS.
+
+    The source config says where the list is (`items_key`, found anywhere in the
+    document), how to build each field (`title` and `link` are templates over the
+    item's keys, `date` names a field, `summary` is an optional template), and,
+    for a server-rendered page, which <script> carries the JSON (`script_id`).
+
+    A date with no time (a press office stamping only the day) counts as the end
+    of that day, never later than now: midnight would age a late-evening release
+    out of the 24h window before a run saw it. The day goes into the body, so
+    weekly notices that share a title do not collapse into one content hash.
+    """
+    script_id = source_config.get("script_id")
+    if script_id:
+        match = re.search(
+            rf'<script[^>]*\bid="{re.escape(script_id)}"[^>]*>(.*?)</script>', text, re.DOTALL
+        )
+        if not match:
+            return []
+        text = match.group(1)
+        for escaped, char in _TRANSFER_STATE_ESCAPES:
+            text = text.replace(escaped, char)
+    try:
+        payload = json.loads(text)
+    except ValueError:
+        return []
+
+    now = datetime.now(UTC)
+    articles: list[Article] = []
+    for item in _find_list(payload, source_config["items_key"]) or []:
+        if not isinstance(item, dict):
+            continue
+        title = " ".join((_fill(source_config["title"], item) or "").split())
+        url = (_fill(source_config["link"], item) or "").strip()
+        if not title or not url:
+            continue
+        moment, date_only = _loose_date(item.get(source_config.get("date", "")))
+        if moment is None:
+            published_at = now
+        elif date_only:
+            published_at = min(now, moment + timedelta(days=1))
+        else:
+            published_at = moment
+        summary = html_to_text(_fill(source_config.get("summary", ""), item) or "")
+        stamp = f"{moment:%Y-%m-%d %H:%M}" if moment else ""
+        articles.append(
+            Article(
+                url=url,
+                title=title,
+                source=source_config["name"],
+                content=f"{stamp} {summary}".strip(),
+                categories=[source_config["category"]],
+                language=source_config["language"],
+                published_at=published_at,
+            )
+        )
+    return articles
+
+
+async def _request_page(
+    source: dict[str, Any], client: httpx.AsyncClient, url: str
+) -> httpx.Response:
+    if str(source.get("method", "GET")).upper() == "POST":
+        response = await client.post(
+            url, json=source.get("body"), timeout=_REQUEST_TIMEOUT, follow_redirects=True
+        )
+    else:
+        response = await client.get(url, timeout=_REQUEST_TIMEOUT, follow_redirects=True)
+    response.raise_for_status()
+    return response
+
+
+def _entry_times(xml_content: str) -> list[datetime]:
+    times = []
+    for entry in feedparser.parse(xml_content).entries:
+        parsed = entry.get("published_parsed") or entry.get("updated_parsed")
+        if parsed:
+            year, month, day, hour, minute, second = parsed[:6]
+            times.append(datetime(year, month, day, hour, minute, second, tzinfo=UTC))
+    return times
+
+
+def _parse_page(
+    response: httpx.Response, source: dict[str, Any]
+) -> tuple[list[Article], list[datetime]]:
+    """Articles to keep from one page, plus the time of every item on it.
+
+    The times drive the paging cursor. They come from every item, not just the
+    kept ones: an issuer-filtered exchange feed may keep nothing from a page and
+    still have to step back past it.
+    """
+    fmt = source.get("format")
+    if fmt == "news_sitemap":
+        articles = parse_news_sitemap(response.content, source)
+    elif fmt == "json":
+        articles = parse_json_items(response.text, source)
+    else:
+        articles = parse_rss_feed(response.text, source)
+        return articles, _entry_times(response.text) if source.get("paging") else []
+    return articles, [a.published_at for a in articles if a.published_at]
+
+
+def _next_page_url(url: str, paging: dict[str, Any], page: int, oldest: datetime) -> str:
+    """The URL of page `page` (0 is `url` itself): an offset, or a date cursor."""
+    parts = urlsplit(url)
+    param = paging["param"]
+    if paging.get("mode") == "offset":
+        value = str(page * int(paging.get("step", 100)))
+    else:
+        value = oldest.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True) if k != param]
+    query.append((param, value))
+    return urlunsplit(parts._replace(query=urlencode(query, safe=":")))
+
+
+async def _fetch_pages(source: dict[str, Any], client: httpx.AsyncClient) -> list[Article]:
+    """Fetch a source, walking back through pages when it declares `paging`.
+
+    A feed that shows only its latest items (an exchange's last 20 filings, a
+    wire's last 100 stories) can be outrun between two runs. Paging steps back,
+    by date cursor or by offset, until an item older than `lookback_hours` or
+    `max_pages` pages; stopping at the cap is logged, never silent. A cursor the
+    feed ignores (the same page again) ends the walk.
+    """
+    response = await _request_page(source, client, source["url"])
+    articles, times = _parse_page(response, source)
+    paging = source.get("paging")
+    if not paging:
+        return articles
+
+    horizon = datetime.now(UTC) - timedelta(hours=float(paging.get("lookback_hours", 12)))
+    max_pages = int(paging.get("max_pages", 5))
+    seen = {a.url for a in articles}
+    for page in range(1, max_pages):
+        if not times or min(times) <= horizon:
+            return articles
+        next_url = _next_page_url(source["url"], paging, page, min(times))
+        try:
+            response = await _request_page(source, client, next_url)
+        except Exception as exc:  # noqa: BLE001 - keep what the earlier pages gave
+            logger.warning(
+                f"{source['name']}: page {page + 1} failed ({type(exc).__name__}); keeping {len(articles)}"
+            )
+            return articles
+        batch, batch_times = _parse_page(response, source)
+        articles.extend(a for a in batch if a.url not in seen)
+        seen.update(a.url for a in batch)
+        if not batch_times or min(batch_times) >= min(times):
+            return articles
+        times = batch_times
+    if times and min(times) > horizon:
+        logger.warning(
+            f"{source['name']}: paging stopped at {max_pages} pages; items before "
+            f"{min(times):%Y-%m-%d %H:%M} UTC were not fetched"
+        )
+    return articles
+
+
 async def _fetch_single_feed(
     source: dict[str, Any],
     client: httpx.AsyncClient,
     semaphore: asyncio.Semaphore,
 ) -> tuple[list[Article], str | None]:
-    """Fetch and parse a single RSS feed.
+    """Fetch and parse a single feed: RSS/Atom, a news sitemap or a JSON newsroom.
 
     Args:
         source: source configuration dict
@@ -253,17 +493,7 @@ async def _fetch_single_feed(
     """
     async with semaphore:
         try:
-            response = await client.get(
-                source["url"],
-                timeout=_REQUEST_TIMEOUT,
-                follow_redirects=True,
-            )
-            response.raise_for_status()
-            if source.get("format") == "news_sitemap":
-                articles = parse_news_sitemap(response.content, source)
-            else:
-                articles = parse_rss_feed(response.text, source)
-            return articles, None
+            return await _fetch_pages(source, client), None
         except Exception as e:
             error_msg = f"{source['name']}: {type(e).__name__}: {str(e)}"
             return [], error_msg

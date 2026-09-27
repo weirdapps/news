@@ -5,14 +5,11 @@
 # NEWS_MARKET_RECIPIENT to also receive a standalone email.
 
 pipeline:
-  relevance_threshold: 12
-  max_articles_per_category: 12
   max_article_age_hours: 18
   min_article_length_words: 8
   digest_window_hours: 18
   max_digest_articles: 160
   max_articles_per_source: 10
-  dedup_hash_chars: 200
 
 email:
   recipient: ${NEWS_MARKET_RECIPIENT:-user@example.com}
@@ -29,8 +26,6 @@ schedule:
 storage:
   db_path: ~/SourceCode/news/data/news.db
   run_log_path: ~/SourceCode/news/data/run.log
-  archive_dir: ~/SourceCode/news/data/archive
-  archive_after_days: 30
 
 synthesis:
   claude_command: ${NEWS_CLAUDE_COMMAND:-claude}
@@ -59,8 +54,6 @@ synthesis:
   max_retries: 2
 
 scoring:
-  company_mention: 20
-  greek_banking: 10
   claude_mention: 0
   category_match: 10
   tier_1_bonus: 15

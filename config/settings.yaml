@@ -1,12 +1,6 @@
 # Pipeline settings for news reader system
 
 pipeline:
-  # Minimum relevance score to include an article
-  relevance_threshold: 20
-
-  # Maximum articles per category in final digest
-  max_articles_per_category: 8
-
   # Maximum article age in hours
   max_article_age_hours: 36
 
@@ -22,9 +16,6 @@ pipeline:
   # Max articles per source to preserve diversity
   max_articles_per_source: 20
 
-  # Number of characters to hash for deduplication
-  dedup_hash_chars: 200
-
 email:
   # Primary recipient. Override via NEWS_RECIPIENT env var (or .env file).
   recipient: ${NEWS_RECIPIENT:-user@example.com}
@@ -33,7 +24,7 @@ schedule:
   # Timezone for scheduling
   timezone: Europe/Athens
 
-  # Run times (24-hour format) — must match launchd plist (com.news.digest)
+  # Run times (24-hour format): must match the VPS systemd timer (news-digest.timer)
   runs:
     - "00:00"
     - "09:00"
@@ -47,12 +38,6 @@ storage:
 
   # Run log path
   run_log_path: ~/SourceCode/news/data/run.log
-
-  # Archive directory for old articles
-  archive_dir: ~/SourceCode/news/data/archive
-
-  # Days before archiving articles
-  archive_after_days: 30
 
 synthesis:
   # Path to claude CLI. Default 'claude' resolves via $PATH.
@@ -95,12 +80,6 @@ newsapi:
 
 # Scoring weights and bonuses (flat keys matching processor.py)
 scoring:
-  # Company mention bonus
-  company_mention: 50
-
-  # Greek banking keyword bonus
-  greek_banking: 30
-
   # Claude/AI tools mention bonus
   claude_mention: 25
 

@@ -96,7 +96,8 @@ def brand_mentions(article: Article, keywords_config: dict) -> set[str]:
     """Which tracked groups an article names.
 
     Returns a subset of "company", "entity" (a name under company.entities),
-    "competitor" and "regulator". Phrases in company.false_positives are cut out
+    "competitor", "regulator" and "sector" (a phrase under sector_terms, for a
+    story about the banks as a group). Phrases in company.false_positives are cut out
     before the company and entity names are looked for, so another country's
     «National Bank» does not count as the company. Entity names are cut out
     before the company names are looked for, so a short company name does not
@@ -154,6 +155,8 @@ def brand_mentions(article: Article, keywords_config: dict) -> set[str]:
         found.add("competitor")
     if mentions_any(text, regulator_names):
         found.add("regulator")
+    if mentions_any(text, keywords_config.get("sector_terms") or []):
+        found.add("sector")
     return found
 
 
@@ -197,10 +200,11 @@ def collapse_same_headlines(articles: list[Article]) -> list[Article]:
     return kept
 
 
-# What opens the require_mention gate. Regulators do not: a publisher's full text
+# What opens the require_mention gate: the company, an entity, a competitor, or a
+# story about the sector as a whole. Regulators do not: a publisher's full text
 # cites the central bank in passing all the time, and regulator news has its own
 # feeds. A regulator mention still earns its scoring bonus.
-_GATE_GROUPS = frozenset({"company", "entity", "competitor"})
+_GATE_GROUPS = frozenset({"company", "entity", "competitor", "sector"})
 
 
 def sources_requiring_mention(sources: dict) -> set[str]:
@@ -308,8 +312,9 @@ def compute_relevance_score(
         keywords_config: Optional brand-monitoring config. When provided,
             ``company.names`` earn company_mention, a ``company.entities`` name
             without the company earns entity_mention (default company_mention),
-            ``competitors.*.names`` earn greek_banking and ``regulators`` earn
-            regulatory_mention. When None (digest profile), none of them applies.
+            ``competitors.*.names`` earn competitor_mention, ``regulators`` earn
+            regulatory_mention and ``sector_terms`` earn sector_mention. When None
+            (digest profile), none of them applies.
 
     Returns:
         Computed relevance score
@@ -321,9 +326,8 @@ def compute_relevance_score(
     text = (article.title + " " + article.content + " " + article.transcript_abstract).lower()
 
     # Brand bonuses. When keywords_config is None (digest profile), none applies.
-    # The competitor bonus is read from the scoring key ``greek_banking`` (legacy;
-    # it is just an internal label for the bonus and does not need to be
-    # brand-specific).
+    # A config that predates competitor_mention named the competitor bonus
+    # greek_banking; it is still read when competitor_mention is absent.
     if keywords_config:
         found = brand_mentions(article, keywords_config)
         if "company" in found:
@@ -331,9 +335,11 @@ def compute_relevance_score(
         elif "entity" in found:
             score += scoring.get("entity_mention", scoring.get("company_mention", 0))
         if "competitor" in found:
-            score += scoring.get("greek_banking", 0)
+            score += scoring.get("competitor_mention", scoring.get("greek_banking", 0))
         if "regulator" in found:
             score += scoring.get("regulatory_mention", 0)
+        if "sector" in found:
+            score += scoring.get("sector_mention", 0)
 
     # Check for Claude/AI tools mentions
     claude_patterns = [

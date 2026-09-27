@@ -52,12 +52,32 @@ rss_feeds:
   # An outlet with no RSS may still publish a Google News sitemap. It carries
   # headlines only, so the body is empty: min_words: 0 keeps it past the gate.
   - name: "Wire Service"
-    url: "https://www.example-wire.com/news-sitemap.xml"
+    url: "https://www.example-wire.com/news-sitemap.xml?size=100"
     category: "sector"
     tier: 2
     language: "en"
     format: "news_sitemap"
     require_mention: true
+    min_words: 0
+    # The sitemap lists only the latest 100 stories: step back by offset until
+    # 10 hours ago (the longest gap between two runs), at most 10 pages.
+    paging: {mode: "offset", param: "from", step: 100, lookback_hours: 10, max_pages: 10}
+
+  # === PRESS OFFICES ===
+  # A newsroom with no RSS that serves JSON. title and link are templates over
+  # each item's keys; items_key is found anywhere in the document.
+  - name: "Company Press Office"
+    url: "https://www.example-company.com/api/press?lang=en"
+    category: "company_direct"
+    tier: 1
+    language: "en"
+    format: "json"
+    method: "POST"
+    body: {"skip": 0, "pageSize": 20}
+    items_key: "articles"
+    title: "{title}"
+    link: "https://www.example-company.com{path}"
+    date: "publishedAt"
     min_words: 0
 
 # Add your company-specific RSS feeds, Google News alerts, and monitoring sources here
