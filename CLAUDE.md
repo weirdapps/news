@@ -56,7 +56,7 @@ config/                     # digest profile
   tickers.yaml              # stock-ticker dictionary
 config/monitor/             # monitor profile
   sources.yaml              # brand RSS feeds (gitignored — copy from *.example.*)
-  keywords.yaml             # brand identity: names, leadership, competitors (gitignored)
+  keywords.yaml             # brand identity: names, entities, leadership, competitors, regulators (gitignored)
   settings.yaml
 config/market/              # market profile
   persona.local.txt         # reader profile for the market prompt (gitignored; neutral default if absent)

@@ -154,13 +154,23 @@ def parse_rss_feed(xml_content: str, source_config: dict[str, Any]) -> list[Arti
     """
     feed = feedparser.parse(xml_content)
     articles = []
+    # An exchange's announcement feed carries every listed issuer. `issuers` keeps
+    # the tracked tickers, read from the helex company data each item carries.
+    issuers = set(source_config.get("issuers") or [])
 
     for entry in feed.entries:
         # Skip entries without required fields
         if not entry.get("link") or not entry.get("title"):
             continue
+        if issuers and entry.get("hlxcd_company-ticker-symbol", "").strip() not in issuers:
+            continue
 
         article = normalize_rss_entry(entry, source_config)
+        company = entry.get("hlxcd_company-name", "").strip()
+        if issuers and company:
+            # Filing titles are generic ("ANNOUNCEMENT ON PURCHASE OF OWN SHARES")
+            # and repeat across issuers, so they would collide in the content hash.
+            article.title = f"{company}: {article.title}"
         articles.append(article)
 
     return articles

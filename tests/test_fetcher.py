@@ -155,6 +155,58 @@ def test_parse_rss_feed_extracts_entries():
     assert articles[0].url == "https://example.com/ai-banking"
 
 
+_ISSUER_FEED_XML = """<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:hlxcd="https://exchange.example/hlxcd">
+<channel><title>Issuer announcements</title>
+<item>
+  <title>ANNOUNCEMENT ON PURCHASE OF OWN SHARES</title>
+  <link>https://exchange.example/announcements/1</link>
+  <description>please see the attached announcement</description>
+  <pubDate>2026-09-25T15:05:32Z</pubDate>
+  <hlxcd:helex-company-data><hlxcd:company-name>ACME BANK S.A.</hlxcd:company-name>
+  <hlxcd:company-ticker-symbol>ACME</hlxcd:company-ticker-symbol></hlxcd:helex-company-data>
+</item>
+<item>
+  <title>ANNOUNCEMENT ON PURCHASE OF OWN SHARES</title>
+  <link>https://exchange.example/announcements/2</link>
+  <description>please see the attached announcement</description>
+  <pubDate>2026-09-25T14:05:32Z</pubDate>
+  <hlxcd:helex-company-data><hlxcd:company-name>WIDGETS S.A.</hlxcd:company-name>
+  <hlxcd:company-ticker-symbol>WIDG</hlxcd:company-ticker-symbol></hlxcd:helex-company-data>
+</item>
+</channel></rss>"""
+
+
+def test_parse_rss_feed_keeps_only_listed_issuers_of_an_exchange_feed():
+    """One exchange feed carries every issuer; `issuers` keeps the tracked tickers."""
+    source_config = {
+        "name": "Exchange",
+        "url": "https://exchange.example/rss",
+        "category": "company_stock",
+        "language": "en",
+        "issuers": ["ACME"],
+    }
+    [article] = parse_rss_feed(_ISSUER_FEED_XML, source_config)
+    assert article.url == "https://exchange.example/announcements/1"
+
+
+def test_parse_rss_feed_prefixes_issuer_titles_with_the_company_name():
+    """Filing titles are generic and repeat across issuers: without the company name
+    they collide in the content hash and the model cannot tell whose filing it is."""
+    source_config = {
+        "name": "Exchange",
+        "url": "https://exchange.example/rss",
+        "category": "company_stock",
+        "language": "en",
+        "issuers": ["ACME", "WIDG"],
+    }
+    titles = [a.title for a in parse_rss_feed(_ISSUER_FEED_XML, source_config)]
+    assert titles == [
+        "ACME BANK S.A.: ANNOUNCEMENT ON PURCHASE OF OWN SHARES",
+        "WIDGETS S.A.: ANNOUNCEMENT ON PURCHASE OF OWN SHARES",
+    ]
+
+
 def test_normalize_rss_entry_handles_missing_fields():
     entry = {"title": "Minimal Article", "link": "https://example.com/minimal"}
     source_config = {"name": "Src", "category": "ai", "tier": 2, "language": "en"}

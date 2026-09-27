@@ -7,7 +7,9 @@ display:
   monitor_label: "BRAND MONITOR"        # email banner badge text — convention is ALL CAPS
   ticker_primary: "TICKER"              # primary stock symbol with exchange suffix, e.g. "AAPL", "ETE.AT"
 
-# Primary entity — all variants of company name
+# Primary entity — all variants of company name.
+# Names match as whole words, ignoring case, accents and final sigma, so list
+# each inflected form the press uses (e.g. a Greek genitive) but not each casing.
 company:
   names:
     - "Your Company Name"
@@ -17,8 +19,13 @@ company:
   false_positives: []
   # Key people
   leadership: []
-  # Key products and business lines
-  products: []
+  # Group entities (subsidiaries, joint ventures). A mention of any of them
+  # counts as a company mention in scoring and in the synthesis prompt. Products
+  # and brands that are not legal entities do not belong here.
+  entities:
+    your_asset_management:
+      names:
+        - "Your Company Asset Management"
 
 # Competitors
 competitors:
@@ -47,7 +54,7 @@ competitors:
     symbols:
       - "EUROB.AT"
 
-# Regulatory bodies
+# Regulatory bodies. A mention earns settings.yaml scoring.regulatory_mention.
 regulators:
   - "Bank of Greece"
   - "Τράπεζα της Ελλάδος"

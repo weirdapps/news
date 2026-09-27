@@ -37,6 +37,18 @@ rss_feeds:
     tier: 2
     language: "en"
 
+  # === PUBLISHER SECTION FEEDS ===
+  # A publisher's own section feed carries everything the outlet prints, not just
+  # your company. require_mention keeps only articles that name the company, one
+  # of its company.entities or a competitor (keywords.yaml). A regulator mention
+  # alone does not qualify: full text cites the central bank in passing.
+  - name: "Outlet Business Section"
+    url: "https://www.example-outlet.com/business/rss"
+    category: "sector"
+    tier: 2
+    language: "en"
+    require_mention: true
+
 # Add your company-specific RSS feeds, Google News alerts, and monitoring sources here
 # Categories: company_direct, company_stock, sector, competitor, regulatory
 # Tier 1 = highest priority, Tier 3 = lowest

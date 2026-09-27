@@ -52,7 +52,7 @@ from news.llm_policy import (
 )
 from news.models import Digest
 from news.monitor_synth import synthesize_monitor
-from news.processor import process_articles
+from news.processor import collapse_same_headlines, process_articles, sources_requiring_mention
 from news.storage import (
     backfill_changelog_digests,
     backfill_transcript_abstracts,
@@ -643,6 +643,11 @@ def _setup_digest_pipeline(settings: dict, sources: dict):
         for source in all_sources
         if source.get("max_age_hours")
     }
+    # A source whose body is boilerplate by nature (exchange filings: "please see
+    # the attached announcement") may declare a lower word floor. 0 is a real value.
+    source_min_words = {
+        source["name"]: source["min_words"] for source in all_sources if "min_words" in source
+    }
     # Written by the Mac harvester and rsynced here; read-only on this side.
     transcripts_db_path = Path(
         storage_config.get("transcripts_db_path", db_path.parent / "transcripts.db")
@@ -658,6 +663,7 @@ def _setup_digest_pipeline(settings: dict, sources: dict):
         "run_log_path": run_log_path,
         "source_tiers": source_tiers,
         "source_max_age": source_max_age,
+        "source_min_words": source_min_words,
         "transcripts_db_path": transcripts_db_path,
     }
 
@@ -1032,6 +1038,8 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> bool:
         max_age_hours=config["pipeline"]["max_article_age_hours"],
         source_max_age=config["source_max_age"],
         keywords_config=keywords_config,
+        require_mention_sources=sources_requiring_mention(sources),
+        source_min_words=config["source_min_words"],
     )
 
     # Set pipeline on all processed articles
@@ -1040,7 +1048,8 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> bool:
 
     logger.info(
         f"Processing complete: {process_stats['output_count']} new articles "
-        f"({process_stats['duplicates']} duplicates, {process_stats['quality_dropped']} quality drops)"
+        f"({process_stats['duplicates']} duplicates, {process_stats['quality_dropped']} quality drops, "
+        f"{process_stats['unmentioned_dropped']} off-topic from require_mention feeds)"
     )
 
     # Check skip_empty setting
@@ -1069,11 +1078,16 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> bool:
     digest_window = timedelta(hours=config["pipeline"].get("digest_window_hours", 24))
     digest_since = start_time - digest_window
     all_recent = get_articles_since(conn, digest_since, min_score=0, pipeline="monitor")
+    # One slot per story: a syndicated press release arrives through a dozen feeds.
+    distinct = collapse_same_headlines(all_recent)
 
     # Select top articles
-    capped_articles = _select_digest_articles(all_recent, config["pipeline"])
+    capped_articles = _select_digest_articles(distinct, config["pipeline"])
 
-    logger.info(f"Monitor pool: {len(all_recent)} articles, selected top {len(capped_articles)}")
+    logger.info(
+        f"Monitor pool: {len(all_recent)} articles, {len(distinct)} distinct headlines, "
+        f"selected top {len(capped_articles)}"
+    )
 
     # SYNTHESIZE: Check auth first — skip synthesis if expired (avoid wasted retries)
     auth_ok = _preflight_auth_ok(config["synthesis"])
