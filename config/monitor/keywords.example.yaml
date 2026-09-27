@@ -27,7 +27,9 @@ company:
       names:
         - "Your Company Asset Management"
 
-# Competitors
+# Competitors. A competitor may list false_positives: phrases that share its name
+# but are not it (a software product, a car model); they are cut out before its
+# names are matched.
 competitors:
   piraeus:
     names:

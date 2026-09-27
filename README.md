@@ -167,7 +167,8 @@ The monitor profile reads its identity from `config/monitor/keywords.yaml` at ru
 - `news/roster.py` exports `NAME_HANDLING_RULES` (brand-neutral prompt guidance) and `build_roster(keywords_config)` (brand-aware roster).
 - `news/monitor_synth.py` composes the synthesis prompt from five section builders (`_base_prompt`, `_disambiguation_section`, `_entities_section`, `_competitor_section`, `_output_format_section`); each returns `""` on empty input so the prompt is fail-soft.
 - `news/processor.py:brand_mentions()` matches the names in `company.names`, `company.entities`, `competitors` and `regulators` as whole words, ignoring case, accents and final sigma, after cutting out `company.false_positives`. `compute_relevance_score()` turns what it finds into the `company_mention`, `entity_mention`, `greek_banking` (competitor) and `regulatory_mention` bonuses.
-- Per-source options in `config/monitor/sources.yaml`: `require_mention: true` keeps only articles naming the company, an entity or a competitor (for a publisher's whole-site feed); `issuers: [...]` keeps an exchange feed to the listed tickers; `min_words` overrides the profile's word floor.
+- Per-source options in `config/monitor/sources.yaml`: `require_mention: true` keeps only articles naming the company, an entity or a competitor (for a publisher's whole-site feed); `issuers: [...]` keeps an exchange feed to the listed tickers; `min_words` overrides the profile's word floor; `format: news_sitemap` reads a Google News sitemap instead of RSS, for outlets that publish no feed (headlines only).
+- `competitors.<key>.false_positives` in keywords.yaml are cut out before that competitor is matched (a product that shares its name).
 - `templates/monitor.html` iterates `competitor_watch.items()` and uses `display.monitor_label` / `display.short_name` for labels.
 
 Design rationale: `docs/superpowers/specs/2026-05-04-brand-extraction-design.md`.

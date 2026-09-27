@@ -14,6 +14,7 @@ from news.fetcher import (
     parse_api_items,
     parse_changelog_sections,
     parse_html_listing,
+    parse_news_sitemap,
     parse_rss_feed,
 )
 
@@ -444,6 +445,78 @@ async def test_fetch_all_sources_does_not_warn_about_sources_that_produced_artic
 
     assert len(articles) == 2
     assert "returned no articles" not in caplog.text
+
+
+# --- News sitemaps (outlets that publish no RSS) -------------------------------
+
+_NEWS_SITEMAP_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+  <url>
+    <loc>https://wire.example/business/acme-raises-guidance-2026-09-27/</loc>
+    <lastmod>2026-09-27T13:38:09.605Z</lastmod>
+    <news:news>
+      <news:publication><news:name>Wire</news:name><news:language>en</news:language></news:publication>
+      <news:publication_date>2026-09-27T13:38:09.605Z</news:publication_date>
+      <news:title>Acme raises full-year guidance</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://wire.example/sports/untitled-2026-09-27/</loc>
+    <news:news>
+      <news:publication><news:name>Wire</news:name><news:language>en</news:language></news:publication>
+      <news:publication_date>2026-09-27T12:00:00Z</news:publication_date>
+    </news:news>
+  </url>
+</urlset>"""
+
+_SITEMAP_CFG = {
+    "name": "Wire",
+    "url": "https://wire.example/news-sitemap.xml",
+    "category": "sector",
+    "tier": 2,
+    "language": "en",
+    "format": "news_sitemap",
+}
+
+
+def test_parse_news_sitemap_maps_location_title_and_publication_date():
+    """An outlet with no RSS still publishes a Google News sitemap: one url per
+    article, with its headline and publication time."""
+    [article] = parse_news_sitemap(_NEWS_SITEMAP_XML, _SITEMAP_CFG)
+
+    assert article.url == "https://wire.example/business/acme-raises-guidance-2026-09-27/"
+    assert article.title == "Acme raises full-year guidance"
+    assert article.published_at == datetime(2026, 9, 27, 13, 38, 9, 605000, tzinfo=UTC)
+    assert article.source == "Wire"
+    assert article.categories == ["sector"]
+    assert article.language == "en"
+    assert article.content == ""
+
+
+def test_parse_news_sitemap_returns_nothing_for_markup_that_is_not_a_sitemap():
+    assert parse_news_sitemap(b"<html><body>blocked</body></html>", _SITEMAP_CFG) == []
+    assert parse_news_sitemap(b"not xml at all", _SITEMAP_CFG) == []
+
+
+@pytest.mark.asyncio
+async def test_fetch_all_sources_reads_a_news_sitemap_source():
+    """format: news_sitemap on an rss_feeds entry routes it to the sitemap parser."""
+    with patch("news.fetcher.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        resp = Mock()
+        resp.content = _NEWS_SITEMAP_XML
+        resp.text = _NEWS_SITEMAP_XML.decode()
+        resp.raise_for_status = Mock()
+        mock_client.get = AsyncMock(return_value=resp)
+        mock_client_cls.return_value = mock_client
+
+        articles, errors = await fetch_all_sources({"rss_feeds": [_SITEMAP_CFG]})
+
+    assert errors == []
+    assert [a.title for a in articles] == ["Acme raises full-year guidance"]
 
 
 @pytest.mark.asyncio

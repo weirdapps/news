@@ -49,6 +49,17 @@ rss_feeds:
     language: "en"
     require_mention: true
 
+  # An outlet with no RSS may still publish a Google News sitemap. It carries
+  # headlines only, so the body is empty: min_words: 0 keeps it past the gate.
+  - name: "Wire Service"
+    url: "https://www.example-wire.com/news-sitemap.xml"
+    category: "sector"
+    tier: 2
+    language: "en"
+    format: "news_sitemap"
+    require_mention: true
+    min_words: 0
+
 # Add your company-specific RSS feeds, Google News alerts, and monitoring sources here
 # Categories: company_direct, company_stock, sector, competitor, regulatory
 # Tier 1 = highest priority, Tier 3 = lowest
