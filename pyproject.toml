@@ -21,13 +21,13 @@ dependencies = [
     # A package named here is the ONLY kind that reaches production; a lockfile
     # bump reaches it never. Measured 2026-09-20: every pin below sits at exactly
     # its floor in ~/.venvs/news, and every unpinned transitive is behind.
-    "starlette>=1.6.0",       # CVE-2025-*: high; patched in 1.3.1
+    "starlette>=1.7.0",       # CVE-2025-*: high; patched in 1.3.1
     "python-multipart>=0.0.32",  # CVE-2025-*: high+low; patched in 0.0.31
     "cryptography>=50.0.1",   # CVE-2025-*: high; patched in 48.0.1 (via pyjwt[crypto])
     # Added 2026-09-20 after an OSV scan of the installed VPS versions, which is
     # what turned "the lock is ahead" into named, currently-live advisories.
     "anyio>=4.14.2",          # CVE-2026-63374 CRITICAL + CVE-2026-64847; fixed in 4.14.2
-    "httpx2>=2.12.0",         # CVE-2026-84378/79/80/81/82, 2 high; highest fix 2.12.0.
+    "httpx2>=2.13.1",         # CVE-2026-84378/79/80/81/82, 2 high; highest fix 2.12.0.
                               # Also closes httpcore2 CVE-2026-84381: httpx2 requires
                               # httpcore2== its own version, so one pin moves both.
     # pydantic-settings pin dropped: mcp 2.0 removed the dependency along with
