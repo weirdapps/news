@@ -287,7 +287,7 @@ _TAGGER_PROMPT = """Extract stock tickers explicitly mentioned in this news arti
 Rules:
 - Return ONLY tickers for publicly-traded companies that the article is actually about (subject of the story, not passing mentions).
 - Use canonical NYSE/NASDAQ ticker format (e.g. AAPL, MSFT, GOOG, BRK.B).
-- For non-US listings, use the ticker as it appears in the article.
+- For non-US listings, use the company's home-exchange ticker symbol (e.g. OPAP on the Athens exchange), even when the article names only the company. Leave it out if you are not sure of the symbol.
 - If the article mentions no specific company, return an empty list.
 
 Output STRICT JSON only, no prose:
