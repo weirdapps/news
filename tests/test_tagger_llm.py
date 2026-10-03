@@ -44,6 +44,29 @@ def test_llm_returns_tickers(mock_run, monkeypatch):
 
 
 @patch("news.tagger.subprocess.run")
+def test_the_light_tier_runs_at_medium_effort(mock_run):
+    """Pinned so a change of Claude Code's default effort cannot move the tagger."""
+    mock_run.return_value = _mock_proc(json.dumps({"result": json.dumps({"tickers": []})}))
+    extract_tickers_llm("Apple beat estimates")
+    assert mock_run.call_args[1]["env"]["CLAUDE_CODE_EFFORT_LEVEL"] == "medium"
+
+
+@patch("news.tagger.subprocess.run")
+def test_non_us_listings_get_their_home_exchange_ticker(mock_run):
+    """A local-language article about a listed company rarely prints its ticker.
+
+    The old rule ("use the ticker as it appears in the article") let a newer model
+    return nothing for such an article, where the older one inferred the symbol.
+    """
+    mock_run.return_value = _mock_proc(json.dumps({"result": json.dumps({"tickers": []})}))
+    extract_tickers_llm("Η εισηγμένη ανακοίνωσε αποτελέσματα")
+    prompt = mock_run.call_args[1]["input"]
+    assert "home-exchange ticker" in prompt
+    assert "even when the article names only the company" in prompt
+    assert "as it appears in the article" not in prompt
+
+
+@patch("news.tagger.subprocess.run")
 def test_llm_returns_empty_when_no_tickers(mock_run):
     mock_run.return_value = _mock_proc(json.dumps({"result": json.dumps({"tickers": []})}))
     out = extract_tickers_llm("Weather report for Athens")

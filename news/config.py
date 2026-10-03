@@ -84,6 +84,10 @@ def vertex_cli_model_and_env(tier: str) -> tuple[str, dict[str, str]]:
         return (tier, env)
     model_key, model_default, region_key, region_default = keys
     env["CLOUD_ML_REGION"] = os.environ.get(region_key, region_default)
+    if tier.lower() == "sonnet":
+        # The light tier runs at medium effort, pinned so a change of Claude
+        # Code's default effort cannot move it.
+        env["CLAUDE_CODE_EFFORT_LEVEL"] = "medium"
     return (os.environ.get(model_key, model_default), env)
 
 
