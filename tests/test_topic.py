@@ -218,3 +218,30 @@ def test_topic_synth_module_has_no_brand_specific_literals():
     missing = warn_if_person_list_missing()
     if missing:
         warnings.warn(missing, stacklevel=2)
+
+
+# --- Rendering ---
+
+
+def test_render_topic_html_accepts_dict_bullets():
+    """The model sometimes returns {"text", "article_ids"} bullets; render the text only."""
+    from news.deliver import render_topic_html
+
+    html = render_topic_html(
+        synthesis={
+            "executive_brief": [
+                {"text": "Emergency lines went down", "article_ids": [3]},
+                "Plain string bullet",
+            ],
+            "sections": [],
+        },
+        query="outage",
+        hours=24,
+        source_count=2,
+        time_display="12:00",
+        date_display="fri 9 oct",
+    )
+    assert "Emergency lines went down" in html
+    assert "Plain string bullet" in html
+    assert "article_ids" not in html
+    assert "{&#39;text&#39;" not in html

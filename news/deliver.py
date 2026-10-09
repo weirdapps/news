@@ -460,6 +460,10 @@ def render_topic_html(
     sections = synthesis.get("sections", [])
     fallback_text = synthesis.get("fallback_text", "")
 
+    # The prompt asks for string bullets, but the model sometimes returns
+    # {"text", "article_ids"} objects; render the text either way.
+    executive_brief = [b.get("text", str(b)) if isinstance(b, dict) else b for b in executive_brief]
+
     # Pre-convert newlines to <br> in synthesis text and mark as safe HTML
     for section in sections:
         if "synthesis" in section and section["synthesis"]:
