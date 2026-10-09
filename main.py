@@ -11,7 +11,6 @@ import sys
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
 from zoneinfo import ZoneInfo
 
 # Ensure imports work when called from cron
@@ -69,7 +68,7 @@ from news.storage import (
 )
 from news.synthesizer import synthesize
 from news.topic_synth import (
-    build_google_news_url,
+    build_google_news_sources,
     build_topic_fallback,
     synthesize_topic,
 )
@@ -1758,19 +1757,11 @@ async def run_topic_pipeline(
     conn = get_connection(db_path)
     init_db(conn)
 
-    # FETCH: build a single Google News RSS source dict and fetch via existing helper
-    google_url = build_google_news_url(query, hours=hours)
-    source_name = f"Google News: {query[:60]}"
-    source_tier = 2
-    source_config: dict[str, Any] = {
-        "url": google_url,
-        "name": source_name,
-        "category": "topic",
-        "tier": source_tier,
-        "language": "en",
-    }
-    logger.info(f"Fetching Google News RSS for topic | url={google_url}")
-    raw_articles, fetch_errors = await fetch_rss_feeds([source_config])
+    # FETCH: one Google News RSS source per edition (US English + Greek)
+    source_configs = build_google_news_sources(query, hours=hours)
+    for source_config in source_configs:
+        logger.info(f"Fetching Google News RSS for topic | url={source_config['url']}")
+    raw_articles, fetch_errors = await fetch_rss_feeds(source_configs)
     logger.info(f"Fetched {len(raw_articles)} articles")
     if fetch_errors:
         for error in fetch_errors:
@@ -1789,7 +1780,7 @@ async def run_topic_pipeline(
         existing_hashes=existing_hashes,
         categories_config={"categories": {}},  # no categories for ad-hoc topic
         scoring_config=scoring_config,
-        source_tiers={source_name: source_tier},
+        source_tiers={sc["name"]: sc["tier"] for sc in source_configs},
         min_words=pipeline_config["min_article_length_words"],
         max_age_hours=pipeline_config["max_article_age_hours"],
     )

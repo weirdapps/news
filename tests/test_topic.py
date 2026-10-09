@@ -71,6 +71,31 @@ def test_build_google_news_url_includes_hl_and_ceid():
     assert "ceid=US%3Aen" in url or "ceid=US:en" in url
 
 
+def test_build_google_news_url_greek_edition():
+    from news.topic_synth import build_google_news_url
+
+    url = build_google_news_url("Telekom βλάβη", hours=48, edition="GR")
+    assert "hl=el" in url
+    assert "gl=GR" in url
+    assert "ceid=GR%3Ael" in url or "ceid=GR:el" in url
+    assert "when%3A48h" in url
+
+
+def test_build_google_news_sources_covers_us_and_greek_editions():
+    from news.topic_synth import build_google_news_sources
+
+    sources = build_google_news_sources("ECB rates", hours=24)
+    by_lang = {s["language"]: s for s in sources}
+    assert set(by_lang) == {"en", "el"}
+    assert "ceid=US%3Aen" in by_lang["en"]["url"]
+    assert "ceid=GR%3Ael" in by_lang["el"]["url"]
+    # Distinct names: process_articles keys source tiers by name
+    assert len({s["name"] for s in sources}) == 2
+    for s in sources:
+        assert s["category"] == "topic"
+        assert s["tier"] == 2
+
+
 # --- Section builders ---
 
 

@@ -19,29 +19,57 @@ logger = logging.getLogger(__name__)
 
 _GOOGLE_NEWS_RSS_BASE = "https://news.google.com/rss/search"
 
+# edition -> (hl, gl, ceid, article language)
+_GOOGLE_NEWS_EDITIONS: dict[str, tuple[str, str, str, str]] = {
+    "US": ("en-US", "US", "US:en", "en"),
+    "GR": ("el", "GR", "GR:el", "el"),
+}
 
-def build_google_news_url(query: str, hours: int = 24) -> str:
+
+def build_google_news_url(query: str, hours: int = 24, edition: str = "US") -> str:
     """Construct a Google News RSS search URL for a topic query.
 
     Args:
         query: Free-text user query (preserved verbatim, percent-encoded)
         hours: Time window in hours (e.g. 24, 48, 168)
+        edition: Google News edition key in _GOOGLE_NEWS_EDITIONS ("US" or "GR")
 
     Returns:
         Fully-formed RSS URL
     """
+    hl, gl, ceid, _language = _GOOGLE_NEWS_EDITIONS[edition]
     # The `when:Nh` operator must be appended to the q= parameter, then the
     # whole thing percent-encoded. urlencode handles the escaping for us.
     q = f"{query} when:{hours}h"
     params = urlencode(
         {
             "q": q,
-            "hl": "en-US",
-            "gl": "US",
-            "ceid": "US:en",
+            "hl": hl,
+            "gl": gl,
+            "ceid": ceid,
         }
     )
     return f"{_GOOGLE_NEWS_RSS_BASE}?{params}"
+
+
+def build_google_news_sources(query: str, hours: int = 24) -> list[dict[str, Any]]:
+    """One RSS source config per Google News edition, for fetch_rss_feeds.
+
+    The US edition alone misses Greek-language coverage entirely (a Greek
+    outage returned 0 articles there and 35 in the GR edition), so a topic
+    query searches both. Cross-edition duplicates are dropped by hash in
+    process_articles.
+    """
+    return [
+        {
+            "url": build_google_news_url(query, hours=hours, edition=edition),
+            "name": f"Google News {edition}: {query[:60]}",
+            "category": "topic",
+            "tier": 2,
+            "language": language,
+        }
+        for edition, (_hl, _gl, _ceid, language) in _GOOGLE_NEWS_EDITIONS.items()
+    ]
 
 
 def _topic_base_prompt(query: str, hours: int) -> str:
