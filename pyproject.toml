@@ -14,7 +14,7 @@ dependencies = [
     "markupsafe",
     # mcp 2.x is required, not optional: v2 moved mcp.server.fastmcp.FastMCP to
     # mcp.server.mcpserver.MCPServer, so news/mcp_server.py cannot import on 1.x.
-    "mcp[cli]>=2.2.0",
+    "mcp[cli]>=2.3.0",
     # Security pins — transitive via mcp[cli]; keep until mcp bumps its own floor.
     # These exist because the VPS deploy hook is `pip install -e .` with no
     # --upgrade, so it resolves pyproject specifiers and ignores uv.lock entirely.
