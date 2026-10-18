@@ -18,8 +18,10 @@ rss_feeds:
     category: "business"
     tier: 1
     language: "en"
-  - name: "WSJ Markets"
-    url: "https://feeds.a.dj.com/rss/RSSMarketsMain.xml"
+  - name: "WSJ via Google"
+    # feeds.a.dj.com stopped updating in Jan 2025 and its stale items never passed
+    # the age gate. Scoped to the business sections, as Reuters Business is.
+    url: "https://news.google.com/rss/search?q=when:24h+(site:wsj.com/finance+OR+site:wsj.com/economy+OR+site:wsj.com/business+OR+site:wsj.com/markets)&ceid=US:en&hl=en-US&gl=US"
     category: "business"
     tier: 1
     language: "en"
@@ -40,6 +42,9 @@ rss_feeds:
     category: "trading"
     tier: 2
     language: "en"
+    # Headlines with no body: 0 words against the 10-word gate, never stored.
+    # Article pages answer 403 from the VPS, so the headline is the item.
+    min_words: 0
   - name: "MarketWatch Top Stories"
     url: "https://feeds.content.dowjones.io/public/rss/mw_topstories"
     category: "trading"
