@@ -17,8 +17,10 @@ rss_feeds:
     category: "equities"
     tier: 1
     language: "en"
-  - name: "WSJ Markets"
-    url: "https://feeds.a.dj.com/rss/RSSMarketsMain.xml"
+  - name: "WSJ via Google"
+    # feeds.a.dj.com stopped updating in Jan 2025: it still answers 200 with the
+    # same 20 items, which the age gate drops, so it failed silently for 20 months.
+    url: "https://news.google.com/rss/search?q=when:18h+(site:wsj.com/finance+OR+site:wsj.com/economy+OR+site:wsj.com/business+OR+site:wsj.com/markets)&ceid=US:en&hl=en-US&gl=US"
     category: "equities"
     tier: 1
     language: "en"
@@ -38,20 +40,31 @@ rss_feeds:
     tier: 1
     language: "en"
   - name: "Yahoo Finance"
-    url: "https://finance.yahoo.com/news/rssindex"
+    # news/rssindex has answered 404 since 2026-10-06, whatever the User-Agent.
+    # The per-symbol headline feed (S&P 500, Dow, Nasdaq) still serves market news
+    # with a body. It answers 429 to a browser User-Agent, 200 to ours.
+    url: "https://feeds.finance.yahoo.com/rss/2.0/headline?s=%5EGSPC,%5EDJI,%5EIXIC&region=US&lang=en-US"
     category: "equities"
     tier: 2
     language: "en"
+  # The next three publish headlines with no body, so every item scored 0 words
+  # against the 8-word gate and none was ever stored. Their article pages answer
+  # 403 from the VPS, so extract_content cannot help; the headline is the item,
+  # exactly as it is for every "via Google" feed here.
   - name: "Investing.com News"
-    url: "https://www.investing.com/rss/news.rss"
+    # news_25 (stock market) rather than news.rss, whose mix is mostly
+    # auto-generated insider-sale filings.
+    url: "https://www.investing.com/rss/news_25.rss"
     category: "equities"
     tier: 2
     language: "en"
+    min_words: 0
   - name: "Seeking Alpha Market Currents"
     url: "https://seekingalpha.com/market_currents.xml"
     category: "equities"
     tier: 2
     language: "en"
+    min_words: 0
   - name: "TipRanks News via Google"
     # site: form — site:tipranks.com returns 0 in Google News; site:tipranks.com/news works.
     url: "https://news.google.com/rss/search?q=when:18h+site:tipranks.com/news&ceid=US:en&hl=en-US&gl=US"
@@ -89,6 +102,7 @@ rss_feeds:
     category: "crypto"
     tier: 2
     language: "en"
+    min_words: 0  # headline only, article pages 403: see Investing.com above
   - name: "Cointelegraph"
     url: "https://cointelegraph.com/rss"
     category: "crypto"
@@ -125,6 +139,9 @@ rss_feeds:
     category: "macro_rates"
     tier: 1
     language: "en"
+    # Headline only (median 0 body words, never stored), but its pages load from
+    # the VPS, so fetch the body rather than lowering the floor.
+    extract_content: true
   - name: "EBA News"
     url: "https://www.eba.europa.eu/rss.xml"
     category: "sectors_themes"
