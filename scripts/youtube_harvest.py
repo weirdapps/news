@@ -62,8 +62,10 @@ _CLI_TIMEOUT = 300
 ABSTRACT_MAX_CHARS = 800
 
 # Bounds the work and the spend in any single hourly run. A backlog drains over
-# successive runs rather than firing hundreds of CLI calls at once.
-_DEFAULT_LIMIT = 25
+# successive runs rather than firing hundreds of CLI calls at once. Kept at 3
+# because bursts of ~10 fetches drew YouTube IP blocks; 3 an hour still clears
+# the ~25 a day the roster produces.
+_DEFAULT_LIMIT = 3
 
 # After YouTube refuses this IP, stop asking for this long. Hourly runs against an
 # active block kept knocking from the very address the block is keyed on: from
