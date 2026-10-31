@@ -10,7 +10,7 @@ Personal news intelligence platform with five profiles sharing a five-stage pipe
 | `monitor` | Bi-hourly 08–22 Athens + 00:00 catch-up | NBG brand mentions + competitor tracking |
 | `topic` | Ad-hoc only (`--query`) | Single subject from a Google News RSS query |
 | `stack` | Daily, 13:00 Athens | AI, dev tools, and technology intelligence (releases, models, tooling) |
-| `market` | 5x daily, 03:35/07:35/11:35/15:35/19:35 Athens | Market-moving news: broad markets/macro, commodities/crypto, Greece/ATHEX. Store-only (no email); the trading Investment Brief reads it from `news.db` |
+| `market` | 5x daily, 04:35/07:35/11:35/15:35/19:35 Athens | Market-moving news: broad markets/macro, commodities/crypto, Greece/ATHEX. Store-only (no email); the trading Investment Brief reads it from `news.db` |
 
 ## Quick Reference
 
@@ -18,7 +18,7 @@ Personal news intelligence platform with five profiles sharing a five-stage pipe
 python3 main.py --adhoc                                      # digest (forced run)
 python3 main.py --profile monitor --adhoc                    # monitor
 python3 main.py --profile topic --query 'ECB rates' --print  # topic brief to stdout
-pytest                                                        # 223 tests
+pytest                                                        # all tests
 bash run_mcp.sh                                              # start MCP server
 ```
 
@@ -40,7 +40,7 @@ fetch → process → store → synthesize → deliver
 | `news/topic_synth.py` | synthesize (topic) | Topic-focused prompt + Google News RSS builder |
 | `news/deliver.py` | deliver | Jinja2 HTML → outlook-cli |
 
-LLM calls go through the local `claude` CLI subprocess (Vertex AI) — see `news/synthesizer.py:143-203`.
+LLM calls go through the local `claude` CLI subprocess (Vertex AI); see the `subprocess.run` call in `news/synthesizer.py`.
 
 ## Tech Stack
 
@@ -59,9 +59,17 @@ config/monitor/             # monitor profile
   keywords.yaml             # brand identity: names, entities, leadership, competitors, regulators (gitignored)
   settings.yaml
 config/market/              # market profile
+  sources.yaml
+  categories.yaml
+  settings.yaml
   persona.local.txt         # reader profile for the market prompt (gitignored; neutral default if absent)
 config/topic/               # topic profile
   settings.yaml
+config/stack/               # stack profile
+  sources.yaml
+  categories.yaml
+  settings.yaml
+  reader_stack.yaml         # reader's own stack, injected into the stack prompt
 ```
 
 `.env` vars: `NEWS_RECIPIENT`, `NEWS_MONITOR_RECIPIENT`, `NEWS_TOPIC_RECIPIENT`, `NEWS_CLAUDE_COMMAND`.
@@ -71,8 +79,8 @@ config/topic/               # topic profile
 All tests use in-memory SQLite and mock all HTTP + `claude` subprocess calls — no real LLM calls.
 
 ```bash
-pytest -v          # run all 223 tests
-ruff check .       # lint (also runs in CI, pinned to ruff 0.16.1)
+pytest -v          # run all tests
+ruff check .       # lint (also runs in CI; ruff version pinned in `ci.yml`)
 ruff format .      # format
 ```
 
@@ -84,13 +92,14 @@ CI: lint → test (GitHub Actions `ci.yml`). SonarCloud on push to master.
 
 ## VPS Deployment (systemd timers)
 
-All three pipelines run as systemd timers on the Hetzner VPS (reached via the `vps` SSH alias):
+The four scheduled pipelines run as systemd timers on the Hetzner VPS (reached via the `vps` SSH alias):
 
 | Timer | Schedule | Pipeline |
 | ------- | ---------- | ---------- |
 | `news-digest` | 00,09,13,17,21:00 Athens | digest |
 | `news-monitor` | 00,08,10,12,14,16,18,20,22:00 Athens | monitor |
 | `news-stack` | 13:00 Athens | tech/stack news (topic variant) |
+| `news-market` | 04:35,07:35,11:35,15:35,19:35 Athens | market |
 
 Data volume: `news/data/` → `/mnt/data/news-data/` (news.db ~620 MB).
 
