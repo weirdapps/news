@@ -345,7 +345,18 @@ def extract_tickers_llm(
 
     prompt = _TAGGER_PROMPT + text[:max_chars]
     resolved_model, run_env = vertex_cli_model_and_env(model)
-    cmd = ["claude", "--bare", "--model", resolved_model, "--print", "--output-format", "json"]
+    # --tools "": article text must not be able to drive Read or Bash.
+    cmd = [
+        "claude",
+        "--bare",
+        "--model",
+        resolved_model,
+        "--print",
+        "--output-format",
+        "json",
+        "--tools",
+        "",
+    ]
 
     envelope = _invoke_once(cmd, prompt, timeout, run_env)
 

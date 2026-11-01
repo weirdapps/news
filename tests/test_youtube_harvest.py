@@ -152,6 +152,7 @@ def test_distil_calls_the_claude_cli_and_returns_the_abstract(monkeypatch):
     assert "--model" in argv and "claude-sonnet-4-6" in argv
     assert "sonnet" not in argv  # the bare alias must not survive
     assert "--bare" in argv  # no plugins, hooks or MCP servers cold-started per video
+    assert argv[argv.index("--tools") + 1] == ""  # fetched text must not drive tools
     assert run.call_args[1]["env"]["CLOUD_ML_REGION"] == "europe-west1"
 
 

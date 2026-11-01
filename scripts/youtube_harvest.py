@@ -179,8 +179,10 @@ def distil(transcript: str, title: str) -> str:
     try:
         # --bare: a plain prose call needs no plugins, hooks or MCP servers, and
         # without it every call cold-starts all of them.
+        # --tools "": the input is fetched text, so it must not be able to drive
+        # Read or Bash (claude --print runs tools without asking).
         result = subprocess.run(
-            ["claude", "--model", model, "--print", "--bare"],
+            ["claude", "--model", model, "--print", "--bare", "--tools", ""],
             input=prompt,
             capture_output=True,
             text=True,

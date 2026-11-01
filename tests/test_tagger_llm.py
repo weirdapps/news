@@ -36,6 +36,7 @@ def test_llm_returns_tickers(mock_run, monkeypatch):
     cmd = mock_run.call_args[0][0]
     assert cmd[0] == "claude"
     assert "--bare" in cmd
+    assert cmd[cmd.index("--tools") + 1] == ""  # fetched text must not drive tools
     assert cmd[cmd.index("--model") + 1] == "claude-sonnet-4-6"
     assert "sonnet" not in cmd  # the bare alias must not survive
     assert "--output-format" in cmd

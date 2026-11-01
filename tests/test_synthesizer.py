@@ -201,6 +201,7 @@ def test_invoke_claude_resolves_opus_alias_to_vertex_heavy_model(mock_run, monke
     run_env = mock_run.call_args[1]["env"]
     assert "claude-opus-4-8[1m]" in cmd
     assert "opus" not in cmd  # the bare alias must never reach the CLI
+    assert cmd[cmd.index("--tools") + 1] == ""  # fetched text must not drive tools
     assert run_env["CLOUD_ML_REGION"] == "eu"
 
 

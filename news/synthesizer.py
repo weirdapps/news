@@ -350,6 +350,10 @@ def invoke_claude(
         bare_args.append("--print")
     if "--output-format" not in bare_args:
         bare_args += ["--output-format", "json"]
+    # --tools "": the prompt carries fetched articles, which must not be able to
+    # drive Read or Bash (claude --print runs tools without asking).
+    if "--tools" not in bare_args:
+        bare_args += ["--tools", ""]
 
     def _resolve_tier() -> tuple[str | None, str | None]:
         """Map the opus/sonnet tier alias in bare_args to (exact id, region).

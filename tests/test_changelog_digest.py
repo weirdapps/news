@@ -87,7 +87,15 @@ def test_digest_prose_calls_the_claude_cli_with_the_house_argv(monkeypatch):
     assert prose == "Opus 5 replaces Opus 4.5 on claude.ai."
     # The exact provisioned id, not the bare alias: this call runs on the VPS, whose
     # parent env carries CLOUD_ML_REGION=eu, and sonnet in eu is a 429.
-    assert run.call_args[0][0] == ["claude", "--model", "claude-sonnet-4-6", "--print", "--bare"]
+    assert run.call_args[0][0] == [
+        "claude",
+        "--model",
+        "claude-sonnet-4-6",
+        "--print",
+        "--bare",
+        "--tools",
+        "",
+    ]
     kwargs = run.call_args[1]
     assert kwargs["capture_output"] is True
     assert kwargs["text"] is True
