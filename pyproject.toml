@@ -21,7 +21,7 @@ dependencies = [
     # A package named here is the ONLY kind that reaches production; a lockfile
     # bump reaches it never. Measured 2026-09-20: every pin below sits at exactly
     # its floor in ~/.venvs/news, and every unpinned transitive is behind.
-    "starlette>=1.9.0",       # CVE-2025-*: high; patched in 1.3.1
+    "starlette>=1.10.0",       # CVE-2025-*: high; patched in 1.3.1
     "python-multipart>=0.0.32",  # CVE-2025-*: high+low; patched in 0.0.31
     "cryptography>=50.0.2",   # CVE-2025-*: high; patched in 48.0.1 (via pyjwt[crypto])
     # Added 2026-09-20 after an OSV scan of the installed VPS versions, which is
