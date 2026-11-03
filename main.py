@@ -10,6 +10,7 @@ import subprocess
 import sys
 import time
 from datetime import UTC, datetime, timedelta
+from functools import partial
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -714,6 +715,261 @@ def _select_digest_articles(all_recent: list, pipeline_config: dict):
     return capped_articles
 
 
+# The five pipelines share one shape, fetch -> process -> store -> synthesize ->
+# deliver, and used to paste the same three blocks apiece: the synthesis dispatch,
+# the deliver branch and the run tail (#41). These helpers are those blocks, so a
+# sixth profile gets them by calling, not by copying.
+
+_AUTH_EXPIRED_FALLBACK = "gcloud auth expired — skipping synthesis, using fallback"
+
+
+def _previous_highlights(last_digest) -> list[str]:
+    """The last digest's executive_brief, for continuity; [] when absent or unreadable."""
+    if not (last_digest and last_digest.synthesis_text):
+        return []
+    try:
+        previous_synthesis = json.loads(last_digest.synthesis_text)
+    except json.JSONDecodeError:
+        return []
+    if isinstance(previous_synthesis, dict):
+        return previous_synthesis.get("executive_brief", [])
+    return []
+
+
+def _log_fetch_errors(fetch_errors: list) -> None:
+    """Count every fetch error, show the first five."""
+    if fetch_errors:
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Fetch errors: {len(fetch_errors)}")
+        for error in fetch_errors[:5]:
+            logger.warning(f"  {error}")
+
+
+def _existing_hashes(conn, articles: list, pipeline: str | None = None) -> set[str]:
+    """Hash every fetched article (tagging its pipeline first) and return those stored."""
+    existing: set[str] = set()
+    for article in articles:
+        if pipeline:
+            article.pipeline = pipeline
+        article.compute_hash()
+        if get_article_by_hash(conn, article.content_hash):
+            existing.add(article.content_hash)
+    return existing
+
+
+def _synthesize_or_fallback(
+    synthesize_fn,
+    fallback_fn,
+    articles: list,
+    synthesis_config: dict,
+    *,
+    auth_ok: bool,
+    require_articles: bool = True,
+    auth_warning: str = _AUTH_EXPIRED_FALLBACK,
+    **prompt_inputs,
+):
+    """SYNTHESIZE, or substitute the profile's fallback with synthesis_ok=False.
+
+    Returns ``(result, synthesis_ok)``: a dict on success, the fallback str otherwise.
+    Digest and monitor synthesize even an empty pool (``require_articles=False``).
+    """
+    if auth_ok and (articles or not require_articles):
+        return synthesize_fn(
+            articles=articles,
+            **prompt_inputs,
+            max_retries=synthesis_config.get("max_retries", 2),
+            timeout=synthesis_config.get("timeout", 300),
+            claude_command=synthesis_config.get("claude_command", "claude"),
+            claude_args=synthesis_config.get("claude_args", []),
+        )
+    logger = logging.getLogger(__name__)
+    if not auth_ok:
+        logger.warning(auth_warning)
+    else:
+        logger.warning("No articles fetched — using fallback")
+    return fallback_fn(articles), False
+
+
+def _synthesis_payload(synthesis_result, synthesis_ok: bool, clean=None) -> tuple[dict, str]:
+    """``(synthesis_data, synthesis_text)``: what the renderer reads, what the row keeps.
+
+    Contract: every synthesizer returns a dict on success and a str on failure.
+    ``clean`` is the profile's review and citation filtering, applied on success only.
+    """
+    if synthesis_ok:
+        assert isinstance(synthesis_result, dict)
+        synthesis_data = clean(synthesis_result) if clean else synthesis_result
+        return synthesis_data, json.dumps(synthesis_data)
+    # Fallback case - plain text
+    assert isinstance(synthesis_result, str)
+    return {"fallback_text": synthesis_result}, synthesis_result
+
+
+def _reviewed(synthesis: dict, articles: list, job: str, synthesis_config: dict) -> dict:
+    """VERACITY REVIEW, which runs before citation_filter.
+
+    citation_filter flattens bullets to plain strings and would destroy the
+    article_ids the review needs. Strikes claims the cited article does not actually
+    support. Degrades to the unreviewed digest on any failure; never empties it.
+    """
+    from news.reviewer import review_and_log
+
+    return review_and_log(synthesis, articles, job=job, synthesis_config=synthesis_config)
+
+
+def _clean_digest_synthesis(synthesis: dict, *, articles: list, synthesis_config: dict) -> dict:
+    from news.citation_filter import (
+        enrich_section_articles,
+        filter_unsourced_bullets,
+        filter_unsourced_sections,
+    )
+
+    synthesis_data = _reviewed(synthesis, articles, "digest", synthesis_config)
+    synthesis_data["executive_brief"] = filter_unsourced_bullets(
+        synthesis_data.get("executive_brief", []), articles
+    )
+    synthesis_data["what_changed"] = filter_unsourced_bullets(
+        synthesis_data.get("what_changed", []), articles
+    )
+    synthesis_data["sections"] = enrich_section_articles(
+        filter_unsourced_sections(synthesis_data.get("sections", []), articles),
+        articles,
+    )
+    return synthesis_data
+
+
+def _clean_monitor_synthesis(synthesis: dict, *, articles: list, synthesis_config: dict) -> dict:
+    from news.citation_filter import (
+        enrich_mentions,
+        filter_competitor_watch,
+        filter_unsourced_bullets,
+    )
+
+    synthesis_data = _reviewed(synthesis, articles, "monitor", synthesis_config)
+    synthesis_data["executive_brief"] = filter_unsourced_bullets(
+        synthesis_data.get("executive_brief", []), articles
+    )
+    synthesis_data["alerts"] = filter_unsourced_bullets(synthesis_data.get("alerts", []), articles)
+    synthesis_data["company_mentions"] = enrich_mentions(
+        synthesis_data.get("company_mentions", []), articles
+    )
+    synthesis_data["competitor_watch"] = filter_competitor_watch(
+        synthesis_data.get("competitor_watch"), articles
+    )
+    synthesis_data["mention_count"] = len(synthesis_data["company_mentions"])
+    return synthesis_data
+
+
+def _clean_stack_synthesis(synthesis: dict, *, articles: list, synthesis_config: dict) -> dict:
+    from news.citation_filter import (
+        filter_unsourced_bullets,
+        filter_unsourced_sections,
+    )
+
+    synthesis_data = _reviewed(synthesis, articles, "stack", synthesis_config)
+    for key in ("executive_brief", "try_this", "recommendations"):
+        synthesis_data[key] = filter_unsourced_bullets(synthesis_data.get(key, []), articles)
+    synthesis_data["sections"] = filter_unsourced_sections(
+        synthesis_data.get("sections", []), articles
+    )
+    return synthesis_data
+
+
+def _clean_market_synthesis(synthesis: dict, *, articles: list) -> dict:
+    from news.citation_filter import (
+        filter_unsourced_bullets,
+        filter_unsourced_sections,
+    )
+
+    synthesis["executive_brief"] = filter_unsourced_bullets(
+        synthesis.get("executive_brief", []), articles
+    )
+    synthesis["sections"] = filter_unsourced_sections(synthesis.get("sections", []), articles)
+    return synthesis
+
+
+def _athens_clock(start_time: datetime) -> tuple[datetime, str, str]:
+    """``(now_athens, time_display, date_display)`` for the run's header and subject."""
+    now_athens = start_time.astimezone(_ATHENS_TZ)
+    return now_athens, now_athens.strftime("%H:%M"), now_athens.strftime("%a %-d %b").lower()
+
+
+def _render_or_alert(
+    synthesis_ok: bool, render, alert_label: str, now_athens: datetime, next_run: str
+) -> tuple[str, str]:
+    """DELIVER: ``(subject, html)`` of the rendered digest, or of a one-line alert.
+
+    Synthesis failed: send a one-line alert, NOT the unsynthesized dump. ``render``
+    is only called on success, so the source-health query runs only then too.
+    """
+    if synthesis_ok:
+        return render()
+    _, time_display, date_display = _athens_clock(now_athens)
+    subject = build_alert_subject(alert_label, now_athens)
+    html_output = build_alert_html(
+        label=alert_label,
+        time_display=time_display,
+        date_display=date_display,
+        reason=_SYNTH_FAIL_REASON,
+        next_run=next_run,
+    )
+    return subject, html_output
+
+
+def _send_or_save(
+    subject: str,
+    html_output: str,
+    recipient: str,
+    *,
+    label: str,
+    failure_log: str,
+    failure_title: str,
+) -> bool:
+    """Send the email; on failure save the HTML under ``label`` and raise a notification."""
+    email_sent = send_email(subject=subject, html_body=html_output, recipient=recipient)
+    if not email_sent:
+        logging.getLogger(__name__).error(failure_log)
+        fallback_path = save_fallback(html_output, label=label)
+        notify_macos(title=failure_title, message=f"Saved to {fallback_path}")
+    return email_sent
+
+
+def _record_digest(conn, digest: Digest, email_sent: bool) -> None:
+    """Record the digest row, stamped sent only if the email went out."""
+    digest_id = insert_digest(conn, digest)
+    if email_sent:
+        update_digest_sent(conn, digest_id)
+
+
+def _finish_run(
+    conn,
+    start_time: datetime,
+    run_log_path,
+    run_type: str,
+    *,
+    article_count: int,
+    new_count: int,
+    synthesis_ok: bool,
+    sent_ok: bool | None,
+    done_message: str | None,
+) -> bool:
+    """The tail: close the db, append to runs.log, log the duration, return the verdict."""
+    conn.close()
+    duration = (datetime.now(UTC) - start_time).total_seconds()
+    log_run(
+        log_path=str(run_log_path),
+        run_type=run_type,
+        article_count=article_count,
+        new_count=new_count,
+        synthesis_ok=synthesis_ok,
+        sent_ok=sent_ok,
+        duration_seconds=duration,
+    )
+    if done_message:
+        logging.getLogger(__name__).info(f"{done_message} in {duration:.1f}s")
+    return _delivered(synthesis_ok, sent_ok)
+
+
 async def run_digest_pipeline(run_type: str = "scheduled") -> bool:
     """Execute the full news digest pipeline.
 
@@ -749,32 +1005,17 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> bool:
     logger.info(f"Time window: {time_window}")
 
     # Get previous highlights from last digest
-    previous_highlights = []
-    if last_digest and last_digest.synthesis_text:
-        try:
-            previous_synthesis = json.loads(last_digest.synthesis_text)
-            if isinstance(previous_synthesis, dict):
-                previous_highlights = previous_synthesis.get("executive_brief", [])
-        except json.JSONDecodeError:
-            pass
+    previous_highlights = _previous_highlights(last_digest)
 
     # FETCH: Get articles from RSS feeds (+ any feed-less HTML sources)
     logger.info(f"Fetching {len(sources['rss_feeds'])} RSS feeds")
     raw_articles, fetch_errors = await fetch_all_sources(sources)
     logger.info(f"Fetched {len(raw_articles)} articles")
-
-    if fetch_errors:
-        logger.warning(f"Fetch errors: {len(fetch_errors)}")
-        for error in fetch_errors[:5]:  # Log first 5
-            logger.warning(f"  {error}")
+    _log_fetch_errors(fetch_errors)
 
     # PROCESS: Get existing hashes and process articles
     logger.info("Processing articles")
-    existing_hashes = set()
-    for article in raw_articles:
-        article.compute_hash()
-        if get_article_by_hash(conn, article.content_hash):
-            existing_hashes.add(article.content_hash)
+    existing_hashes = _existing_hashes(conn, raw_articles)
 
     processed_articles, process_stats = process_articles(
         articles=raw_articles,
@@ -811,79 +1052,40 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> bool:
     )
 
     # SYNTHESIZE: Check auth first — skip synthesis if expired (avoid wasted retries)
-    auth_ok = _preflight_auth_ok(config["synthesis"])
-    if auth_ok:
-        synthesis_result, synthesis_ok = synthesize(
-            articles=capped_articles,
-            previous_highlights=previous_highlights,
-            time_window=time_window,
-            max_retries=config["synthesis"].get("max_retries", 2),
-            timeout=config["synthesis"].get("timeout", 300),
-            claude_command=config["synthesis"].get("claude_command", "claude"),
-            claude_args=config["synthesis"].get("claude_args", []),
-        )
-    else:
-        logger.warning("gcloud auth expired — skipping synthesis, using fallback")
-        from news.synthesizer import build_fallback_digest
+    from news.synthesizer import build_fallback_digest
 
-        synthesis_result = build_fallback_digest(capped_articles)
-        synthesis_ok = False
+    synthesis_result, synthesis_ok = _synthesize_or_fallback(
+        synthesize,
+        build_fallback_digest,
+        capped_articles,
+        config["synthesis"],
+        auth_ok=_preflight_auth_ok(config["synthesis"]),
+        require_articles=False,
+        previous_highlights=previous_highlights,
+        time_window=time_window,
+    )
 
     relevant_articles = all_recent
 
     # Prepare synthesis data for rendering
-    synthesis_data: dict
-    if synthesis_ok:
-        # Contract: synthesize() returns dict on success, str on failure.
-        assert isinstance(synthesis_result, dict)
-        # VERACITY REVIEW, before citation_filter: that flattens bullets to plain
-        # strings and would destroy the article_ids the review needs. Strikes claims
-        # the cited article does not actually support. Degrades to the unreviewed
-        # digest on any failure; never empties it.
-        from news.reviewer import review_and_log
-
-        synthesis_result = review_and_log(
-            synthesis_result,
-            capped_articles,
-            job="digest",
+    synthesis_data, synthesis_text = _synthesis_payload(
+        synthesis_result,
+        synthesis_ok,
+        partial(
+            _clean_digest_synthesis,
+            articles=capped_articles,
             synthesis_config=config["synthesis"],
-        )
-
-        from news.citation_filter import (
-            enrich_section_articles,
-            filter_unsourced_bullets,
-            filter_unsourced_sections,
-        )
-
-        synthesis_data = synthesis_result
-        synthesis_data["executive_brief"] = filter_unsourced_bullets(
-            synthesis_data.get("executive_brief", []), capped_articles
-        )
-        synthesis_data["what_changed"] = filter_unsourced_bullets(
-            synthesis_data.get("what_changed", []), capped_articles
-        )
-        synthesis_data["sections"] = enrich_section_articles(
-            filter_unsourced_sections(synthesis_data.get("sections", []), capped_articles),
-            capped_articles,
-        )
-        synthesis_text = json.dumps(synthesis_data)
-    else:
-        # Fallback case - plain text
-        assert isinstance(synthesis_result, str)
-        synthesis_data = {"fallback_text": synthesis_result}
-        synthesis_text = synthesis_result
+        ),
+    )
 
     # Calculate next digest time
-    now_athens = start_time.astimezone(_ATHENS_TZ)
-    current_time_str = now_athens.strftime("%H:%M")
-    next_digest = get_next_digest_time(current_time_str, config["schedule"]["runs"])
+    now_athens, time_display, date_display = _athens_clock(start_time)
+    next_digest = get_next_digest_time(time_display, config["schedule"]["runs"])
 
     # DELIVER: Render HTML and send email
     source_count = len(_configured_source_names(sources))
-    time_display = now_athens.strftime("%H:%M")
-    date_display = now_athens.strftime("%a %-d %b").lower()
 
-    if synthesis_ok:
+    def render() -> tuple[str, str]:
         subject = build_subject(
             dt=now_athens,
             is_adhoc=(run_type == "adhoc"),
@@ -902,32 +1104,20 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> bool:
             subject=subject,
             health_note=_source_health_note(conn, sources, "digest"),
         )
-    else:
-        # Synthesis failed — send a one-line alert, NOT the unsynthesized dump.
-        subject = build_alert_subject("News Digest", now_athens)
-        html_output = build_alert_html(
-            label="News Digest",
-            time_display=time_display,
-            date_display=date_display,
-            reason=_SYNTH_FAIL_REASON,
-            next_run=next_digest,
-        )
+        return subject, html_output
 
-    # Send email
-    email_sent = send_email(
-        subject=subject,
-        html_body=html_output,
-        recipient=config["email"]["recipient"],
+    subject, html_output = _render_or_alert(
+        synthesis_ok, render, "News Digest", now_athens, next_digest
     )
 
-    # Handle send failure
-    if not email_sent:
-        logger.error("Email send failed - saving fallback and notifying")
-        fallback_path = save_fallback(html_output)
-        notify_macos(
-            title="News Digest Send Failed",
-            message=f"Saved to {fallback_path}",
-        )
+    email_sent = _send_or_save(
+        subject,
+        html_output,
+        config["email"]["recipient"],
+        label="digest",
+        failure_log="Email send failed - saving fallback and notifying",
+        failure_title="News Digest Send Failed",
+    )
 
     # Record digest in database
     digest = Digest(
@@ -938,28 +1128,19 @@ async def run_digest_pipeline(run_type: str = "scheduled") -> bool:
         html_output=html_output,
         sent_at=None,
     )
-    digest_id = insert_digest(conn, digest)
+    _record_digest(conn, digest, email_sent)
 
-    if email_sent:
-        update_digest_sent(conn, digest_id)
-
-    # Close database
-    conn.close()
-
-    # Log run
-    duration = (datetime.now(UTC) - start_time).total_seconds()
-    log_run(
-        log_path=str(config["run_log_path"]),
-        run_type=run_type,
+    return _finish_run(
+        conn,
+        start_time,
+        config["run_log_path"],
+        run_type,
         article_count=len(processed_articles),
         new_count=process_stats["output_count"],
         synthesis_ok=synthesis_ok,
         sent_ok=email_sent,
-        duration_seconds=duration,
+        done_message="Pipeline complete",
     )
-
-    logger.info(f"Pipeline complete in {duration:.1f}s")
-    return _delivered(synthesis_ok, email_sent)
 
 
 async def run_monitor_pipeline(run_type: str = "scheduled") -> bool:
@@ -1009,19 +1190,10 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> bool:
     logger.info(f"Fetching {len(rss_feeds)} monitor RSS feeds")
     raw_articles, fetch_errors = await fetch_all_sources(sources)
     logger.info(f"Fetched {len(raw_articles)} articles")
-
-    if fetch_errors:
-        logger.warning(f"Fetch errors: {len(fetch_errors)}")
-        for error in fetch_errors[:5]:
-            logger.warning(f"  {error}")
+    _log_fetch_errors(fetch_errors)
 
     # PROCESS: Dedup, classify, score
-    existing_hashes = set()
-    for article in raw_articles:
-        article.pipeline = "monitor"
-        article.compute_hash()
-        if get_article_by_hash(conn, article.content_hash):
-            existing_hashes.add(article.content_hash)
+    existing_hashes = _existing_hashes(conn, raw_articles, pipeline="monitor")
 
     # Use keywords config as categories for classification.
     # keywords_config is also threaded into compute_relevance_score so the
@@ -1055,19 +1227,18 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> bool:
     skip_empty = config["pipeline"].get("skip_empty", True)
     if skip_empty and process_stats["output_count"] == 0 and run_type != "adhoc":
         logger.info("No new mentions — skipping synthesis and delivery")
-        conn.close()
-        duration = (datetime.now(UTC) - start_time).total_seconds()
-        log_run(
-            log_path=str(config["run_log_path"]),
-            run_type=f"monitor-{run_type}",
+        # Nothing to say is a delivered outcome, not a withheld one.
+        return _finish_run(
+            conn,
+            start_time,
+            config["run_log_path"],
+            f"monitor-{run_type}",
             article_count=0,
             new_count=0,
             synthesis_ok=True,
             sent_ok=True,
-            duration_seconds=duration,
+            done_message=None,
         )
-        # Nothing to say is a delivered outcome, not a withheld one.
-        return True
 
     # STORE: Insert new articles
     for article in processed_articles:
@@ -1089,93 +1260,49 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> bool:
     )
 
     # SYNTHESIZE: Check auth first — skip synthesis if expired (avoid wasted retries)
-    auth_ok = _preflight_auth_ok(config["synthesis"])
-    if auth_ok:
-        synthesis_result, synthesis_ok = synthesize_monitor(
-            articles=capped_articles,
-            keywords_config=keywords_config,
-            previous_summary=previous_summary,
-            time_window=time_window,
-            last_run_at=last_digest_at,
-            max_retries=config["synthesis"].get("max_retries", 2),
-            timeout=config["synthesis"].get("timeout", 300),
-            claude_command=config["synthesis"].get("claude_command", "claude"),
-            claude_args=config["synthesis"].get("claude_args", []),
-        )
-    else:
-        logger.warning("gcloud auth expired — skipping monitor synthesis, using fallback")
-        from news.monitor_synth import build_monitor_fallback
+    from news.monitor_synth import build_monitor_fallback
 
-        synthesis_result = build_monitor_fallback(capped_articles)
-        synthesis_ok = False
+    synthesis_result, synthesis_ok = _synthesize_or_fallback(
+        synthesize_monitor,
+        build_monitor_fallback,
+        capped_articles,
+        config["synthesis"],
+        auth_ok=_preflight_auth_ok(config["synthesis"]),
+        require_articles=False,
+        auth_warning="gcloud auth expired — skipping monitor synthesis, using fallback",
+        keywords_config=keywords_config,
+        previous_summary=previous_summary,
+        time_window=time_window,
+        last_run_at=last_digest_at,
+    )
 
     # Prepare synthesis data
-    synthesis_data: dict
-    if synthesis_ok:
-        # Contract: synthesize_monitor() returns dict on success, str on failure.
-        assert isinstance(synthesis_result, dict)
-        # VERACITY REVIEW, before citation_filter: that flattens bullets to plain
-        # strings and would destroy the article_ids the review needs. Strikes claims
-        # the cited article does not actually support. Degrades to the unreviewed
-        # digest on any failure; never empties it.
-        from news.reviewer import review_and_log
-
-        synthesis_result = review_and_log(
-            synthesis_result,
-            capped_articles,
-            job="monitor",
+    synthesis_data, synthesis_text = _synthesis_payload(
+        synthesis_result,
+        synthesis_ok,
+        partial(
+            _clean_monitor_synthesis,
+            articles=capped_articles,
             synthesis_config=config["synthesis"],
-        )
-
-        from news.citation_filter import (
-            enrich_mentions,
-            filter_competitor_watch,
-            filter_unsourced_bullets,
-        )
-
-        synthesis_data = synthesis_result
-        synthesis_data["executive_brief"] = filter_unsourced_bullets(
-            synthesis_data.get("executive_brief", []), capped_articles
-        )
-        synthesis_data["alerts"] = filter_unsourced_bullets(
-            synthesis_data.get("alerts", []), capped_articles
-        )
-        synthesis_data["company_mentions"] = enrich_mentions(
-            synthesis_data.get("company_mentions", []), capped_articles
-        )
-        synthesis_data["competitor_watch"] = filter_competitor_watch(
-            synthesis_data.get("competitor_watch"), capped_articles
-        )
-        synthesis_data["mention_count"] = len(synthesis_data["company_mentions"])
-        synthesis_text = json.dumps(synthesis_data)
-    else:
-        assert isinstance(synthesis_result, str)
-        synthesis_data = {"fallback_text": synthesis_result}
-        synthesis_text = synthesis_result
+        ),
+    )
 
     # Calculate next scan time
-    now_athens = start_time.astimezone(_ATHENS_TZ)
-    current_time_str = now_athens.strftime("%H:%M")
-    next_scan = get_next_digest_time(current_time_str, config["schedule"]["runs"])
+    now_athens, time_display, date_display = _athens_clock(start_time)
+    next_scan = get_next_digest_time(time_display, config["schedule"]["runs"])
 
     # DELIVER: Render monitor HTML and send email
     source_count = len(_configured_source_names(sources))
-    time_display = now_athens.strftime("%H:%M")
-    date_display = now_athens.strftime("%a %-d %b").lower()
 
-    mention_count = (
-        len(synthesis_data.get("company_mentions", [])) if synthesis_ok else len(capped_articles)
-    )
-    has_alerts = bool(synthesis_data.get("alerts")) if synthesis_ok else False
-
-    if synthesis_ok:
+    def render() -> tuple[str, str]:
+        mention_count = len(synthesis_data.get("company_mentions", []))
         subject = build_monitor_subject(
             dt=now_athens,
             keywords_config=keywords_config,
             is_adhoc=(run_type == "adhoc"),
             mention_count=mention_count,
             source_count=source_count,
-            has_alerts=has_alerts,
+            has_alerts=bool(synthesis_data.get("alerts")),
             synthesis_failed=False,
         )
         html_output = render_monitor_html(
@@ -1189,32 +1316,21 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> bool:
             subject=subject,
             health_note=_source_health_note(conn, sources, "monitor"),
         )
-    else:
-        # Synthesis failed — send a one-line alert, NOT the unsynthesized dump.
-        monitor_label = keywords_config.get("display", {}).get("monitor_label", "Brand Monitor")
-        subject = build_alert_subject(monitor_label, now_athens)
-        html_output = build_alert_html(
-            label=monitor_label,
-            time_display=time_display,
-            date_display=date_display,
-            reason=_SYNTH_FAIL_REASON,
-            next_run=next_scan,
-        )
+        return subject, html_output
 
-    # Send email
-    email_sent = send_email(
-        subject=subject,
-        html_body=html_output,
-        recipient=config["email"]["recipient"],
+    monitor_label = keywords_config.get("display", {}).get("monitor_label", "Brand Monitor")
+    subject, html_output = _render_or_alert(
+        synthesis_ok, render, monitor_label, now_athens, next_scan
     )
 
-    if not email_sent:
-        logger.error("Monitor email send failed - saving fallback")
-        fallback_path = save_fallback(html_output, label="monitor")
-        notify_macos(
-            title="Monitor Send Failed",
-            message=f"Saved to {fallback_path}",
-        )
+    email_sent = _send_or_save(
+        subject,
+        html_output,
+        config["email"]["recipient"],
+        label="monitor",
+        failure_log="Monitor email send failed - saving fallback",
+        failure_title="Monitor Send Failed",
+    )
 
     # Record monitor digest in database
     digest = Digest(
@@ -1226,27 +1342,111 @@ async def run_monitor_pipeline(run_type: str = "scheduled") -> bool:
         sent_at=None,
         pipeline="monitor",
     )
-    digest_id = insert_digest(conn, digest)
+    _record_digest(conn, digest, email_sent)
 
-    if email_sent:
-        update_digest_sent(conn, digest_id)
-
-    conn.close()
-
-    # Log run
-    duration = (datetime.now(UTC) - start_time).total_seconds()
-    log_run(
-        log_path=str(config["run_log_path"]),
-        run_type=f"monitor-{run_type}",
+    return _finish_run(
+        conn,
+        start_time,
+        config["run_log_path"],
+        f"monitor-{run_type}",
         article_count=len(processed_articles),
         new_count=process_stats["output_count"],
         synthesis_ok=synthesis_ok,
         sent_ok=email_sent,
-        duration_seconds=duration,
+        done_message="Monitor pipeline complete",
     )
 
-    logger.info(f"Monitor pipeline complete in {duration:.1f}s")
-    return _delivered(synthesis_ok, email_sent)
+
+async def _enrich_stack_fetch(conn, raw_articles: list, sources: dict, config: dict) -> None:
+    """ENRICH the raw fetch: fill thin bodies, then attach transcript abstracts.
+
+    Both run before hashing and scoring. Bodies are hash input, so they must land
+    first; the transcript abstract is a separate field, so the hash input is
+    untouched, and doing it here is what lets process_articles score on what was
+    actually said.
+
+    Body fill is opt-in per source via `extract_content: true`, bounded by a fetch
+    cap and a wall-clock budget. Without it, Hugging Face Blog (median 0 content
+    words) and Google Research Blog (3) lose every article to the 10-word quality gate.
+    """
+    from news.content_enrich import enrich_thin_articles
+
+    logger = logging.getLogger(__name__)
+    body_filled, body_tried = await enrich_thin_articles(
+        raw_articles,
+        sources,
+        min_words=config["pipeline"]["min_article_length_words"],
+    )
+    if body_tried:
+        logger.info(f"Content enrichment: {body_filled}/{body_tried} thin articles filled")
+
+    enriched, video_total = enrich_articles(raw_articles, config["transcripts_db_path"])
+    if not video_total:
+        return
+    logger.info(f"Transcript enrichment: {enriched}/{video_total} YouTube items enriched")
+    # A video first stored before the harvester reached it is dropped as a
+    # duplicate on every later run (its hash is unchanged by design), so it
+    # would never receive its abstract. Backfill it onto the stored row.
+    backfilled = backfill_transcript_abstracts(conn, raw_articles)
+    if backfilled:
+        logger.info(f"Backfilled abstracts onto {backfilled} previously-stored article(s)")
+
+
+def _upgrade_changelog_digests(
+    conn,
+    processed_articles: list,
+    raw_articles: list,
+    *,
+    auth_ok: bool,
+    digest_since: datetime,
+    start_time: datetime,
+) -> list:
+    """ENRICH: upgrade the parse-time changelog delta to prose, before STORE.
+
+    Returns the entries that carry a delta to write back after STORE (see
+    _backfill_changelog). Deliberately post-dedup and not beside the transcript
+    enrichment: at that point the candidate set is the raw fetch, 159 entries, which
+    at the measured per-call cost is ~2,900s against a 600s unit. Post-dedup the
+    steady state is under three calls a week and ~92% of runs make none at all.
+    """
+    survived = [a for a in processed_articles if a.changelog_digest]
+    fresh_urls = {a.url for a in processed_articles}
+    # A body edit outside the first 200 characters moves content_hash but not the
+    # url, so an already-upgraded entry can survive dedup and look new. Paying for
+    # it again buys nothing: insert_article will not overwrite the stored row and
+    # backfill refuses a row that already reads 'llm'.
+    already = urls_already_upgraded(conn, [a.url for a in survived])
+    fresh = [a for a in survived if a.url not in already]
+    # An entry whose upgrade timed out is a dedup drop on every later run, so
+    # without this half it would keep the deterministic fallback forever. One
+    # query, then an O(1) membership test per article.
+    retry_urls = urls_awaiting_changelog_upgrade(
+        conn,
+        [a.url for a in raw_articles if a.changelog_digest and a.url not in fresh_urls],
+        since=digest_since,
+    )
+    stale = [a for a in raw_articles if a.url in retry_urls]
+    if auth_ok and (fresh or stale):
+        candidates = sorted(
+            fresh + stale,
+            key=lambda a: a.published_at or start_time,
+            reverse=True,
+        )
+        upgraded, attempted = enrich_changelog_digests(candidates)
+        logging.getLogger(__name__).info(
+            f"Changelog digests: {upgraded}/{attempted} upgraded to prose"
+        )
+    return fresh + stale
+
+
+def _backfill_changelog(conn, pending: list) -> None:
+    """Write the (possibly upgraded) changelog digests onto rows already stored."""
+    if pending:
+        rewritten = backfill_changelog_digests(conn, pending)
+        if rewritten:
+            logging.getLogger(__name__).info(
+                f"Backfilled changelog digests onto {rewritten} stored article(s)"
+            )
 
 
 async def run_stack_pipeline(run_type: str = "scheduled") -> bool:
@@ -1274,61 +1474,19 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> bool:
     )
     logger.info(f"Stack time window: {time_window}")
 
-    previous_highlights: list[str] = []
-    if last_digest and last_digest.synthesis_text:
-        try:
-            previous_synthesis = json.loads(last_digest.synthesis_text)
-            if isinstance(previous_synthesis, dict):
-                previous_highlights = previous_synthesis.get("executive_brief", [])
-        except json.JSONDecodeError:
-            pass
+    previous_highlights = _previous_highlights(last_digest)
 
     # FETCH (RSS feeds + any feed-less HTML sources)
     rss_feeds = sources.get("rss_feeds", [])
     logger.info(f"Fetching {len(rss_feeds)} stack RSS feeds")
     raw_articles, fetch_errors = await fetch_all_sources(sources)
     logger.info(f"Fetched {len(raw_articles)} articles")
+    _log_fetch_errors(fetch_errors)
 
-    if fetch_errors:
-        logger.warning(f"Fetch errors: {len(fetch_errors)}")
-        for error in fetch_errors[:5]:
-            logger.warning(f"  {error}")
-
-    # ENRICH: attach transcript abstracts before hashing and scoring. The
-    # abstract is a separate field, so the hash input is untouched; doing it
-    # here is what lets process_articles score on what was actually said.
-    # Fill in bodies for feeds that publish headlines without them, BEFORE hashing:
-    # content is hash input, unlike the transcript abstract which is a separate field.
-    # Opt-in per source via `extract_content: true`, bounded by a fetch cap and a
-    # wall-clock budget. Without this, Hugging Face Blog (median 0 content words) and
-    # Google Research Blog (3) lose every article to the 10-word quality gate.
-    from news.content_enrich import enrich_thin_articles
-
-    body_filled, body_tried = await enrich_thin_articles(
-        raw_articles,
-        sources,
-        min_words=config["pipeline"]["min_article_length_words"],
-    )
-    if body_tried:
-        logger.info(f"Content enrichment: {body_filled}/{body_tried} thin articles filled")
-
-    enriched, video_total = enrich_articles(raw_articles, config["transcripts_db_path"])
-    if video_total:
-        logger.info(f"Transcript enrichment: {enriched}/{video_total} YouTube items enriched")
-        # A video first stored before the harvester reached it is dropped as a
-        # duplicate on every later run (its hash is unchanged by design), so it
-        # would never receive its abstract. Backfill it onto the stored row.
-        backfilled = backfill_transcript_abstracts(conn, raw_articles)
-        if backfilled:
-            logger.info(f"Backfilled abstracts onto {backfilled} previously-stored article(s)")
+    await _enrich_stack_fetch(conn, raw_articles, sources, config)
 
     # PROCESS
-    existing_hashes: set[str] = set()
-    for article in raw_articles:
-        article.pipeline = "stack"
-        article.compute_hash()
-        if get_article_by_hash(conn, article.content_hash):
-            existing_hashes.add(article.content_hash)
+    existing_hashes = _existing_hashes(conn, raw_articles, pipeline="stack")
 
     processed_articles, process_stats = process_articles(
         articles=raw_articles,
@@ -1359,45 +1517,20 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> bool:
     # cannot succeed, and only then discover the credential is dead.
     auth_ok = _preflight_auth_ok(config["synthesis"])
 
-    # ENRICH: upgrade the parse-time changelog delta to prose. Deliberately here
-    # and not beside the transcript enrichment: at that point the candidate set
-    # is the raw fetch, 159 entries, which at the measured per-call cost is
-    # ~2,900s against a 600s unit. Post-dedup the steady state is under three
-    # calls a week and ~92% of runs make none at all.
-    survived = [a for a in processed_articles if a.changelog_digest]
-    fresh_urls = {a.url for a in processed_articles}
-    # A body edit outside the first 200 characters moves content_hash but not the
-    # url, so an already-upgraded entry can survive dedup and look new. Paying for
-    # it again buys nothing: insert_article will not overwrite the stored row and
-    # backfill refuses a row that already reads 'llm'.
-    already = urls_already_upgraded(conn, [a.url for a in survived])
-    fresh = [a for a in survived if a.url not in already]
-    # An entry whose upgrade timed out is a dedup drop on every later run, so
-    # without this half it would keep the deterministic fallback forever. One
-    # query, then an O(1) membership test per article.
-    retry_urls = urls_awaiting_changelog_upgrade(
+    changelog_pending = _upgrade_changelog_digests(
         conn,
-        [a.url for a in raw_articles if a.changelog_digest and a.url not in fresh_urls],
-        since=digest_since,
+        processed_articles,
+        raw_articles,
+        auth_ok=auth_ok,
+        digest_since=digest_since,
+        start_time=start_time,
     )
-    stale = [a for a in raw_articles if a.url in retry_urls]
-    if auth_ok and (fresh or stale):
-        candidates = sorted(
-            fresh + stale,
-            key=lambda a: a.published_at or start_time,
-            reverse=True,
-        )
-        upgraded, attempted = enrich_changelog_digests(candidates)
-        logger.info(f"Changelog digests: {upgraded}/{attempted} upgraded to prose")
 
     # STORE
     for article in processed_articles:
         insert_article(conn, article)
 
-    if fresh or stale:
-        rewritten = backfill_changelog_digests(conn, fresh + stale)
-        if rewritten:
-            logger.info(f"Backfilled changelog digests onto {rewritten} stored article(s)")
+    _backfill_changelog(conn, changelog_pending)
 
     # POOL: pull recent stack articles
     all_recent = get_articles_since(conn, digest_since, min_score=0, pipeline="stack")
@@ -1415,75 +1548,34 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> bool:
     # SYNTHESIZE
     from news.stack_synth import build_stack_fallback, synthesize_stack
 
-    if auth_ok and capped_articles:
-        synthesis_result, synthesis_ok = synthesize_stack(
-            articles=capped_articles,
-            previous_highlights=previous_highlights,
-            time_window=time_window,
-            max_retries=config["synthesis"].get("max_retries", 2),
-            timeout=config["synthesis"].get("timeout", 300),
-            claude_command=config["synthesis"].get("claude_command", "claude"),
-            claude_args=config["synthesis"].get("claude_args", []),
-        )
-    else:
-        if not auth_ok:
-            logger.warning("gcloud auth expired — skipping synthesis, using fallback")
-        elif not capped_articles:
-            logger.warning("No articles fetched — using fallback")
-        synthesis_result = build_stack_fallback(capped_articles)
-        synthesis_ok = False
+    synthesis_result, synthesis_ok = _synthesize_or_fallback(
+        synthesize_stack,
+        build_stack_fallback,
+        capped_articles,
+        config["synthesis"],
+        auth_ok=auth_ok,
+        previous_highlights=previous_highlights,
+        time_window=time_window,
+    )
 
     # Prepare synthesis data
-    synthesis_data: dict
-    if synthesis_ok:
-        assert isinstance(synthesis_result, dict)
-        # VERACITY REVIEW, before citation_filter: that flattens bullets to plain
-        # strings and would destroy the article_ids the review needs. Strikes claims
-        # the cited article does not actually support. Degrades to the unreviewed
-        # digest on any failure; never empties it.
-        from news.reviewer import review_and_log
-
-        synthesis_result = review_and_log(
-            synthesis_result,
-            capped_articles,
-            job="stack",
+    synthesis_data, synthesis_text = _synthesis_payload(
+        synthesis_result,
+        synthesis_ok,
+        partial(
+            _clean_stack_synthesis,
+            articles=capped_articles,
             synthesis_config=config["synthesis"],
-        )
-
-        from news.citation_filter import (
-            filter_unsourced_bullets,
-            filter_unsourced_sections,
-        )
-
-        synthesis_data = synthesis_result
-        synthesis_data["executive_brief"] = filter_unsourced_bullets(
-            synthesis_data.get("executive_brief", []), capped_articles
-        )
-        synthesis_data["try_this"] = filter_unsourced_bullets(
-            synthesis_data.get("try_this", []), capped_articles
-        )
-        synthesis_data["recommendations"] = filter_unsourced_bullets(
-            synthesis_data.get("recommendations", []), capped_articles
-        )
-        synthesis_data["sections"] = filter_unsourced_sections(
-            synthesis_data.get("sections", []), capped_articles
-        )
-        synthesis_text = json.dumps(synthesis_data)
-    else:
-        assert isinstance(synthesis_result, str)
-        synthesis_data = {"fallback_text": synthesis_result}
-        synthesis_text = synthesis_result
+        ),
+    )
 
     # DELIVER
-    now_athens = start_time.astimezone(_ATHENS_TZ)
-    current_time_str = now_athens.strftime("%H:%M")
-    next_run = get_next_digest_time(current_time_str, config["schedule"]["runs"])
+    now_athens, time_display, date_display = _athens_clock(start_time)
+    next_run = get_next_digest_time(time_display, config["schedule"]["runs"])
 
     source_count = len(_configured_source_names(sources))
-    time_display = now_athens.strftime("%H:%M")
-    date_display = now_athens.strftime("%a %-d %b").lower()
 
-    if synthesis_ok:
+    def render() -> tuple[str, str]:
         subject = build_stack_subject(
             dt=now_athens,
             is_adhoc=(run_type == "adhoc"),
@@ -1504,30 +1596,18 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> bool:
             ),
             health_note=_source_health_note(conn, sources, "stack"),
         )
-    else:
-        # Synthesis failed — send a one-line alert, NOT the unsynthesized dump.
-        subject = build_alert_subject("Stack", now_athens)
-        html_output = build_alert_html(
-            label="Stack",
-            time_display=time_display,
-            date_display=date_display,
-            reason=_SYNTH_FAIL_REASON,
-            next_run=next_run,
-        )
+        return subject, html_output
 
-    email_sent = send_email(
-        subject=subject,
-        html_body=html_output,
-        recipient=config["email"]["recipient"],
+    subject, html_output = _render_or_alert(synthesis_ok, render, "Stack", now_athens, next_run)
+
+    email_sent = _send_or_save(
+        subject,
+        html_output,
+        config["email"]["recipient"],
+        label="stack",
+        failure_log="Stack email send failed - saving fallback",
+        failure_title="Stack Send Failed",
     )
-
-    if not email_sent:
-        logger.error("Stack email send failed - saving fallback")
-        fallback_path = save_fallback(html_output, label="stack")
-        notify_macos(
-            title="Stack Send Failed",
-            message=f"Saved to {fallback_path}",
-        )
 
     digest = Digest(
         digest_type=run_type,
@@ -1538,26 +1618,19 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> bool:
         sent_at=None,
         pipeline="stack",
     )
-    digest_id = insert_digest(conn, digest)
+    _record_digest(conn, digest, email_sent)
 
-    if email_sent:
-        update_digest_sent(conn, digest_id)
-
-    conn.close()
-
-    duration = (datetime.now(UTC) - start_time).total_seconds()
-    log_run(
-        log_path=str(config["run_log_path"]),
-        run_type=f"stack-{run_type}",
+    return _finish_run(
+        conn,
+        start_time,
+        config["run_log_path"],
+        f"stack-{run_type}",
         article_count=len(processed_articles),
         new_count=process_stats["output_count"],
         synthesis_ok=synthesis_ok,
         sent_ok=email_sent,
-        duration_seconds=duration,
+        done_message="Stack pipeline complete",
     )
-
-    logger.info(f"Stack pipeline complete in {duration:.1f}s")
-    return _delivered(synthesis_ok, email_sent)
 
 
 async def run_market_pipeline(run_type: str = "scheduled") -> bool:
@@ -1591,33 +1664,17 @@ async def run_market_pipeline(run_type: str = "scheduled") -> bool:
     )
     logger.info(f"Market time window: {time_window}")
 
-    previous_highlights: list[str] = []
-    if last_digest and last_digest.synthesis_text:
-        try:
-            previous_synthesis = json.loads(last_digest.synthesis_text)
-            if isinstance(previous_synthesis, dict):
-                previous_highlights = previous_synthesis.get("executive_brief", [])
-        except json.JSONDecodeError:
-            pass
+    previous_highlights = _previous_highlights(last_digest)
 
     # FETCH (RSS feeds + any feed-less HTML sources)
     rss_feeds = sources.get("rss_feeds", [])
     logger.info(f"Fetching {len(rss_feeds)} market RSS feeds")
     raw_articles, fetch_errors = await fetch_all_sources(sources)
     logger.info(f"Fetched {len(raw_articles)} articles")
-
-    if fetch_errors:
-        logger.warning(f"Fetch errors: {len(fetch_errors)}")
-        for error in fetch_errors[:5]:
-            logger.warning(f"  {error}")
+    _log_fetch_errors(fetch_errors)
 
     # PROCESS
-    existing_hashes: set[str] = set()
-    for article in raw_articles:
-        article.pipeline = "market"
-        article.compute_hash()
-        if get_article_by_hash(conn, article.content_hash):
-            existing_hashes.add(article.content_hash)
+    existing_hashes = _existing_hashes(conn, raw_articles, pipeline="market")
 
     processed_articles, process_stats = process_articles(
         articles=raw_articles,
@@ -1654,43 +1711,21 @@ async def run_market_pipeline(run_type: str = "scheduled") -> bool:
     # SYNTHESIZE
     from news.market_synth import build_market_fallback, synthesize_market
 
-    auth_ok = _preflight_auth_ok(config["synthesis"])
-    if auth_ok and capped_articles:
-        synthesis_result, synthesis_ok = synthesize_market(
-            articles=capped_articles,
-            previous_highlights=previous_highlights,
-            time_window=time_window,
-            max_retries=config["synthesis"].get("max_retries", 2),
-            timeout=config["synthesis"].get("timeout", 300),
-            claude_command=config["synthesis"].get("claude_command", "claude"),
-            claude_args=config["synthesis"].get("claude_args", []),
-        )
-    else:
-        if not auth_ok:
-            logger.warning("gcloud auth expired — skipping synthesis, using fallback")
-        elif not capped_articles:
-            logger.warning("No articles fetched — using fallback")
-        synthesis_result = build_market_fallback(capped_articles)
-        synthesis_ok = False
+    synthesis_result, synthesis_ok = _synthesize_or_fallback(
+        synthesize_market,
+        build_market_fallback,
+        capped_articles,
+        config["synthesis"],
+        auth_ok=_preflight_auth_ok(config["synthesis"]),
+        previous_highlights=previous_highlights,
+        time_window=time_window,
+    )
 
-    if synthesis_ok:
-        assert isinstance(synthesis_result, dict)
-        from news.citation_filter import (
-            filter_unsourced_bullets,
-            filter_unsourced_sections,
-        )
-
-        synthesis_data = synthesis_result
-        synthesis_data["executive_brief"] = filter_unsourced_bullets(
-            synthesis_data.get("executive_brief", []), capped_articles
-        )
-        synthesis_data["sections"] = filter_unsourced_sections(
-            synthesis_data.get("sections", []), capped_articles
-        )
-        synthesis_text = json.dumps(synthesis_data)
-    else:
-        assert isinstance(synthesis_result, str)
-        synthesis_text = synthesis_result
+    _, synthesis_text = _synthesis_payload(
+        synthesis_result,
+        synthesis_ok,
+        partial(_clean_market_synthesis, articles=capped_articles),
+    )
 
     # STORE DIGEST (store-only — the Investment Brief consumes this; no email)
     digest = Digest(
@@ -1703,26 +1738,23 @@ async def run_market_pipeline(run_type: str = "scheduled") -> bool:
         pipeline="market",
     )
     insert_digest(conn, digest)
-    conn.close()
 
-    duration = (datetime.now(UTC) - start_time).total_seconds()
     # Market is store-only; the standalone email described in the config comment
     # ("set NEWS_MARKET_RECIPIENT to also receive a standalone email") is not yet
     # implemented: there is no render_market_html() function or market HTML template.
     # NEWS_MARKET_RECIPIENT is therefore unreferenced in this file. When a market
     # email template is added, this should check the env var and call send_email().
-    log_run(
-        log_path=str(config["run_log_path"]),
-        run_type=f"market-{run_type}",
+    return _finish_run(
+        conn,
+        start_time,
+        config["run_log_path"],
+        f"market-{run_type}",
         article_count=len(processed_articles),
         new_count=process_stats["output_count"],
         synthesis_ok=synthesis_ok,
         sent_ok=None,  # no email — store-only, no send attempted
-        duration_seconds=duration,
+        done_message="Market pipeline complete",
     )
-
-    logger.info(f"Market pipeline complete in {duration:.1f}s")
-    return _delivered(synthesis_ok, None)
 
 
 async def run_topic_pipeline(
@@ -1734,7 +1766,7 @@ async def run_topic_pipeline(
 
     Args:
         query: User's free-text topic query
-        hours: Time window in hours (1–168)
+        hours: Time window in hours (1-168)
         print_only: If True, print rendered HTML to stdout instead of emailing
     """
     start_time = datetime.now(UTC)
@@ -1768,12 +1800,7 @@ async def run_topic_pipeline(
             logger.warning(f"  fetch error: {error}")
 
     # PROCESS: dedup + quality filter only — no categorization (no relevant categories)
-    existing_hashes: set[str] = set()
-    for article in raw_articles:
-        article.pipeline = "topic"
-        article.compute_hash()
-        if get_article_by_hash(conn, article.content_hash):
-            existing_hashes.add(article.content_hash)
+    existing_hashes = _existing_hashes(conn, raw_articles, pipeline="topic")
 
     processed_articles, process_stats = process_articles(
         articles=raw_articles,
@@ -1805,39 +1832,20 @@ async def run_topic_pipeline(
     ]
 
     # SYNTHESIZE
-    auth_ok = _preflight_auth_ok(synthesis_config)
-    if auth_ok and candidates:
-        synthesis_result, synthesis_ok = synthesize_topic(
-            articles=candidates,
-            query=query,
-            hours=hours,
-            max_retries=synthesis_config.get("max_retries", 2),
-            timeout=synthesis_config.get("timeout", 300),
-            claude_command=synthesis_config.get("claude_command", "claude"),
-            claude_args=synthesis_config.get("claude_args", []),
-        )
-    else:
-        if not auth_ok:
-            logger.warning("gcloud auth expired — skipping synthesis, using fallback")
-        elif not candidates:
-            logger.warning("No articles fetched — using fallback")
-        synthesis_result = build_topic_fallback(candidates)
-        synthesis_ok = False
+    synthesis_result, synthesis_ok = _synthesize_or_fallback(
+        synthesize_topic,
+        build_topic_fallback,
+        candidates,
+        synthesis_config,
+        auth_ok=_preflight_auth_ok(synthesis_config),
+        query=query,
+        hours=hours,
+    )
 
-    synthesis_data: dict
-    if synthesis_ok:
-        assert isinstance(synthesis_result, dict)
-        synthesis_data = synthesis_result
-        synthesis_text = json.dumps(synthesis_result)
-    else:
-        assert isinstance(synthesis_result, str)
-        synthesis_data = {"fallback_text": synthesis_result}
-        synthesis_text = synthesis_result
+    synthesis_data, synthesis_text = _synthesis_payload(synthesis_result, synthesis_ok)
 
     # DELIVER: render HTML; either print or email
-    now_athens = start_time.astimezone(_ATHENS_TZ)
-    time_display = now_athens.strftime("%H:%M")
-    date_display = now_athens.strftime("%a %-d %b").lower()
+    now_athens, time_display, date_display = _athens_clock(start_time)
     source_count = len(candidates)
 
     subject = build_topic_subject(
@@ -1862,18 +1870,14 @@ async def run_topic_pipeline(
         print(html_output)
         logger.info("Printed topic brief to stdout (--print)")
     else:
-        email_sent = send_email(
-            subject=subject,
-            html_body=html_output,
-            recipient=email_config["recipient"],
+        email_sent = _send_or_save(
+            subject,
+            html_output,
+            email_config["recipient"],
+            label="topic",
+            failure_log="Topic email send failed - saving fallback",
+            failure_title="Topic Brief Send Failed",
         )
-        if not email_sent:
-            logger.error("Topic email send failed - saving fallback")
-            fallback_path = save_fallback(html_output, label="topic")
-            notify_macos(
-                title="Topic Brief Send Failed",
-                message=f"Saved to {fallback_path}",
-            )
 
     # Record topic digest in database
     digest = Digest(
@@ -1885,26 +1889,19 @@ async def run_topic_pipeline(
         sent_at=None,
         pipeline="topic",
     )
-    digest_id = insert_digest(conn, digest)
+    _record_digest(conn, digest, email_sent)
 
-    if email_sent:
-        update_digest_sent(conn, digest_id)
-
-    conn.close()
-
-    duration = (datetime.now(UTC) - start_time).total_seconds()
-    log_run(
-        log_path=str(run_log_path),
-        run_type="topic-adhoc",
+    return _finish_run(
+        conn,
+        start_time,
+        run_log_path,
+        "topic-adhoc",
         article_count=len(processed_articles),
         new_count=process_stats["output_count"],
         synthesis_ok=synthesis_ok,
         sent_ok=(email_sent or print_only),
-        duration_seconds=duration,
+        done_message="Topic pipeline complete",
     )
-
-    logger.info(f"Topic pipeline complete in {duration:.1f}s")
-    return _delivered(synthesis_ok, email_sent or print_only)
 
 
 def main() -> None:
