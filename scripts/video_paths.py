@@ -9,6 +9,8 @@ known place rather than from an argument.
 import os
 from pathlib import Path
 
+from scripts.fence import within
+
 SIGNATURE = Path.home() / ".outlook-cli" / "signature.html"
 
 
@@ -18,8 +20,4 @@ def base_dir() -> Path:
 
 def inside(path: str) -> Path:
     """The resolved path, or ValueError when it falls outside the brief folder."""
-    base = base_dir()
-    resolved = Path(path).expanduser().resolve()
-    if not resolved.is_relative_to(base):
-        raise ValueError(f"{path} is outside {base}; the video-brief scripts only use that folder")
-    return resolved
+    return within(path, base_dir())

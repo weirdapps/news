@@ -15,6 +15,7 @@ Run hourly via launchd. Idempotent: a video already settled is never refetched.
 
 import argparse
 import logging
+import os
 import re
 import sqlite3
 import subprocess
@@ -46,8 +47,15 @@ from news.transcripts import (  # noqa: E402
     stored_transcript,
     upsert_transcript,
 )
+from scripts.fence import within  # noqa: E402
 
 logger = logging.getLogger(__name__)
+
+# The store lives in the repo's data/ folder on both hosts, and nowhere else: --db
+# must resolve inside it (NEWS_DATA_DIR moves it, for tests), and the push target is
+# fixed, so no argument reaches rsync except a fenced local path.
+DATA_DIR = Path(os.environ.get("NEWS_DATA_DIR") or Path(__file__).resolve().parent.parent / "data")
+VPS_STORE = "vps:~/SourceCode/news/data/transcripts.db"
 
 _YT_FEED_HOST = "youtube.com/feeds/videos.xml"
 _FEED_TIMEOUT = 30
@@ -622,11 +630,11 @@ def record_block(db_path: Path, blocked: bool, now: datetime | None = None) -> N
     logger.warning(f"No transcript fetches until {until.astimezone():%Y-%m-%d %H:%M %Z}")
 
 
-def push_to_vps(db_path: Path, remote: str) -> bool:
-    """rsync the store to the VPS. Returns True on success."""
+def push_to_vps(db_path: Path) -> bool:
+    """rsync the store to its one place on the VPS. Returns True on success."""
     try:
         result = subprocess.run(
-            ["rsync", "-az", "--timeout=30", str(db_path), remote],
+            ["rsync", "-az", "--timeout=30", str(db_path), VPS_STORE],
             capture_output=True,
             text=True,
             timeout=180,
@@ -675,8 +683,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Harvest YouTube transcripts for a profile")
     parser.add_argument("--profile", default="stack")
     parser.add_argument("--limit", type=int, default=_DEFAULT_LIMIT)
-    parser.add_argument("--db", default=str(Path.home() / "SourceCode/news/data/transcripts.db"))
-    parser.add_argument("--remote", default="vps:~/SourceCode/news/data/transcripts.db")
+    parser.add_argument(
+        "--db",
+        default=str(DATA_DIR / "transcripts.db"),
+        help="the transcript store; it must sit inside the repo's data/ folder",
+    )
     parser.add_argument("--no-push", action="store_true")
     parser.add_argument(
         "--backfill-days",
@@ -692,7 +703,11 @@ def main() -> int:
         "(repeatable)",
     )
     args = parser.parse_args()
-    db_path = Path(args.db)
+    try:
+        db_path = within(args.db, DATA_DIR)
+    except ValueError as e:
+        print(f"youtube_harvest: --db refused: {e}", file=sys.stderr)
+        return 2
 
     until = cooldown_until(db_path)
     if until is not None:
@@ -727,7 +742,7 @@ def main() -> int:
                 "attempts failed"
             )
 
-    pushed = args.no_push or push_to_vps(db_path, args.remote)
+    pushed = args.no_push or push_to_vps(db_path)
     return 0 if produced and pushed else 1
 
 
