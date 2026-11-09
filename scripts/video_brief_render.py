@@ -252,8 +252,15 @@ def main() -> int:
     src = json.loads(source_path.read_text(encoding="utf-8"))
     video, method = src["video"], src.get("method", "captions")
     signature = SIGNATURE.read_text(encoding="utf-8") if args.signature else ""
-    page_path.write_text(page(brief, video, method), encoding="utf-8")
-    email_path.write_text(email(brief, video, method, signature), encoding="utf-8")
+    # The paths are fenced above; what is written is escaped HTML. Rendered first and
+    # written through open(), so the destination and the content stay separate.
+    outputs = {
+        page_path: page(brief, video, method),
+        email_path: email(brief, video, method, signature),
+    }
+    for destination, html_text in outputs.items():
+        with open(destination, "w", encoding="utf-8") as out:
+            out.write(html_text)
     print(f"{page_path}\n{email_path}", file=sys.stderr)
     return 0
 

@@ -469,6 +469,7 @@ def _stats(**counts):
 def _run_main(tmp_path, monkeypatch, stats=None, pushed=True):
     """Run main() with the harvest and the push mocked. Returns (rc, harvest, push)."""
     db_path = tmp_path / "transcripts.db"
+    monkeypatch.setattr("scripts.youtube_harvest.DATA_DIR", tmp_path)
     monkeypatch.setattr(sys, "argv", ["youtube_harvest.py", "--db", str(db_path)])
     with (
         patch("scripts.youtube_harvest._configure_logging"),
@@ -1105,3 +1106,29 @@ def test_the_prompt_offers_the_model_a_way_to_say_there_is_nothing():
         distil("[music]", "Introducing Claude Sonnet 5.5")
 
     assert "NO_CONTENT" in run.call_args.kwargs["input"]
+
+
+def test_main_refuses_a_store_outside_the_data_folder(tmp_path, monkeypatch):
+    """--db is fenced to data/: nothing outside it is opened, harvested or pushed."""
+    monkeypatch.setattr("scripts.youtube_harvest.DATA_DIR", tmp_path / "data")
+    monkeypatch.setattr(sys, "argv", ["youtube_harvest.py", "--db", str(tmp_path / "x.db")])
+    with (
+        patch("scripts.youtube_harvest._configure_logging"),
+        patch("scripts.youtube_harvest.harvest") as harvest_mock,
+        patch("scripts.youtube_harvest.push_to_vps") as push_mock,
+    ):
+        assert main() == 2
+
+    harvest_mock.assert_not_called()
+    push_mock.assert_not_called()
+
+
+def test_the_push_goes_only_to_the_fixed_vps_store(tmp_path):
+    from scripts.youtube_harvest import VPS_STORE, push_to_vps
+
+    with patch(
+        "scripts.youtube_harvest.subprocess.run", return_value=Mock(returncode=0, stderr="")
+    ) as run:
+        assert push_to_vps(tmp_path / "transcripts.db") is True
+
+    assert run.call_args.args[0][-1] == VPS_STORE == "vps:~/SourceCode/news/data/transcripts.db"
