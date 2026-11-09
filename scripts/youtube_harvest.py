@@ -207,6 +207,93 @@ def fetch_transcript(video_id: str) -> tuple[str, str]:
         return "", "fetch_failed"
 
 
+# By module, not by PATH: the locked yt-dlp in this venv, whatever brew has.
+_YTDLP = [sys.executable, "-m", "yt_dlp", "--no-update", "--no-warnings", "-q"]
+
+
+def _watch_url(video_id: str) -> str:
+    return f"https://www.youtube.com/watch?v={video_id}"
+
+
+def probe_duration(video_id: str) -> tuple[float | None, str]:
+    """The video's length in seconds, or (None, 'upcoming' | 'failed')."""
+    try:
+        probe = subprocess.run(
+            [*_YTDLP, "--skip-download", "--print", "duration", _watch_url(video_id)],
+            capture_output=True,
+            text=True,
+            timeout=_PROBE_TIMEOUT,
+        )
+    except (subprocess.TimeoutExpired, OSError) as e:
+        logger.warning(f"{video_id}: audio probe failed: {type(e).__name__}: {e}")
+        return None, "failed"
+    try:
+        return float((probe.stdout or "").strip().splitlines()[-1]), ""
+    except (ValueError, IndexError):
+        pass
+    # A premiere or a live event has no duration yet; yt-dlp says why on stderr.
+    detail = (probe.stderr or "").strip()[-300:] or (probe.stdout or "").strip()[:100]
+    if any(f": {prefix}" in detail for prefix in _NOT_AIRED_PREFIXES):
+        logger.info(f"{video_id}: not aired yet; will check again next run")
+        return None, "upcoming"
+    logger.warning(f"{video_id}: audio probe gave no duration (rc={probe.returncode}): {detail}")
+    return None, "failed"
+
+
+def audio_segments(video_id: str, timeout: int = _DOWNLOAD_TIMEOUT) -> list[dict[str, Any]] | None:
+    """Download the audio and transcribe it with Whisper: [{start, text}], or None on failure.
+
+    The caller has already checked that mlx_whisper imports.
+    """
+    import mlx_whisper
+
+    with tempfile.TemporaryDirectory(prefix="yt-audio-") as tmp:
+        try:
+            download = subprocess.run(
+                [
+                    *_YTDLP,
+                    "-f",
+                    "bestaudio/best",
+                    "-o",
+                    f"{tmp}/{video_id}.%(ext)s",
+                    _watch_url(video_id),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+        except (subprocess.TimeoutExpired, OSError) as e:
+            logger.warning(f"{video_id}: audio download failed: {type(e).__name__}: {e}")
+            return None
+        audio = sorted(Path(tmp).glob(f"{video_id}.*"))
+        if download.returncode != 0 or not audio:
+            detail = (download.stderr or "").strip()[-300:]
+            logger.warning(
+                f"{video_id}: audio download failed (rc={download.returncode}): {detail}"
+            )
+            return None
+        try:
+            result = mlx_whisper.transcribe(
+                str(audio[0]), path_or_hf_repo=WHISPER_MODEL, verbose=None
+            )
+        except Exception as e:
+            logger.warning(f"{video_id}: Whisper failed: {type(e).__name__}: {e}")
+            return None
+    return [
+        {"start": int(seg.get("start") or 0), "text": seg["text"].strip()}
+        for seg in result.get("segments", [])
+        if (seg.get("text") or "").strip()
+    ]
+
+
+def whisper_available() -> bool:
+    try:
+        import mlx_whisper  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
 def transcribe_audio(video_id: str) -> tuple[str, str]:
     """Transcribe a video from its audio with local Whisper. Returns (text, status).
 
@@ -216,69 +303,16 @@ def transcribe_audio(video_id: str) -> tuple[str, str]:
     retried; or 'unavailable' when this host cannot run Whisper at all (the VPS),
     in which case the caller keeps whatever the captions said.
     """
-    try:
-        import mlx_whisper
-    except ImportError:
+    if not whisper_available():
         return "", "unavailable"
-
-    url = f"https://www.youtube.com/watch?v={video_id}"
-    # By module, not by PATH: the locked yt-dlp in this venv, whatever brew has.
-    ytdlp = [sys.executable, "-m", "yt_dlp", "--no-update", "--no-warnings", "-q"]
-    try:
-        probe = subprocess.run(
-            [*ytdlp, "--skip-download", "--print", "duration", url],
-            capture_output=True,
-            text=True,
-            timeout=_PROBE_TIMEOUT,
-        )
-    except (subprocess.TimeoutExpired, OSError) as e:
-        logger.warning(f"{video_id}: audio probe failed: {type(e).__name__}: {e}")
-        return "", "failed"
-    try:
-        duration = float((probe.stdout or "").strip().splitlines()[-1])
-    except (ValueError, IndexError):
-        # A premiere or a live event has no duration yet; yt-dlp says why on stderr.
-        detail = (probe.stderr or "").strip()[-300:] or (probe.stdout or "").strip()[:100]
-        if any(f": {prefix}" in detail for prefix in _NOT_AIRED_PREFIXES):
-            logger.info(f"{video_id}: not aired yet; will check again next run")
-            return "", "upcoming"
-        logger.warning(
-            f"{video_id}: audio probe gave no duration (rc={probe.returncode}): {detail}"
-        )
-        return "", "failed"
+    duration, status = probe_duration(video_id)
+    if duration is None:
+        return "", status
     if duration > MAX_AUDIO_SECONDS:
         logger.info(f"{video_id}: {duration / 3600:.1f} h of audio, past the cap; not transcribing")
         return "", "too_long"
-
-    with tempfile.TemporaryDirectory(prefix="yt-audio-") as tmp:
-        try:
-            download = subprocess.run(
-                [*ytdlp, "-f", "bestaudio/best", "-o", f"{tmp}/{video_id}.%(ext)s", url],
-                capture_output=True,
-                text=True,
-                timeout=_DOWNLOAD_TIMEOUT,
-            )
-        except (subprocess.TimeoutExpired, OSError) as e:
-            logger.warning(f"{video_id}: audio download failed: {type(e).__name__}: {e}")
-            return "", "failed"
-        audio = sorted(Path(tmp).glob(f"{video_id}.*"))
-        if download.returncode != 0 or not audio:
-            detail = (download.stderr or "").strip()[-300:]
-            logger.warning(
-                f"{video_id}: audio download failed (rc={download.returncode}): {detail}"
-            )
-            return "", "failed"
-        try:
-            result = mlx_whisper.transcribe(
-                str(audio[0]), path_or_hf_repo=WHISPER_MODEL, verbose=None
-            )
-        except Exception as e:
-            logger.warning(f"{video_id}: Whisper failed: {type(e).__name__}: {e}")
-            return "", "failed"
-
-    text = " ".join(
-        seg["text"].strip() for seg in result.get("segments", []) if (seg.get("text") or "").strip()
-    )
+    segments = audio_segments(video_id)
+    text = " ".join(seg["text"] for seg in segments or [])
     if not text:
         return "", "failed"
     logger.info(f"{video_id}: transcribed {duration / 60:.0f} min of audio with Whisper")
