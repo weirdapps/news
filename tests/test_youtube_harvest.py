@@ -969,3 +969,27 @@ def test_a_probe_without_a_duration_for_an_unknown_reason_is_a_retryable_failure
         patch.dict(sys.modules, {"mlx_whisper": Mock()}),
     ):
         assert transcribe_audio("BT1Mo-fD-g0") == ("", "failed")
+
+
+def test_backfill_can_be_limited_to_named_channels(tmp_path):
+    """Recovering one channel's old gap must not reopen every channel's history."""
+    from scripts.youtube_harvest import backfill
+
+    db_path = tmp_path / "transcripts.db"
+    recent = (datetime.now(UTC) - timedelta(days=60)).isoformat()
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    init_transcript_db(conn)
+    upsert_transcript(
+        conn, "anthropic01", "YouTube: Anthropic", "t", recent, "", "", "fetch_failed"
+    )
+    upsert_transcript(conn, "otherchan01", "YouTube: GOTO", "t", recent, "", "", "fetch_failed")
+    conn.close()
+
+    with (
+        patch("scripts.youtube_harvest.transcribe_audio", return_value=("words", "ok")) as audio,
+        patch("scripts.youtube_harvest.distil", return_value="the abstract"),
+    ):
+        backfill(db_path, days=120, limit=10, channels=["YouTube: Anthropic"])
+
+    assert [c.args[0] for c in audio.call_args_list] == ["anthropic01"]

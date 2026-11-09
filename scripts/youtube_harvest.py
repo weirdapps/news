@@ -508,7 +508,9 @@ def harvest(
     return stats
 
 
-def backfill(db_path: str | Path, days: int, limit: int) -> dict[str, int]:
+def backfill(
+    db_path: str | Path, days: int, limit: int, channels: list[str] | None = None
+) -> dict[str, int]:
     """Transcribe from audio the recent videos whose captions gave nothing.
 
     The store is the work list, not the feeds: a channel's feed holds only its
@@ -521,12 +523,18 @@ def backfill(db_path: str | Path, days: int, limit: int) -> dict[str, int]:
     init_transcript_db(conn)
     stats = _new_stats()
     cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+    only = ""
+    params: list[Any] = [cutoff]
+    if channels:
+        only = f" AND channel IN ({','.join('?' * len(channels))})"
+        params.extend(channels)
     try:
         rows = conn.execute(
             "SELECT video_id, channel, title, published_at, status FROM transcripts "
-            "WHERE status IN ('no_captions', 'fetch_failed') AND published_at >= ? "
-            "ORDER BY published_at DESC LIMIT ?",
-            (cutoff, limit),
+            "WHERE status IN ('no_captions', 'fetch_failed') AND published_at >= ?"
+            + only
+            + " ORDER BY published_at DESC LIMIT ?",
+            (*params, limit),
         ).fetchall()
         for row in rows:
             text, status = _audio_fallback(row["video_id"], row["status"], stats)
@@ -647,6 +655,12 @@ def main() -> int:
         help="instead of the feeds, transcribe from audio the videos of the last N days "
         "whose captions gave nothing (up to --limit of them)",
     )
+    parser.add_argument(
+        "--channel",
+        action="append",
+        help='with --backfill-days, only this channel as stored, e.g. "YouTube: Anthropic" '
+        "(repeatable)",
+    )
     args = parser.parse_args()
     db_path = Path(args.db)
 
@@ -662,7 +676,9 @@ def main() -> int:
         produced = False
     else:
         if args.backfill_days:
-            stats = backfill(db_path, days=args.backfill_days, limit=args.limit)
+            stats = backfill(
+                db_path, days=args.backfill_days, limit=args.limit, channels=args.channel
+            )
         else:
             stats = harvest(get_sources(profile=args.profile), db_path, limit=args.limit)
         logger.info(

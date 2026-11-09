@@ -242,6 +242,94 @@ def parse_news_sitemap(xml_content: bytes | str, source_config: dict[str, Any]) 
     return articles
 
 
+# A plain sitemap gives a page's address and when it last changed, nothing else, so
+# each new page is fetched once for its title and description. Capped per run: a
+# site redesign that touches every lastmod must not become hundreds of requests.
+_SITEMAP_MAX_PAGES = 10
+
+
+def parse_sitemap(
+    xml_content: bytes | str, source_config: dict[str, Any], now: datetime | None = None
+) -> list[tuple[str, datetime]]:
+    """Recent pages from a plain sitemap: (url, lastmod), newest first.
+
+    Kept: a page whose path contains one of the source's ``include`` fragments and
+    whose lastmod falls within ``max_age_hours`` (72 by default). lastmod is a
+    modification time, so an edited old post comes back; the store's url key drops
+    it as a repeat. Undated pages are skipped: nothing says they are new.
+    """
+    raw = xml_content.encode("utf-8") if isinstance(xml_content, str) else xml_content
+    try:
+        root = lxml.etree.fromstring(raw, parser=_SAFE_XML_PARSER)
+    except lxml.etree.XMLSyntaxError:
+        return []
+    include = source_config.get("include") or ["/"]
+    horizon = (now or datetime.now(UTC)) - timedelta(
+        hours=float(source_config.get("max_age_hours", 72))
+    )
+    entries = []
+    for node in root.findall("{*}url"):
+        url = (node.findtext("{*}loc") or "").strip()
+        modified = _sitemap_datetime(node.findtext("{*}lastmod"))
+        if not url or modified is None or modified < horizon:
+            continue
+        if any(fragment in urlsplit(url).path for fragment in include):
+            entries.append((url, modified))
+    entries.sort(key=lambda e: e[1], reverse=True)
+    return entries
+
+
+def page_title_and_description(html_content: str) -> tuple[str, str]:
+    """A page's title, without a trailing " \\ Site" or " | Site", and its meta description."""
+    try:
+        doc = lxml.html.fromstring(html_content)
+    except (lxml.etree.ParserError, ValueError):
+        return "", ""
+    title = " ".join((doc.findtext(".//title") or "").split())
+    for separator in (" \\ ", " | "):
+        head, found, site = title.rpartition(separator)
+        if found and head and len(site) <= 40:
+            title = head
+            break
+    description = ""
+    for meta in doc.iter("meta"):
+        if (meta.get("name") or meta.get("property") or "").lower() in (
+            "description",
+            "og:description",
+        ):
+            description = " ".join((meta.get("content") or "").split())
+            if description:
+                break
+    return title, description
+
+
+async def _fetch_sitemap(source: dict[str, Any], client: httpx.AsyncClient) -> list[Article]:
+    """A plain-sitemap source: the sitemap, then each recent page for its title."""
+    response = await _request_page(source, client, source["url"])
+    articles = []
+    for url, modified in parse_sitemap(response.content, source)[:_SITEMAP_MAX_PAGES]:
+        try:
+            page = await _request_page(source, client, url)
+        except Exception as exc:  # noqa: BLE001 - one bad page must not cost the rest
+            logger.warning(f"{source['name']}: {url} failed ({type(exc).__name__}); skipped")
+            continue
+        title, description = page_title_and_description(page.text)
+        if not title:
+            continue
+        articles.append(
+            Article(
+                url=url,
+                title=title,
+                source=source["name"],
+                content=description,
+                categories=[source["category"]],
+                language=source["language"],
+                published_at=modified,
+            )
+        )
+    return articles
+
+
 # Angular TransferState escaping, used by server-rendered newsrooms that ship their
 # items as JSON inside a <script> tag. "&a;" is undone last, or "&a;q;" would
 # unescape twice.
@@ -442,6 +530,8 @@ async def _fetch_pages(source: dict[str, Any], client: httpx.AsyncClient) -> lis
     `max_pages` pages; stopping at the cap is logged, never silent. A cursor the
     feed ignores (the same page again) ends the walk.
     """
+    if source.get("format") == "sitemap":
+        return await _fetch_sitemap(source, client)
     response = await _request_page(source, client, source["url"])
     articles, times = _parse_page(response, source)
     paging = source.get("paging")
