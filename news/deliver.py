@@ -267,9 +267,8 @@ def _send_argv(cmd: str, recipient: str, subject: str, html_path: str) -> list[s
             "--no-cc-self",
             "--no-signature",
         ]
-    # The helper adds the owner's signature by default and refuses --no-signature.
-    # --no-cc-self is allowed only when the sender is the sole recipient, which is
-    # how the scheduled profiles are configured.
+    # Same delivery as the legacy path: no signature, no CC-self. The digests
+    # have always gone out bare, and the migration does not change that.
     return [
         cmd,
         "--to",
@@ -280,6 +279,7 @@ def _send_argv(cmd: str, recipient: str, subject: str, html_path: str) -> list[s
         html_path,
         "--send-now",
         "--no-cc-self",
+        "--no-signature",
         "--fallback-outlook-cli",
     ]
 
@@ -292,7 +292,7 @@ def send_email(
     """Send email through the Graph CLI mail helper (or outlook-cli, see below).
 
     The command is NEWS_MAIL_CMD, default `m365-mail`: a helper that sends through
-    a Microsoft Graph CLI, adds the signature, keeps outlook-cli's exit contract
+    a Microsoft Graph CLI (sent with --no-signature, as before), keeps outlook-cli's exit contract
     (0 ok, 4 re-auth, 5 upstream, else 1) and, with --fallback-outlook-cli, retries
     once through outlook-cli when the Graph path fails. Set NEWS_MAIL_CMD to
     `outlook-cli` (or a path ending in it) for the old direct send.
