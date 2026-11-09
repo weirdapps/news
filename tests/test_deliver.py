@@ -175,8 +175,9 @@ def test_build_subject_partial_sources():
     assert subject.endswith("partial sources")
 
 
-def test_send_email_calls_outlook_cli():
-    """Verify send_email shells out to outlook-cli with correct args."""
+def test_send_email_calls_the_mail_helper_by_default(monkeypatch):
+    """Default path: the Graph CLI mail helper, with its outlook-cli fallback on."""
+    monkeypatch.delenv("NEWS_MAIL_CMD", raising=False)
     with patch("news.deliver.subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(returncode=0, stderr="")
 
@@ -186,21 +187,83 @@ def test_send_email_calls_outlook_cli():
             recipient="test@example.com",
         )
 
-        assert result is True
-        assert mock_run.call_count == 1
+    assert result is True
+    assert mock_run.call_count == 1
+    argv = mock_run.call_args[0][0]
+    html_path = argv[argv.index("--html") + 1]
+    assert argv == [
+        "m365-mail",
+        "--to",
+        "test@example.com",
+        "--subject",
+        "test subject",
+        "--html",
+        html_path,
+        "--send-now",
+        "--no-cc-self",
+        "--fallback-outlook-cli",
+    ]
+    # The helper adds the signature by default; no opt-out is passed.
+    assert "--no-signature" not in argv
+    assert html_path.endswith(".html")
 
-        # Verify command structure
-        call_args = mock_run.call_args[0][0]
-        assert call_args[0] == "outlook-cli"
-        assert call_args[1] == "send-mail"
-        assert "--to" in call_args
-        assert "test@example.com" in call_args
-        assert "--subject" in call_args
-        assert "test subject" in call_args
-        assert "--html" in call_args
-        assert "--send-now" in call_args
-        assert "--no-cc-self" in call_args
-        assert "--no-signature" in call_args
+
+def test_send_email_mail_command_is_overridable_by_env(monkeypatch):
+    monkeypatch.setenv("NEWS_MAIL_CMD", "/opt/bin/m365-mail")
+    with patch("news.deliver.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0, stderr="")
+        send_email(subject="s", html_body="<p>x</p>", recipient="a@example.com")
+
+    argv = mock_run.call_args[0][0]
+    assert argv[0] == "/opt/bin/m365-mail"
+    assert "--fallback-outlook-cli" in argv
+
+
+def test_send_email_legacy_outlook_cli_path_keeps_its_old_argv(monkeypatch):
+    """NEWS_MAIL_CMD=outlook-cli (bare or a path to it) restores the old send."""
+    monkeypatch.setenv("NEWS_MAIL_CMD", "/home/u/scripts/outlook-cli")
+    with patch("news.deliver.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0, stderr="")
+        send_email(subject="s", html_body="<p>x</p>", recipient="a@example.com")
+
+    argv = mock_run.call_args[0][0]
+    html_path = argv[argv.index("--html") + 1]
+    assert argv == [
+        "/home/u/scripts/outlook-cli",
+        "send-mail",
+        "--to",
+        "a@example.com",
+        "--subject",
+        "s",
+        "--html",
+        html_path,
+        "--send-now",
+        "--no-cc-self",
+        "--no-signature",
+    ]
+
+
+def test_send_email_removes_its_temp_body_file(monkeypatch):
+    monkeypatch.delenv("NEWS_MAIL_CMD", raising=False)
+    seen = {}
+
+    def fake_run(argv, **kwargs):
+        path = argv[argv.index("--html") + 1]
+        seen["path"] = path
+        assert Path(path).read_text(encoding="utf-8") == "<p>x</p>"
+        return MagicMock(returncode=0, stderr="")
+
+    with patch("news.deliver.subprocess.run", side_effect=fake_run):
+        send_email(subject="s", html_body="<p>x</p>", recipient="a@example.com")
+
+    assert not Path(seen["path"]).exists()
+
+
+def test_send_email_nonzero_exit_returns_false(monkeypatch):
+    monkeypatch.delenv("NEWS_MAIL_CMD", raising=False)
+    with patch("news.deliver.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=4, stderr="sign in again")
+        assert send_email(subject="s", html_body="<p>x</p>", recipient="a@example.com") is False
 
 
 def test_save_fallback_writes_file(tmp_path):

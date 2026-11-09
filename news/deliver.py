@@ -1,4 +1,4 @@
-"""Email delivery with Jinja2 rendering and outlook-cli sending."""
+"""Email delivery with Jinja2 rendering, sent through the Graph CLI mail helper."""
 
 import logging
 import os
@@ -17,9 +17,18 @@ logger = logging.getLogger(__name__)
 _TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 _ATHENS_TZ = ZoneInfo("Europe/Athens")
 
-# How long the send may queue for the shared Outlook lock, and how long it may take in all.
+# The mail command. Default is the Graph CLI mail helper (`m365-mail` on PATH), which
+# sends through a Microsoft Graph CLI and, with --fallback-outlook-cli, retries once
+# through outlook-cli. NEWS_MAIL_CMD overrides it; a command named outlook-cli gets
+# the old direct argv (see _send_argv).
+MAIL_CMD_ENV = "NEWS_MAIL_CMD"
+DEFAULT_MAIL_CMD = "m365-mail"
+
+# How long the send may take in all: the helper's Graph leg, then, only if that fails,
+# the outlook-cli fallback, which may queue for the shared Outlook lock.
 #
-# On the VPS every outlook-cli call goes through ~/scripts/outlook-cli, a wrapper that
+# The Graph leg takes no lock. The fallback does: on the VPS every outlook-cli call goes
+# through ~/scripts/outlook-cli, a wrapper that
 # serialises the estate's Outlook consumers (sb-outlook-sync, factor-snapshot, hc-canary,
 # these profiles) on one flock over the browser profile and waits OUTLOOK_CLI_LOCK_WAIT for
 # it, 180s by default. The send used to give up at 60s, so any real contention surfaced
@@ -32,8 +41,11 @@ _ATHENS_TZ = ZoneInfo("Europe/Athens")
 # deadline it keeps one worst-case call (synthesis.timeout, 150s) plus the 90s shutdown
 # grace for render and send. 180s fits inside that 240s. Pinned by test_deliver.py. The
 # variable is harmless where no wrapper reads it (a Mac, or outlook-cli on PATH directly).
-OUTLOOK_LOCK_WAIT_SECONDS = 120
-SEND_TIMEOUT_SECONDS = OUTLOOK_LOCK_WAIT_SECONDS + 60
+# The lock wait was 120s when outlook-cli was the only leg; 30s of it now goes to the
+# Graph leg so the total stays at 180s.
+GRAPH_LEG_SECONDS = 30
+OUTLOOK_LOCK_WAIT_SECONDS = 90
+SEND_TIMEOUT_SECONDS = GRAPH_LEG_SECONDS + OUTLOOK_LOCK_WAIT_SECONDS + 60
 
 # HTML entity constants for escaping
 _HTML_AMP = "&amp;"
@@ -234,16 +246,57 @@ def build_alert_html(
     )
 
 
+def _mail_command() -> str:
+    """The mail command: NEWS_MAIL_CMD, else the Graph CLI mail helper."""
+    return os.environ.get(MAIL_CMD_ENV, "").strip() or DEFAULT_MAIL_CMD
+
+
+def _send_argv(cmd: str, recipient: str, subject: str, html_path: str) -> list[str]:
+    """argv for one send. A command named outlook-cli gets the legacy argv."""
+    if Path(cmd).name == "outlook-cli":
+        return [
+            cmd,
+            "send-mail",
+            "--to",
+            recipient,
+            "--subject",
+            subject,
+            "--html",
+            html_path,
+            "--send-now",
+            "--no-cc-self",
+            "--no-signature",
+        ]
+    # The helper adds the owner's signature by default and refuses --no-signature.
+    # --no-cc-self is allowed only when the sender is the sole recipient, which is
+    # how the scheduled profiles are configured.
+    return [
+        cmd,
+        "--to",
+        recipient,
+        "--subject",
+        subject,
+        "--html",
+        html_path,
+        "--send-now",
+        "--no-cc-self",
+        "--fallback-outlook-cli",
+    ]
+
+
 def send_email(
     subject: str,
     html_body: str,
     recipient: str,
 ) -> bool:
-    """Send email via outlook-cli (Microsoft Graph API).
+    """Send email through the Graph CLI mail helper (or outlook-cli, see below).
 
-    Uses the user's existing outlook-cli auth (no separate Gmail OAuth).
-    Writes the HTML body to a temp file because outlook-cli's --html flag
-    expects a file path, not an inline string.
+    The command is NEWS_MAIL_CMD, default `m365-mail`: a helper that sends through
+    a Microsoft Graph CLI, adds the signature, keeps outlook-cli's exit contract
+    (0 ok, 4 re-auth, 5 upstream, else 1) and, with --fallback-outlook-cli, retries
+    once through outlook-cli when the Graph path fails. Set NEWS_MAIL_CMD to
+    `outlook-cli` (or a path ending in it) for the old direct send.
+    The HTML body goes through a temp file because both take a file path.
 
     Args:
         subject: Email subject line
@@ -261,19 +314,7 @@ def send_email(
             f.write(html_body)
             html_path = f.name
 
-        cmd = [
-            "outlook-cli",
-            "send-mail",
-            "--to",
-            recipient,
-            "--subject",
-            subject,
-            "--html",
-            html_path,
-            "--send-now",
-            "--no-cc-self",
-            "--no-signature",
-        ]
+        cmd = _send_argv(_mail_command(), recipient, subject, html_path)
 
         result = subprocess.run(
             cmd,

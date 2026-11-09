@@ -27,7 +27,7 @@ flowchart TD
     A[fetch<br/>RSS + HTML listings] --> B[process<br/>trafilatura, dedup, score]
     B --> C[store<br/>SQLite FTS5<br/>data/news.db]
     C --> D[synthesize<br/>claude CLI subprocess]
-    D --> E[deliver<br/>Jinja2 HTML<br/>outlook-cli send]
+    D --> E[deliver<br/>Jinja2 HTML<br/>Graph CLI mail helper]
 ```
 
 Each stage is one module under `news/`:
@@ -38,7 +38,7 @@ Each stage is one module under `news/`:
 | process | `news/processor.py`, `news/tagger.py` | Full text extraction, deduplication, category + ticker tagging, relevance scoring |
 | store | `news/storage.py` | SQLite (FTS5) at `data/news.db`, migrations, dedup by content hash |
 | synthesize | `news/synthesizer.py`, `news/monitor_synth.py`, `news/stack_synth.py`, `news/market_synth.py`, `news/topic_synth.py` | Profile-specific prompt, `claude` CLI subprocess, JSON parse, `news/citation_filter.py` drops any bullet whose source is not in the article pool |
-| deliver | `news/deliver.py` | Jinja2 render into `templates/*.html`, send via `outlook-cli` |
+| deliver | `news/deliver.py` | Jinja2 render into `templates/*.html`, send via the Graph CLI mail helper (`NEWS_MAIL_CMD`) |
 
 Supporting modules: `news/auth.py` (gcloud auth probe before spending on a synthesis call), `news/config.py` (profile-aware YAML loader with `${VAR:-default}` expansion), `news/models.py` (`Article`, `Digest`, `Source` dataclasses), `news/query.py` (search / stats / ticker lookups), `news/mcp_server.py` (optional MCP server).
 
@@ -129,6 +129,7 @@ The loader (`news/config.py`) reads `.env` at import time (real environment vari
 | `NEWS_MARKET_RECIPIENT` | market | `user@example.com` | Market email recipient (market is store-only until this is set) |
 | `NEWS_TOPIC_RECIPIENT` | topic | `user@example.com` | Topic email recipient (ignored with `--print`) |
 | `NEWS_CLAUDE_COMMAND` | all | `claude` | Override the `claude` CLI binary (absolute path when not on `$PATH`) |
+| `NEWS_MAIL_CMD` | all that mail | `m365-mail` | Mail command (name on `$PATH` or absolute path); `outlook-cli` restores the old direct send, see [Email delivery](#email-delivery) |
 | `NEWS_VENV_PYTHON` | `run_mcp.sh` only | (unset) | Explicit venv python for the MCP launcher |
 
 ### YAML layout
@@ -181,7 +182,16 @@ Design rationale: `docs/superpowers/specs/2026-05-04-brand-extraction-design.md`
 
 ## Email delivery
 
-Sending goes through [`outlook-cli`](https://github.com/weirdapps/outlook-cli) (Microsoft Graph). The integration point is one function, `send_email()` in `news/deliver.py`, which shells out to:
+Sending goes through a Graph CLI mail helper: a small command that sends through a Microsoft Graph CLI, adds the sender's signature, and keeps outlook-cli's exit codes (0 sent, 4 sign in again, 5 network or upstream, anything else 1). The integration point is one function, `send_email()` in `news/deliver.py`, which shells out to:
+
+```text
+m365-mail --to <recipient> --subject <s> --html <tempfile> \
+          --send-now --no-cc-self --fallback-outlook-cli
+```
+
+`--fallback-outlook-cli` retries once through [`outlook-cli`](https://github.com/weirdapps/outlook-cli) when the Graph leg fails. `--no-cc-self` is meant for a recipient who is the sender; the scheduled profiles are set up that way. `NEWS_MAIL_CMD` names the command (on `$PATH` or an absolute path; on a systemd host, check that the unit's `PATH` reaches it).
+
+To use the old direct path, set `NEWS_MAIL_CMD=outlook-cli` (or a path ending in `outlook-cli`). `send_email()` then runs the previous argv:
 
 ```text
 outlook-cli send-mail --to <recipient> --subject <s> --html <tempfile> \
@@ -242,13 +252,13 @@ The `pyproject.toml` `[[tool.mypy.overrides]]` block that excludes `scripts.*` f
 
 - Python 3.12+
 - `claude` CLI on `$PATH` (or set `NEWS_CLAUDE_COMMAND`)
-- `outlook-cli` installed and authenticated, or a drop-in replacement in `send_email()`
+- A mail command: the Graph CLI mail helper (`m365-mail`), `outlook-cli` via `NEWS_MAIL_CMD`, or a drop-in replacement in `send_email()`
 - macOS if you want to use the bundled `launchd` plists; any cron-equivalent works elsewhere (the maintainer runs the pipelines as `systemd --user` timers on Linux)
 - `uv` (recommended) or `pip` for dependency management
 
 ## Tech stack
 
-Python 3.12+, feedparser, httpx, trafilatura, readability-lxml, lxml, Jinja2, PyYAML, MarkupSafe, `mcp[cli]>=2` (the MCP server uses the v2 `MCPServer` API; v1 will not import), SQLite (FTS5), the local `claude` CLI, and `outlook-cli` for delivery. Full pin set in `pyproject.toml` and `uv.lock`.
+Python 3.12+, feedparser, httpx, trafilatura, readability-lxml, lxml, Jinja2, PyYAML, MarkupSafe, `mcp[cli]>=2` (the MCP server uses the v2 `MCPServer` API; v1 will not import), SQLite (FTS5), the local `claude` CLI, and the Graph CLI mail helper for delivery. Full pin set in `pyproject.toml` and `uv.lock`.
 
 ## License
 
