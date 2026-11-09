@@ -282,9 +282,13 @@ def harvest(
                     text, status = fetch_transcript(video_id)
 
                 # Not aired yet: record nothing, so no attempt is spent, and look
-                # again next run. It still counted against the run limit above,
-                # because it cost a request to YouTube all the same.
+                # again next run. It gives its slot of the run limit back: on
+                # 2026-11-09 premieres held 2 of the 3 slots for a day, so one
+                # real video an hour got through. The check is one caption
+                # request per scheduled premiere, a handful at most, so the burst
+                # the limit guards against does not come from here.
                 if status == "upcoming":
+                    stats["attempted"] -= 1
                     stats["upcoming"] += 1
                     continue
 

@@ -642,3 +642,20 @@ def test_main_passes_a_run_of_only_upcoming_or_refused_videos(tmp_path, monkeypa
     rc, _, _ = _run_main(tmp_path, monkeypatch, _stats(**counts))
 
     assert rc == 0
+
+
+def test_an_upcoming_video_does_not_take_a_slot_of_the_run_limit(tmp_path):
+    """Premieres held 2 of the 3 hourly slots on 2026-11-09, so 1 real video an hour got through."""
+    db_path = tmp_path / "transcripts.db"
+    results = {"G55HSGpuh1M": ("", "upcoming"), "abc12345678": ("words", "ok")}
+
+    with (
+        patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
+        patch("scripts.youtube_harvest.fetch_transcript", side_effect=results.get),
+        patch("scripts.youtube_harvest.distil", return_value="the abstract"),
+    ):
+        stats = harvest(_FIRESHIP_SOURCES, db_path, limit=1)
+
+    assert stats["upcoming"] == 1
+    assert stats["ok"] == 1
+    assert stats["attempted"] == 1
