@@ -904,3 +904,68 @@ def test_backfill_leaves_a_video_that_has_not_aired_untouched(tmp_path):
     conn = sqlite3.connect(db_path)
     assert conn.execute("SELECT attempts FROM transcripts").fetchone()[0] == 1  # the seed's own
     conn.close()
+
+
+@pytest.mark.real_audio_fallback
+def test_a_probe_that_times_out_is_a_retryable_failure():
+    import subprocess
+
+    from scripts.youtube_harvest import transcribe_audio
+
+    with (
+        patch(
+            "scripts.youtube_harvest.subprocess.run",
+            side_effect=subprocess.TimeoutExpired("yt-dlp", 60),
+        ),
+        patch.dict(sys.modules, {"mlx_whisper": Mock()}),
+    ):
+        assert transcribe_audio("BT1Mo-fD-g0") == ("", "failed")
+
+
+@pytest.mark.real_audio_fallback
+def test_a_download_that_times_out_is_a_retryable_failure():
+    import subprocess
+
+    from scripts.youtube_harvest import transcribe_audio
+
+    def fake_run(cmd, **kwargs):
+        if "--skip-download" in cmd:
+            return _completed(stdout="998\n")
+        raise subprocess.TimeoutExpired("yt-dlp", 900)
+
+    with (
+        patch("scripts.youtube_harvest.subprocess.run", side_effect=fake_run),
+        patch.dict(sys.modules, {"mlx_whisper": Mock()}),
+    ):
+        assert transcribe_audio("BT1Mo-fD-g0") == ("", "failed")
+
+
+@pytest.mark.real_audio_fallback
+def test_a_whisper_crash_is_a_retryable_failure():
+    from scripts.youtube_harvest import transcribe_audio
+
+    def fake_run(cmd, **kwargs):
+        if "--skip-download" in cmd:
+            return _completed(stdout="998\n")
+        Path(cmd[cmd.index("-o") + 1].replace("%(ext)s", "webm")).write_bytes(b"audio")
+        return _completed()
+
+    whisper = Mock()
+    whisper.transcribe.side_effect = RuntimeError("Metal out of memory")
+    with (
+        patch("scripts.youtube_harvest.subprocess.run", side_effect=fake_run),
+        patch.dict(sys.modules, {"mlx_whisper": whisper}),
+    ):
+        assert transcribe_audio("BT1Mo-fD-g0") == ("", "failed")
+
+
+@pytest.mark.real_audio_fallback
+def test_a_probe_without_a_duration_for_an_unknown_reason_is_a_retryable_failure():
+    from scripts.youtube_harvest import transcribe_audio
+
+    probe = Mock(returncode=1, stdout="", stderr="ERROR: [youtube] x: Sign in to confirm")
+    with (
+        patch("scripts.youtube_harvest.subprocess.run", return_value=probe),
+        patch.dict(sys.modules, {"mlx_whisper": Mock()}),
+    ):
+        assert transcribe_audio("BT1Mo-fD-g0") == ("", "failed")
