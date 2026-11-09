@@ -6,7 +6,10 @@ Agent Daily's deep dives: sections in the video's order, each opening on a times
 that links into the video, then key takeaways and the resources mentioned.
 
     uv run python scripts/video_brief_render.py brief.json source.json \
-        --page out.html --email mail.html [--signature ~/.outlook-cli/signature.html]
+        --page out.html --email mail.html [--signature]
+
+Every path must sit inside ~/Downloads (scripts/video_paths.py says why), and
+--signature appends ~/.outlook-cli/signature.html, from that fixed place only.
 
 brief.json (written by the skill):
     {"headline": str, "summary": str, "tags": [str],
@@ -25,6 +28,10 @@ import re
 import sys
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.video_paths import SIGNATURE, inside  # noqa: E402
 
 _INLINE = re.compile(r"\*\*(.+?)\*\*|`([^`]+)`")
 
@@ -197,11 +204,14 @@ def email(brief: dict[str, Any], video: dict[str, Any], method: str, signature: 
         out.append(f"{ts(sec['start'])}&nbsp;&nbsp;{inline(sec['title'], _CODE)}<br>")
     out.append("<br>")
     for sec in brief.get("sections", []):
-        out.append(h(f"{inline(sec['title'], _CODE)} &nbsp;{ts(sec['start'])}"))
-        out.append("<br><br>".join(inline(p, _CODE) for p in sec.get("paragraphs", [])))
-        out.append("<br><br>")
-    out.append(h("Key takeaways"))
-    out.append('<ol style="margin:4px 0 12px 22px;padding:0">')
+        out.extend(
+            [
+                h(f"{inline(sec['title'], _CODE)} &nbsp;{ts(sec['start'])}"),
+                "<br><br>".join(inline(p, _CODE) for p in sec.get("paragraphs", [])),
+                "<br><br>",
+            ]
+        )
+    out.extend([h("Key takeaways"), '<ol style="margin:4px 0 12px 22px;padding:0">'])
     for t in brief.get("takeaways", []):
         out.append(
             f'<li style="margin:0 0 6px"><strong>{inline(t["lead"], _CODE)}</strong> '
@@ -230,17 +240,21 @@ def main() -> int:
     parser.add_argument("source")
     parser.add_argument("--page", required=True)
     parser.add_argument("--email", required=True)
-    parser.add_argument("--signature", help="HTML signature file appended to the mail")
+    parser.add_argument("--signature", action="store_true", help=f"append {SIGNATURE} to the mail")
     args = parser.parse_args()
-    brief = json.loads(Path(args.brief).read_text(encoding="utf-8"))
-    src = json.loads(Path(args.source).read_text(encoding="utf-8"))
+    try:
+        brief_path, source_path = inside(args.brief), inside(args.source)
+        page_path, email_path = inside(args.page), inside(args.email)
+    except ValueError as e:
+        print(f"video_brief_render: {e}", file=sys.stderr)
+        return 2
+    brief = json.loads(brief_path.read_text(encoding="utf-8"))
+    src = json.loads(source_path.read_text(encoding="utf-8"))
     video, method = src["video"], src.get("method", "captions")
-    signature = (
-        Path(args.signature).expanduser().read_text(encoding="utf-8") if args.signature else ""
-    )
-    Path(args.page).write_text(page(brief, video, method), encoding="utf-8")
-    Path(args.email).write_text(email(brief, video, method, signature), encoding="utf-8")
-    print(f"{args.page}\n{args.email}", file=sys.stderr)
+    signature = SIGNATURE.read_text(encoding="utf-8") if args.signature else ""
+    page_path.write_text(page(brief, video, method), encoding="utf-8")
+    email_path.write_text(email(brief, video, method, signature), encoding="utf-8")
+    print(f"{page_path}\n{email_path}", file=sys.stderr)
     return 0
 
 

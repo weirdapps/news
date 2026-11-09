@@ -8,6 +8,8 @@ Silicon.
 
     uv run python scripts/video_source.py <url-or-id> [-o source.json]
 
+The output path must sit inside ~/Downloads (scripts/video_paths.py says why).
+
 Writes JSON: video (id, url, title, channel, published, duration_seconds, description,
 chapters), method ('captions' or 'whisper'), and segments [{start, text}]. Exit 1 with a
 reason on stderr when no transcript could be had.
@@ -25,6 +27,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from scripts.video_paths import inside  # noqa: E402
 from scripts.youtube_harvest import _YTDLP, audio_segments, whisper_available  # noqa: E402
 
 logger = logging.getLogger(__name__)
@@ -132,19 +135,22 @@ def main() -> int:
         description="Metadata and a timestamped transcript for one video"
     )
     parser.add_argument("video", help="YouTube URL or 11-character video id")
-    parser.add_argument("-o", "--output", help="write the JSON here instead of stdout")
+    parser.add_argument(
+        "-o", "--output", help="write the JSON here (inside ~/Downloads) instead of stdout"
+    )
     args = parser.parse_args()
     try:
+        output = inside(args.output) if args.output else None
         data = source(args.video)
     except (ValueError, NoTranscript, subprocess.TimeoutExpired) as e:
         print(f"video_source: {e}", file=sys.stderr)
         return 1
     text = json.dumps(data, ensure_ascii=False, indent=1)
-    if args.output:
-        Path(args.output).write_text(text, encoding="utf-8")
+    if output:
+        output.write_text(text, encoding="utf-8")
         words = sum(len(s["text"].split()) for s in data["segments"])
         print(
-            f"{args.output}: {data['video']['title']} | {data['method']} | "
+            f"{output}: {data['video']['title']} | {data['method']} | "
             f"{len(data['segments'])} segments, {words} words",
             file=sys.stderr,
         )
