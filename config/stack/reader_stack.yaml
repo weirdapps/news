@@ -30,8 +30,10 @@ profile: |
     Never the anthropic SDK. Model and region must be pinned together.
   - Infrastructure: macOS (launchd) + a Hetzner VPS (systemd timers) running the
     unattended pipelines; GitHub Actions; gcloud/Vertex AI. ~30 repos.
-  - Office automation: three separate M365 CLIs, one surface each — outlook-cli
-    (mail/calendar), teams-cli (chat), sharepoint-cli (files)
+  - Office automation: one Microsoft Graph CLI for mail, calendar, Teams and
+    SharePoint, with a small mail helper that adds the signature and falls back to
+    the older outlook-cli. The older per-surface CLIs (outlook-cli, teams-cli,
+    sharepoint-cli) and their outlook-bridge / teams-bridge MCPs are being retired.
   - Presentations: python-pptx with a brand system and a validator
   - Trading intelligence: signals, census tracking, a multi-agent investment committee
   - Role context: AGM at a large bank — leads Cards & Digital Business, AI adoption

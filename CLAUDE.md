@@ -38,7 +38,7 @@ fetch → process → store → synthesize → deliver
 | `news/synthesizer.py` | synthesize (digest) | One-pass curation prompt |
 | `news/monitor_synth.py` | synthesize (monitor) | Brand-aware prompt + competitor watch |
 | `news/topic_synth.py` | synthesize (topic) | Topic-focused prompt + Google News RSS builder |
-| `news/deliver.py` | deliver | Jinja2 HTML → outlook-cli |
+| `news/deliver.py` | deliver | Jinja2 HTML → Graph CLI mail helper (`NEWS_MAIL_CMD`, default `m365-mail`) |
 
 LLM calls go through the local `claude` CLI subprocess (Vertex AI); see the `subprocess.run` call in `news/synthesizer.py`.
 
