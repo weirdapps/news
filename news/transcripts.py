@@ -30,8 +30,9 @@ MAX_ATTEMPTS = 8
 
 # Statuses that will never change on a later run: the work is done, the video
 # simply has no captions and never will, or the model declined to distil it
-# (the transcript is kept; only the abstract is missing).
-_TERMINAL_STATUSES = frozenset({"ok", "no_captions", "refused"})
+# (the transcript is kept; only the abstract is missing), or its audio runs past
+# the harvester's cap (a livestream or a conference day).
+_TERMINAL_STATUSES = frozenset({"ok", "no_captions", "refused", "too_long"})
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS transcripts (

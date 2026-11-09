@@ -18,6 +18,7 @@ import logging
 import sqlite3
 import subprocess
 import sys
+import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -155,6 +156,22 @@ _NOT_AIRED_PREFIXES = ("Premieres in", "This live event will begin in")
 _REFUSAL_MARKERS = ("can't help with this", "anthropic.com/legal/aup")
 
 
+# The audio fallback, after Marinos's the-agent-daily-publisher
+# (scripts/transcribe_local.py): when captions give nothing, download the audio
+# and transcribe it here with Whisper. large-v3-turbo, never `base`, which
+# mangles the product and CLI names a summary exists to keep. Measured on this
+# M4 Max on 2026-11-09: 80 s for a 16.6-minute talk, about 12x real time.
+WHISPER_MODEL = "mlx-community/whisper-large-v3-turbo"
+
+# Longer than this is a livestream or a conference day (AI Engineer posts
+# 8-hour streams), not a talk: 40 minutes of Whisper and a prompt too long to
+# summarise into 800 characters. Recorded as too_long, which is terminal.
+MAX_AUDIO_SECONDS = 2 * 60 * 60
+
+_PROBE_TIMEOUT = 60
+_DOWNLOAD_TIMEOUT = 900
+
+
 class DistilRefused(Exception):
     """The model declined to distil this transcript; retrying will not change it."""
 
@@ -188,6 +205,145 @@ def fetch_transcript(video_id: str) -> tuple[str, str]:
     except Exception as e:
         logger.warning(f"{video_id}: transcript fetch failed: {type(e).__name__}: {e}")
         return "", "fetch_failed"
+
+
+def transcribe_audio(video_id: str) -> tuple[str, str]:
+    """Transcribe a video from its audio with local Whisper. Returns (text, status).
+
+    Status is 'ok'; 'upcoming' for a premiere or live event not yet aired;
+    'too_long' past MAX_AUDIO_SECONDS, which is terminal;
+    'failed' when the probe, the download or the transcription breaks, which is
+    retried; or 'unavailable' when this host cannot run Whisper at all (the VPS),
+    in which case the caller keeps whatever the captions said.
+    """
+    try:
+        import mlx_whisper
+    except ImportError:
+        return "", "unavailable"
+
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    # By module, not by PATH: the locked yt-dlp in this venv, whatever brew has.
+    ytdlp = [sys.executable, "-m", "yt_dlp", "--no-update", "--no-warnings", "-q"]
+    try:
+        probe = subprocess.run(
+            [*ytdlp, "--skip-download", "--print", "duration", url],
+            capture_output=True,
+            text=True,
+            timeout=_PROBE_TIMEOUT,
+        )
+    except (subprocess.TimeoutExpired, OSError) as e:
+        logger.warning(f"{video_id}: audio probe failed: {type(e).__name__}: {e}")
+        return "", "failed"
+    try:
+        duration = float((probe.stdout or "").strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        # A premiere or a live event has no duration yet; yt-dlp says why on stderr.
+        detail = (probe.stderr or "").strip()[-300:] or (probe.stdout or "").strip()[:100]
+        if any(f": {prefix}" in detail for prefix in _NOT_AIRED_PREFIXES):
+            logger.info(f"{video_id}: not aired yet; will check again next run")
+            return "", "upcoming"
+        logger.warning(
+            f"{video_id}: audio probe gave no duration (rc={probe.returncode}): {detail}"
+        )
+        return "", "failed"
+    if duration > MAX_AUDIO_SECONDS:
+        logger.info(f"{video_id}: {duration / 3600:.1f} h of audio, past the cap; not transcribing")
+        return "", "too_long"
+
+    with tempfile.TemporaryDirectory(prefix="yt-audio-") as tmp:
+        try:
+            download = subprocess.run(
+                [*ytdlp, "-f", "bestaudio/best", "-o", f"{tmp}/{video_id}.%(ext)s", url],
+                capture_output=True,
+                text=True,
+                timeout=_DOWNLOAD_TIMEOUT,
+            )
+        except (subprocess.TimeoutExpired, OSError) as e:
+            logger.warning(f"{video_id}: audio download failed: {type(e).__name__}: {e}")
+            return "", "failed"
+        audio = sorted(Path(tmp).glob(f"{video_id}.*"))
+        if download.returncode != 0 or not audio:
+            detail = (download.stderr or "").strip()[-300:]
+            logger.warning(
+                f"{video_id}: audio download failed (rc={download.returncode}): {detail}"
+            )
+            return "", "failed"
+        try:
+            result = mlx_whisper.transcribe(
+                str(audio[0]), path_or_hf_repo=WHISPER_MODEL, verbose=None
+            )
+        except Exception as e:
+            logger.warning(f"{video_id}: Whisper failed: {type(e).__name__}: {e}")
+            return "", "failed"
+
+    text = " ".join(
+        seg["text"].strip() for seg in result.get("segments", []) if (seg.get("text") or "").strip()
+    )
+    if not text:
+        return "", "failed"
+    logger.info(f"{video_id}: transcribed {duration / 60:.0f} min of audio with Whisper")
+    return text, "ok"
+
+
+def _audio_fallback(video_id: str, caption_status: str, stats: dict[str, int]) -> tuple[str, str]:
+    """Try the audio for a video whose captions gave nothing. Returns (text, status)."""
+    text, audio = transcribe_audio(video_id)
+    if audio == "ok":
+        stats["whisper"] += 1
+        return text, "ok"
+    if audio in ("too_long", "upcoming"):
+        return "", audio
+    if audio == "failed":
+        # Retryable even when the captions said never: the audio may come next run.
+        return "", "fetch_failed"
+    return "", caption_status
+
+
+def _settle(
+    conn: sqlite3.Connection,
+    video_id: str,
+    channel: str,
+    title: str,
+    published: str | None,
+    text: str,
+    status: str,
+    stats: dict[str, int],
+) -> None:
+    """Distil a fetched transcript, record the outcome, and count it."""
+    abstract = ""
+    if status == "ok":
+        try:
+            abstract = trim_to_sentence(distil(text, title), ABSTRACT_MAX_CHARS)
+        except DistilRefused:
+            status = "refused"
+        else:
+            if not abstract:
+                status = "summary_failed"
+
+    upsert_transcript(conn, video_id, channel, title, published, text, abstract, status)
+
+    if status == "ok":
+        stats["ok"] += 1
+    elif status in ("no_captions", "too_long"):
+        stats["no_captions"] += 1
+    elif status == "refused":
+        stats["refused"] += 1
+    else:
+        stats["failed"] += 1
+
+
+def _new_stats() -> dict[str, int]:
+    return {
+        "channels": 0,
+        "attempted": 0,
+        "ok": 0,
+        "no_captions": 0,
+        "failed": 0,
+        "blocked": 0,
+        "upcoming": 0,
+        "refused": 0,
+        "whisper": 0,
+    }
 
 
 def distil(transcript: str, title: str) -> str:
@@ -241,16 +397,7 @@ def harvest(
     conn.row_factory = sqlite3.Row
     init_transcript_db(conn)
 
-    stats = {
-        "channels": 0,
-        "attempted": 0,
-        "ok": 0,
-        "no_captions": 0,
-        "failed": 0,
-        "blocked": 0,
-        "upcoming": 0,
-        "refused": 0,
-    }
+    stats = _new_stats()
 
     try:
         for name, channel_id in youtube_channels(sources):
@@ -303,37 +450,18 @@ def harvest(
                 if status == "ok" and not text.strip():
                     text, status = "", "no_captions"
 
-                abstract = ""
-                if status == "ok":
-                    try:
-                        abstract = trim_to_sentence(
-                            distil(text, video["title"]), ABSTRACT_MAX_CHARS
-                        )
-                    except DistilRefused:
-                        status = "refused"
-                    else:
-                        if not abstract:
-                            status = "summary_failed"
+                # Captions gave nothing: try the audio. Never under a block,
+                # which means stop asking YouTube for anything at all.
+                if status in ("no_captions", "fetch_failed") and not blocked:
+                    text, status = _audio_fallback(video_id, status, stats)
+                    if status == "upcoming":
+                        stats["attempted"] -= 1
+                        stats["upcoming"] += 1
+                        continue
 
-                upsert_transcript(
-                    conn,
-                    video_id,
-                    name,
-                    video["title"],
-                    video["published"],
-                    text,
-                    abstract,
-                    status,
+                _settle(
+                    conn, video_id, name, video["title"], video["published"], text, status, stats
                 )
-
-                if status == "ok":
-                    stats["ok"] += 1
-                elif status == "no_captions":
-                    stats["no_captions"] += 1
-                elif status == "refused":
-                    stats["refused"] += 1
-                else:
-                    stats["failed"] += 1
 
                 if blocked:
                     # Every later fetch this run would be refused the same way,
@@ -343,6 +471,48 @@ def harvest(
     finally:
         conn.close()
 
+    return stats
+
+
+def backfill(db_path: str | Path, days: int, limit: int) -> dict[str, int]:
+    """Transcribe from audio the recent videos whose captions gave nothing.
+
+    The store is the work list, not the feeds: a channel's feed holds only its
+    latest videos, and most of these have left it. Captions are not asked again;
+    they already failed for every row here.
+    """
+    db_path = Path(db_path)
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    init_transcript_db(conn)
+    stats = _new_stats()
+    cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+    try:
+        rows = conn.execute(
+            "SELECT video_id, channel, title, published_at, status FROM transcripts "
+            "WHERE status IN ('no_captions', 'fetch_failed') AND published_at >= ? "
+            "ORDER BY published_at DESC LIMIT ?",
+            (cutoff, limit),
+        ).fetchall()
+        for row in rows:
+            text, status = _audio_fallback(row["video_id"], row["status"], stats)
+            if status == "upcoming":
+                # Not aired: nothing recorded, nothing failed; a later run takes it.
+                stats["upcoming"] += 1
+                continue
+            stats["attempted"] += 1
+            _settle(
+                conn,
+                row["video_id"],
+                row["channel"],
+                row["title"],
+                row["published_at"],
+                text,
+                status,
+                stats,
+            )
+    finally:
+        conn.close()
     return stats
 
 
@@ -436,6 +606,13 @@ def main() -> int:
     parser.add_argument("--db", default=str(Path.home() / "SourceCode/news/data/transcripts.db"))
     parser.add_argument("--remote", default="vps:~/SourceCode/news/data/transcripts.db")
     parser.add_argument("--no-push", action="store_true")
+    parser.add_argument(
+        "--backfill-days",
+        type=int,
+        default=0,
+        help="instead of the feeds, transcribe from audio the videos of the last N days "
+        "whose captions gave nothing (up to --limit of them)",
+    )
     args = parser.parse_args()
     db_path = Path(args.db)
 
@@ -450,11 +627,15 @@ def main() -> int:
         )
         produced = False
     else:
-        stats = harvest(get_sources(profile=args.profile), db_path, limit=args.limit)
+        if args.backfill_days:
+            stats = backfill(db_path, days=args.backfill_days, limit=args.limit)
+        else:
+            stats = harvest(get_sources(profile=args.profile), db_path, limit=args.limit)
         logger.info(
             f"Harvest complete: {stats['channels']} channels, {stats['attempted']} attempted, "
             f"{stats['ok']} ok, {stats['no_captions']} no captions, {stats['failed']} failed, "
-            f"{stats['upcoming']} not aired, {stats['refused']} refused"
+            f"{stats['upcoming']} not aired, {stats['refused']} refused, "
+            f"{stats['whisper']} from audio"
         )
         record_block(db_path, stats["blocked"] > 0)
         # Nothing attempted is a quiet hour or an empty channel list, and all
