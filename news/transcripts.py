@@ -28,9 +28,10 @@ logger = logging.getLogger(__name__)
 # that an already-fetched transcript is reused rather than refetched.
 MAX_ATTEMPTS = 8
 
-# Statuses that will never change on a later run: the work is done, or the video
-# simply has no captions and never will.
-_TERMINAL_STATUSES = frozenset({"ok", "no_captions"})
+# Statuses that will never change on a later run: the work is done, the video
+# simply has no captions and never will, or the model declined to distil it
+# (the transcript is kept; only the abstract is missing).
+_TERMINAL_STATUSES = frozenset({"ok", "no_captions", "refused"})
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS transcripts (

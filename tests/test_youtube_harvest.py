@@ -449,7 +449,16 @@ def test_harvest_stops_at_the_first_ip_block_and_keeps_the_video_retryable(tmp_p
 
 
 def _stats(**counts):
-    stats = {"channels": 1, "attempted": 0, "ok": 0, "no_captions": 0, "failed": 0, "blocked": 0}
+    stats = {
+        "channels": 1,
+        "attempted": 0,
+        "ok": 0,
+        "no_captions": 0,
+        "failed": 0,
+        "blocked": 0,
+        "upcoming": 0,
+        "refused": 0,
+    }
     stats.update(counts)
     return stats
 
@@ -538,3 +547,98 @@ def test_an_unreadable_cooldown_file_is_ignored(tmp_path, caplog):
         assert cooldown_until(db_path) is None
 
     assert "unreadable cooldown file" in caplog.text
+
+
+# --- Videos that have not aired yet, and distillations the model refuses ------
+
+
+@pytest.mark.parametrize(
+    "reason", ["Premieres in 21 hours", "This live event will begin in 3 hours"]
+)
+def test_fetch_transcript_reports_a_video_that_has_not_aired_as_upcoming(reason):
+    """A premiere has no captions yet; that says nothing about whether it will."""
+    from youtube_transcript_api._errors import VideoUnplayable
+
+    with patch("scripts.youtube_harvest.YouTubeTranscriptApi") as api:
+        api.return_value.fetch.side_effect = VideoUnplayable("cZ_PqBpZygY", reason, [])
+
+        text, status = fetch_transcript("cZ_PqBpZygY")
+
+    assert (text, status) == ("", "upcoming")
+
+
+def test_fetch_transcript_keeps_other_unplayable_videos_retryable():
+    from youtube_transcript_api._errors import VideoUnplayable
+
+    with patch("scripts.youtube_harvest.YouTubeTranscriptApi") as api:
+        api.return_value.fetch.side_effect = VideoUnplayable("x", "Sign in to confirm", [])
+
+        assert fetch_transcript("x") == ("", "fetch_failed")
+
+
+def test_an_upcoming_video_spends_no_attempt_and_fails_no_run(tmp_path):
+    """Eight hourly attempts ran out before a premiere 21 hours away ever aired."""
+    db_path = tmp_path / "transcripts.db"
+
+    with (
+        patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
+        patch("scripts.youtube_harvest.fetch_transcript", return_value=("", "upcoming")),
+        patch("scripts.youtube_harvest.distil") as distil_mock,
+    ):
+        stats = harvest(_FIRESHIP_SOURCES, db_path, limit=10)
+
+    distil_mock.assert_not_called()
+    assert stats["failed"] == 0
+    assert stats["upcoming"] == 2
+    conn = sqlite3.connect(db_path)
+    assert conn.execute("SELECT COUNT(*) FROM transcripts").fetchone()[0] == 0
+    conn.close()
+
+
+def test_distil_raises_refused_when_the_model_declines_the_transcript():
+    from scripts.youtube_harvest import DistilRefused
+
+    refusal = (
+        "API Error: Sonnet 5.5 can't help with this. Start a new session to continue.\n\n"
+        "Learn more: https://www.anthropic.com/legal/aup\n\nDetails: `[cyber]`"
+    )
+    completed = Mock(returncode=1, stdout=refusal, stderr="")
+    with (
+        patch("scripts.youtube_harvest.subprocess.run", return_value=completed),
+        pytest.raises(DistilRefused),
+    ):
+        distil("a DEF CON talk", "title")
+
+
+def test_a_refused_distillation_is_settled_and_never_retried(tmp_path):
+    """The same transcript draws the same refusal: retrying it spent 8 calls a video."""
+    from scripts.youtube_harvest import DistilRefused
+
+    db_path = tmp_path / "transcripts.db"
+    with (
+        patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
+        patch("scripts.youtube_harvest.fetch_transcript", return_value=("words", "ok")),
+        patch("scripts.youtube_harvest.distil", side_effect=DistilRefused("cyber")),
+    ):
+        stats = harvest(_FIRESHIP_SOURCES, db_path, limit=10)
+
+    assert stats["failed"] == 0
+    assert stats["refused"] == 2
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    from news.transcripts import pending_video_ids
+
+    assert pending_video_ids(conn, ["G55HSGpuh1M", "abc12345678"]) == []
+    row = conn.execute("SELECT * FROM transcripts WHERE video_id='G55HSGpuh1M'").fetchone()
+    conn.close()
+    assert row["status"] == "refused"
+    assert row["transcript"] == "words"
+
+
+@pytest.mark.parametrize(
+    "counts", [{"attempted": 1, "upcoming": 1}, {"attempted": 2, "refused": 2}]
+)
+def test_main_passes_a_run_of_only_upcoming_or_refused_videos(tmp_path, monkeypatch, counts):
+    rc, _, _ = _run_main(tmp_path, monkeypatch, _stats(**counts))
+
+    assert rc == 0
