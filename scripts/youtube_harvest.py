@@ -355,6 +355,20 @@ def speech_words(transcript: str) -> int:
     return len(_CUES.sub(" ", transcript).split())
 
 
+def _abstract_for(text: str, title: str) -> tuple[str, str]:
+    """The abstract and the status it earns: ok, too_thin, refused or summary_failed."""
+    if speech_words(text) < MIN_SPEECH_WORDS:
+        return "", "too_thin"
+    try:
+        reply = distil(text, title)
+    except DistilRefused:
+        return "", "refused"
+    if _DECLINES.match(reply):
+        return "", "too_thin"
+    abstract = trim_to_sentence(reply, ABSTRACT_MAX_CHARS)
+    return (abstract, "ok") if abstract else ("", "summary_failed")
+
+
 def _settle(
     conn: sqlite3.Connection,
     video_id: str,
@@ -367,20 +381,8 @@ def _settle(
 ) -> None:
     """Distil a fetched transcript, record the outcome, and count it."""
     abstract = ""
-    if status == "ok" and speech_words(text) < MIN_SPEECH_WORDS:
-        status = "too_thin"
     if status == "ok":
-        try:
-            reply = distil(text, title)
-        except DistilRefused:
-            status = "refused"
-        else:
-            if _DECLINES.match(reply):
-                status = "too_thin"
-            else:
-                abstract = trim_to_sentence(reply, ABSTRACT_MAX_CHARS)
-                if not abstract:
-                    status = "summary_failed"
+        abstract, status = _abstract_for(text, title)
 
     upsert_transcript(conn, video_id, channel, title, published, text, abstract, status)
 
