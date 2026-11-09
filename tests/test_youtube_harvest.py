@@ -7,6 +7,7 @@ import logging
 import sqlite3
 import sys
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
@@ -458,6 +459,7 @@ def _stats(**counts):
         "blocked": 0,
         "upcoming": 0,
         "refused": 0,
+        "whisper": 0,
     }
     stats.update(counts)
     return stats
@@ -659,3 +661,246 @@ def test_an_upcoming_video_does_not_take_a_slot_of_the_run_limit(tmp_path):
     assert stats["upcoming"] == 1
     assert stats["ok"] == 1
     assert stats["attempted"] == 1
+
+
+# --- Audio fallback: local Whisper when captions give nothing -----------------
+
+
+@pytest.fixture(autouse=True)
+def _no_real_audio_fallback(request):
+    """No test may download audio or load Whisper unless it asks for the real one."""
+    if "real_audio_fallback" in request.keywords:
+        yield
+        return
+    with patch("scripts.youtube_harvest.transcribe_audio", return_value=("", "unavailable")):
+        yield
+
+
+def _completed(stdout="", returncode=0):
+    return Mock(returncode=returncode, stdout=stdout, stderr="")
+
+
+@pytest.mark.real_audio_fallback
+def test_transcribe_audio_refuses_a_video_longer_than_the_cap():
+    from scripts.youtube_harvest import MAX_AUDIO_SECONDS, transcribe_audio
+
+    probe = _completed(stdout=f"{MAX_AUDIO_SECONDS + 1}\n")
+    with (
+        patch("scripts.youtube_harvest.subprocess.run", return_value=probe) as run,
+        patch.dict(sys.modules, {"mlx_whisper": Mock()}),
+    ):
+        assert transcribe_audio("ZZ19zhYnDKY") == ("", "too_long")
+
+    assert run.call_count == 1  # probed, never downloaded
+
+
+@pytest.mark.real_audio_fallback
+def test_transcribe_audio_downloads_and_transcribes_with_whisper(tmp_path):
+    from scripts.youtube_harvest import transcribe_audio
+
+    def fake_run(cmd, **kwargs):
+        if "--skip-download" in cmd:
+            return _completed(stdout="998\n")
+        out = cmd[cmd.index("-o") + 1].replace("%(ext)s", "webm")
+        Path(out).write_bytes(b"audio")
+        return _completed()
+
+    whisper = Mock()
+    whisper.transcribe.return_value = {
+        "segments": [{"text": " Hi everyone,"}, {"text": " I am Tanmay."}]
+    }
+    with (
+        patch("scripts.youtube_harvest.subprocess.run", side_effect=fake_run),
+        patch.dict(sys.modules, {"mlx_whisper": whisper}),
+    ):
+        assert transcribe_audio("BT1Mo-fD-g0") == ("Hi everyone, I am Tanmay.", "ok")
+
+    model = whisper.transcribe.call_args.kwargs["path_or_hf_repo"]
+    assert model.endswith("whisper-large-v3-turbo")  # never `base`: it mangles product names
+
+
+@pytest.mark.real_audio_fallback
+def test_transcribe_audio_is_unavailable_without_whisper():
+    """The VPS has no mlx-whisper; the fallback must step aside, not fail videos."""
+    from scripts.youtube_harvest import transcribe_audio
+
+    with patch.dict(sys.modules, {"mlx_whisper": None}):
+        assert transcribe_audio("BT1Mo-fD-g0") == ("", "unavailable")
+
+
+@pytest.mark.real_audio_fallback
+def test_transcribe_audio_fails_retryably_when_the_download_fails():
+    from scripts.youtube_harvest import transcribe_audio
+
+    def fake_run(cmd, **kwargs):
+        if "--skip-download" in cmd:
+            return _completed(stdout="998\n")
+        return _completed(returncode=1)
+
+    with (
+        patch("scripts.youtube_harvest.subprocess.run", side_effect=fake_run),
+        patch.dict(sys.modules, {"mlx_whisper": Mock()}),
+    ):
+        assert transcribe_audio("BT1Mo-fD-g0") == ("", "failed")
+
+
+@pytest.mark.parametrize("caption_status", ["no_captions", "fetch_failed"])
+def test_a_video_without_usable_captions_is_transcribed_from_its_audio(tmp_path, caption_status):
+    db_path = tmp_path / "transcripts.db"
+    with (
+        patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
+        patch("scripts.youtube_harvest.fetch_transcript", return_value=("", caption_status)),
+        patch("scripts.youtube_harvest.transcribe_audio", return_value=("spoken words", "ok")),
+        patch("scripts.youtube_harvest.distil", return_value="the abstract"),
+    ):
+        stats = harvest(_FIRESHIP_SOURCES, db_path, limit=10)
+
+    assert stats["ok"] == 2
+    assert stats["whisper"] == 2
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT * FROM transcripts WHERE video_id='G55HSGpuh1M'").fetchone()
+    conn.close()
+    assert (row["status"], row["transcript"], row["abstract"]) == (
+        "ok",
+        "spoken words",
+        "the abstract",
+    )
+
+
+@pytest.mark.parametrize(
+    ("audio_status", "stored"),
+    [("too_long", "too_long"), ("failed", "fetch_failed"), ("unavailable", "no_captions")],
+)
+def test_what_a_captionless_video_records_when_its_audio_gives_nothing(
+    tmp_path, audio_status, stored
+):
+    db_path = tmp_path / "transcripts.db"
+    with (
+        patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
+        patch("scripts.youtube_harvest.fetch_transcript", return_value=("", "no_captions")),
+        patch("scripts.youtube_harvest.transcribe_audio", return_value=("", audio_status)),
+        patch("scripts.youtube_harvest.distil") as distil_mock,
+    ):
+        harvest(_FIRESHIP_SOURCES, db_path, limit=10)
+
+    distil_mock.assert_not_called()
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT status FROM transcripts WHERE video_id='G55HSGpuh1M'").fetchone()
+    assert row["status"] == stored
+    if stored == "too_long":
+        from news.transcripts import pending_video_ids
+
+        assert "G55HSGpuh1M" not in pending_video_ids(conn, ["G55HSGpuh1M"])
+    conn.close()
+
+
+def test_a_blocked_ip_never_falls_back_to_audio(tmp_path):
+    """A block means stop asking YouTube for anything, the audio included."""
+    with (
+        patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
+        patch("scripts.youtube_harvest.fetch_transcript", return_value=("", "blocked")),
+        patch("scripts.youtube_harvest.transcribe_audio") as audio,
+    ):
+        harvest(_FIRESHIP_SOURCES, tmp_path / "transcripts.db", limit=10)
+
+    audio.assert_not_called()
+
+
+def _seed(db_path, rows):
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    init_transcript_db(conn)
+    for video_id, status, published in rows:
+        upsert_transcript(
+            conn, video_id, "YouTube: GOTO", f"talk {video_id}", published, "", "", status
+        )
+    conn.close()
+
+
+def test_backfill_transcribes_recent_failures_from_the_store_without_the_feed(tmp_path):
+    """Older videos have left their channel's feed, so the store is the work list."""
+    from scripts.youtube_harvest import backfill
+
+    db_path = tmp_path / "transcripts.db"
+    now = datetime.now(UTC)
+    recent = (now - timedelta(days=3)).isoformat()
+    old = (now - timedelta(days=45)).isoformat()
+    _seed(
+        db_path,
+        [
+            ("aaaaaaaaaaa", "no_captions", recent),
+            ("bbbbbbbbbbb", "fetch_failed", recent),
+            ("ccccccccccc", "no_captions", old),
+            ("ddddddddddd", "refused", recent),
+        ],
+    )
+
+    with (
+        patch("scripts.youtube_harvest.fetch_transcript") as captions,
+        patch("scripts.youtube_harvest.transcribe_audio", return_value=("words", "ok")) as audio,
+        patch("scripts.youtube_harvest.distil", return_value="the abstract"),
+    ):
+        stats = backfill(db_path, days=30, limit=10)
+
+    captions.assert_not_called()  # captions already failed for these
+    assert sorted(c.args[0] for c in audio.call_args_list) == ["aaaaaaaaaaa", "bbbbbbbbbbb"]
+    assert stats["ok"] == 2
+    conn = sqlite3.connect(db_path)
+    statuses = dict(conn.execute("SELECT video_id, status FROM transcripts"))
+    conn.close()
+    assert statuses == {
+        "aaaaaaaaaaa": "ok",
+        "bbbbbbbbbbb": "ok",
+        "ccccccccccc": "no_captions",
+        "ddddddddddd": "refused",
+    }
+
+
+def test_backfill_respects_its_limit(tmp_path):
+    from scripts.youtube_harvest import backfill
+
+    db_path = tmp_path / "transcripts.db"
+    recent = (datetime.now(UTC) - timedelta(days=1)).isoformat()
+    _seed(db_path, [(f"vid{i:08d}", "no_captions", recent) for i in range(5)])
+
+    with (
+        patch("scripts.youtube_harvest.transcribe_audio", return_value=("words", "ok")) as audio,
+        patch("scripts.youtube_harvest.distil", return_value="the abstract"),
+    ):
+        backfill(db_path, days=30, limit=2)
+
+    assert audio.call_count == 2
+
+
+@pytest.mark.real_audio_fallback
+def test_transcribe_audio_reports_a_live_event_that_has_not_started_as_upcoming():
+    from scripts.youtube_harvest import transcribe_audio
+
+    probe = Mock(
+        returncode=1,
+        stdout="",
+        stderr="ERROR: [youtube] y9JtCCZP2MQ: This live event will begin in 2 days.",
+    )
+    with (
+        patch("scripts.youtube_harvest.subprocess.run", return_value=probe),
+        patch.dict(sys.modules, {"mlx_whisper": Mock()}),
+    ):
+        assert transcribe_audio("y9JtCCZP2MQ") == ("", "upcoming")
+
+
+def test_backfill_leaves_a_video_that_has_not_aired_untouched(tmp_path):
+    from scripts.youtube_harvest import backfill
+
+    db_path = tmp_path / "transcripts.db"
+    recent = (datetime.now(UTC) - timedelta(days=1)).isoformat()
+    _seed(db_path, [("y9JtCCZP2MQ", "fetch_failed", recent)])
+
+    with patch("scripts.youtube_harvest.transcribe_audio", return_value=("", "upcoming")):
+        stats = backfill(db_path, days=30, limit=5)
+
+    assert (stats["attempted"], stats["failed"], stats["upcoming"]) == (0, 0, 1)
+    conn = sqlite3.connect(db_path)
+    assert conn.execute("SELECT attempts FROM transcripts").fetchone()[0] == 1  # the seed's own
+    conn.close()

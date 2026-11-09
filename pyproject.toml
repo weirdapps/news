@@ -33,6 +33,12 @@ dependencies = [
     # pydantic-settings pin dropped: mcp 2.0 removed the dependency along with
     # its MCP_* env-var settings, and nothing here imports it.
     "youtube-transcript-api>=1.2.5",
+    # The audio fallback for videos with no usable captions, Mac only: the
+    # harvester runs on the Pro (YouTube refuses the VPS), and mlx-whisper needs
+    # Apple Silicon. [default] brings yt-dlp-ejs, the JS challenge solver YouTube
+    # now demands for most formats; deno does the solving.
+    "mlx-whisper>=0.4.3 ; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "yt-dlp[default]>=2026.10.26 ; sys_platform == 'darwin'",
 ]
 
 [project.optional-dependencies]
@@ -50,6 +56,9 @@ packages = ["news"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "real_audio_fallback: use the real transcribe_audio instead of the harvest tests' stub",
+]
 
 [tool.ruff]
 line-length = 100
