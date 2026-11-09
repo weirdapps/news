@@ -1260,3 +1260,113 @@ def test_issuer_filings_with_a_recurring_title_hash_differently_by_date():
     newer.compute_hash()
 
     assert older.content_hash != newer.content_hash
+
+
+# --- Plain sitemaps (sites with no feed and no Google News sitemap) -----------
+# anthropic.com publishes no RSS, and the Google News query for it returned
+# nothing for its whole life. Its plain sitemap dates every news, research and
+# engineering page; the title and description come from the page itself.
+
+
+def _plain_sitemap(now):
+    def url(loc, age_hours):
+        stamp = (now - timedelta(hours=age_hours)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        return f"<url><loc>{loc}</loc><lastmod>{stamp}</lastmod></url>"
+
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        + url("https://www.anthropic.com/research/provable-inference", 3)
+        + url("https://www.anthropic.com/news/claude-fable-5-2", 10)
+        + url("https://www.anthropic.com/careers", 1)
+        + url("https://www.anthropic.com/news/old-post", 500)
+        + "<url><loc>https://www.anthropic.com/news/undated</loc></url>"
+        + "</urlset>"
+    ).encode()
+
+
+_PLAIN_SITEMAP_CFG = {
+    "name": "Anthropic",
+    "url": "https://www.anthropic.com/sitemap.xml",
+    "format": "sitemap",
+    "include": ["/news/", "/research/", "/engineering/"],
+    "category": "releases",
+    "tier": 1,
+    "language": "en",
+    "max_age_hours": 72,
+}
+
+_POST_HTML = """<html><head>
+<title>Progress on provable inference for large language models \\ Anthropic</title>
+<meta name="description" content="Sharing progress on a zkSNARK for provable inference.">
+</head><body>...</body></html>"""
+
+
+def test_parse_sitemap_keeps_recent_pages_under_the_included_paths():
+    from news.fetcher import parse_sitemap
+
+    now = datetime.now(UTC)
+    entries = parse_sitemap(_plain_sitemap(now), _PLAIN_SITEMAP_CFG, now=now)
+
+    assert [url for url, _ in entries] == [
+        "https://www.anthropic.com/research/provable-inference",
+        "https://www.anthropic.com/news/claude-fable-5-2",
+    ]  # newest first; not /careers, not 500 h old, not undated
+
+
+def test_parse_sitemap_returns_nothing_for_markup_that_is_not_a_sitemap():
+    from news.fetcher import parse_sitemap
+
+    assert parse_sitemap(b"<html>blocked</html>", _PLAIN_SITEMAP_CFG) == []
+    assert parse_sitemap(b"not xml", _PLAIN_SITEMAP_CFG) == []
+
+
+def test_page_title_and_description_drop_the_site_suffix():
+    from news.fetcher import page_title_and_description
+
+    title, description = page_title_and_description(_POST_HTML)
+
+    assert title == "Progress on provable inference for large language models"
+    assert description == "Sharing progress on a zkSNARK for provable inference."
+
+
+@pytest.mark.asyncio
+async def test_fetch_all_sources_reads_a_plain_sitemap_and_each_new_page():
+    now = datetime.now(UTC)
+
+    async def get(url, **kwargs):
+        resp = Mock()
+        resp.raise_for_status = Mock()
+        if url.endswith("sitemap.xml"):
+            resp.content = _plain_sitemap(now)
+            resp.text = resp.content.decode()
+        elif url.endswith("claude-fable-5-2"):
+            raise RuntimeError("page timed out")
+        else:
+            resp.content = _POST_HTML.encode()
+            resp.text = _POST_HTML
+        return resp
+
+    with patch("news.fetcher.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_client.get = AsyncMock(side_effect=get)
+        mock_client_cls.return_value = mock_client
+
+        articles, errors = await fetch_all_sources({"rss_feeds": [_PLAIN_SITEMAP_CFG]})
+
+    assert errors == []
+    # One page failed to load: it is skipped, not fatal, and the other still arrives.
+    [article] = articles
+    assert article.url == "https://www.anthropic.com/research/provable-inference"
+    assert article.title == "Progress on provable inference for large language models"
+    assert article.content == "Sharing progress on a zkSNARK for provable inference."
+    assert article.source == "Anthropic"
+
+
+def test_page_title_keeps_a_hyphenated_subtitle():
+    from news.fetcher import page_title_and_description
+
+    html = "<html><head><title>Claude Code - best practices | Claude</title></head></html>"
+    assert page_title_and_description(html)[0] == "Claude Code - best practices"

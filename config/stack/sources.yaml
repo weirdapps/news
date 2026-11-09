@@ -8,8 +8,18 @@ rss_feeds:
     category: "releases"
     tier: 1
     language: "en"
+  # anthropic.com publishes no RSS, and the Google News query that stood here
+  # (site:anthropic.com) returned nothing for its whole life. Its plain sitemap
+  # dates every news, research and engineering page; format "sitemap" keeps the
+  # recent ones and reads each page's title and description (2026-11-09).
   - name: "Anthropic News"
-    url: "https://news.google.com/rss/search?q=when:24h+site:anthropic.com&ceid=US:en&hl=en-US&gl=US"
+    url: "https://www.anthropic.com/sitemap.xml"
+    format: "sitemap"
+    include: ["/news/", "/research/", "/engineering/"]
+    max_age_hours: 72
+    # The body is the page's meta description, one sentence: every official post
+    # matters here, so the 10-word gate must never drop one.
+    min_words: 0
     category: "releases"
     tier: 1
     language: "en"
@@ -190,6 +200,21 @@ rss_feeds:
     language: "en"
 
   # === YOUTUBE ===
+  # Anthropic's two official channels come first, on purpose: the transcript
+  # harvester walks this list in order and stops at its hourly limit, so the
+  # channels for the tools in daily use are served before anyone else (2026-11-09).
+  - name: "YouTube: Anthropic"
+    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
+    max_age_hours: 720
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCrDwWp7EBBv4NwvScIpBDOA"
+    category: "releases"
+    tier: 1
+    language: "en"
+  - name: "YouTube: Claude"
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCV03SRZXJEz-hchIAogeJOg"
+    category: "releases"
+    tier: 1
+    language: "en"
   - name: "YouTube: Fireship"
     # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
     max_age_hours: 336
@@ -238,18 +263,6 @@ rss_feeds:
   # nothing, which is the failure mode that hid a dead source for weeks.
   # Weighted towards conference talks and practitioner deep dives, because
   # that content is video-native and has no RSS equivalent.
-  - name: "YouTube: Anthropic"
-    # Publishes far slower than the 36h news-wire window, so it could never contribute. Measured newest entry 2026-08-27. A ceiling, not an exemption.
-    max_age_hours: 720
-    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCrDwWp7EBBv4NwvScIpBDOA"
-    category: "releases"
-    tier: 1
-    language: "en"
-  - name: "YouTube: Claude"
-    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCV03SRZXJEz-hchIAogeJOg"
-    category: "releases"
-    tier: 1
-    language: "en"
   - name: "YouTube: Google DeepMind"
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCP7jMXSY2xbc3KCAE0MHQ-A"
     category: "releases"
@@ -271,11 +284,6 @@ rss_feeds:
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCEqgmyWChwvt6MFGGlmUQCQ"
     category: "research"
     tier: 2
-    language: "en"
-  - name: "YouTube: AI Engineer"
-    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCLKPca3kwwd-B59HNr-_lvA"
-    category: "tutorials"
-    tier: 1
     language: "en"
   - name: "YouTube: Sam Witteveen"
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UC55ODQSvARtgSyc8ThfiepQ"
