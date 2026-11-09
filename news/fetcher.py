@@ -246,7 +246,6 @@ def parse_news_sitemap(xml_content: bytes | str, source_config: dict[str, Any]) 
 # each new page is fetched once for its title and description. Capped per run: a
 # site redesign that touches every lastmod must not become hundreds of requests.
 _SITEMAP_MAX_PAGES = 10
-_SITE_SUFFIX = re.compile(r"\s+[\\|]\s+[^\\|]{1,40}$")
 
 
 def parse_sitemap(
@@ -287,7 +286,11 @@ def page_title_and_description(html_content: str) -> tuple[str, str]:
     except (lxml.etree.ParserError, ValueError):
         return "", ""
     title = " ".join((doc.findtext(".//title") or "").split())
-    title = _SITE_SUFFIX.sub("", title)
+    for separator in (" \\ ", " | "):
+        head, found, site = title.rpartition(separator)
+        if found and head and len(site) <= 40:
+            title = head
+            break
     description = ""
     for meta in doc.iter("meta"):
         if (meta.get("name") or meta.get("property") or "").lower() in (
