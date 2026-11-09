@@ -706,7 +706,7 @@ def main() -> int:
     try:
         db_path = within(args.db, DATA_DIR)
     except ValueError as e:
-        logger.error(f"--db refused: {e}")
+        print(f"youtube_harvest: --db refused: {e}", file=sys.stderr)
         return 2
 
     until = cooldown_until(db_path)
