@@ -31,6 +31,7 @@ from youtube_transcript_api._errors import (
     RequestBlocked,
     TranscriptsDisabled,
     VideoUnavailable,
+    VideoUnplayable,
 )
 
 # Ensure `news` imports resolve when launchd runs this by path.
@@ -143,10 +144,26 @@ def trim_to_sentence(text: str, limit: int) -> str:
     return cut
 
 
+# How YouTube words a video that exists but has not aired. It has no captions
+# YET, so it is neither terminal nor a failure: on 2026-11-09 a premiere 21 hours
+# away spent all 8 hourly attempts before it aired and was never harvested.
+_NOT_AIRED_PREFIXES = ("Premieres in", "This live event will begin in")
+
+# What the claude CLI prints when the model declines the prompt on policy
+# grounds (security talks draw `[cyber]`). The same transcript draws the same
+# answer, so retrying it only spends another call.
+_REFUSAL_MARKERS = ("can't help with this", "anthropic.com/legal/aup")
+
+
+class DistilRefused(Exception):
+    """The model declined to distil this transcript; retrying will not change it."""
+
+
 def fetch_transcript(video_id: str) -> tuple[str, str]:
     """Fetch a video's captions. Returns (text, status).
 
     Status is 'ok', 'no_captions' when the video will never have captions,
+    'upcoming' when it has not aired yet (a premiere or a scheduled live event),
     'blocked' when YouTube is refusing this IP, or 'fetch_failed' for anything
     else transient such as a timeout. The distinction matters: no_captions is
     recorded as terminal, while fetch_failed is retried on later runs up to the
@@ -158,6 +175,12 @@ def fetch_transcript(video_id: str) -> tuple[str, str]:
         return " ".join(snippet.text for snippet in snippets).strip(), "ok"
     except (TranscriptsDisabled, NoTranscriptFound, VideoUnavailable):
         return "", "no_captions"
+    except VideoUnplayable as e:
+        if (e.reason or "").startswith(_NOT_AIRED_PREFIXES):
+            logger.info(f"{video_id}: not aired yet ({e.reason}); will check again next run")
+            return "", "upcoming"
+        logger.warning(f"{video_id}: transcript fetch failed: {type(e).__name__}: {e}")
+        return "", "fetch_failed"
     except RequestBlocked as e:
         # IpBlocked is a subclass. Both are about this IP, not this video.
         logger.warning(f"{video_id}: transcript fetch failed: {type(e).__name__}: {e}")
@@ -172,7 +195,8 @@ def distil(transcript: str, title: str) -> str:
 
     Routed through the CLI (Vertex) rather than any SDK, per project policy.
     Returns "" on any failure; the caller records summary_failed and keeps the
-    raw transcript so only the cheap half is retried.
+    raw transcript so only the cheap half is retried. Raises DistilRefused when
+    the model declines on policy grounds, which a retry would not change.
     """
     prompt = _DISTIL_PROMPT.format(title=title, transcript=transcript)
     model, run_env = vertex_cli_model_and_env("sonnet")
@@ -198,6 +222,9 @@ def distil(transcript: str, title: str) -> str:
         # arrive on stdout with stderr empty, so logging stderr alone produces a
         # message with no diagnostic in it at all.
         detail = (result.stderr or "").strip() or (result.stdout or "").strip()
+        if any(marker in detail for marker in _REFUSAL_MARKERS):
+            logger.warning(f"claude CLI refused the transcript: {detail[:300]}")
+            raise DistilRefused(detail[:300])
         logger.warning(f"claude CLI exited {result.returncode}: {detail[:300]}")
         return ""
 
@@ -214,7 +241,16 @@ def harvest(
     conn.row_factory = sqlite3.Row
     init_transcript_db(conn)
 
-    stats = {"channels": 0, "attempted": 0, "ok": 0, "no_captions": 0, "failed": 0, "blocked": 0}
+    stats = {
+        "channels": 0,
+        "attempted": 0,
+        "ok": 0,
+        "no_captions": 0,
+        "failed": 0,
+        "blocked": 0,
+        "upcoming": 0,
+        "refused": 0,
+    }
 
     try:
         for name, channel_id in youtube_channels(sources):
@@ -245,6 +281,13 @@ def harvest(
                 if not text:
                     text, status = fetch_transcript(video_id)
 
+                # Not aired yet: record nothing, so no attempt is spent, and look
+                # again next run. It still counted against the run limit above,
+                # because it cost a request to YouTube all the same.
+                if status == "upcoming":
+                    stats["upcoming"] += 1
+                    continue
+
                 # For the video a block is an ordinary retryable failure.
                 blocked = status == "blocked"
                 if blocked:
@@ -258,9 +301,15 @@ def harvest(
 
                 abstract = ""
                 if status == "ok":
-                    abstract = trim_to_sentence(distil(text, video["title"]), ABSTRACT_MAX_CHARS)
-                    if not abstract:
-                        status = "summary_failed"
+                    try:
+                        abstract = trim_to_sentence(
+                            distil(text, video["title"]), ABSTRACT_MAX_CHARS
+                        )
+                    except DistilRefused:
+                        status = "refused"
+                    else:
+                        if not abstract:
+                            status = "summary_failed"
 
                 upsert_transcript(
                     conn,
@@ -277,6 +326,8 @@ def harvest(
                     stats["ok"] += 1
                 elif status == "no_captions":
                     stats["no_captions"] += 1
+                elif status == "refused":
+                    stats["refused"] += 1
                 else:
                     stats["failed"] += 1
 
@@ -398,7 +449,8 @@ def main() -> int:
         stats = harvest(get_sources(profile=args.profile), db_path, limit=args.limit)
         logger.info(
             f"Harvest complete: {stats['channels']} channels, {stats['attempted']} attempted, "
-            f"{stats['ok']} ok, {stats['no_captions']} no captions, {stats['failed']} failed"
+            f"{stats['ok']} ok, {stats['no_captions']} no captions, {stats['failed']} failed, "
+            f"{stats['upcoming']} not aired, {stats['refused']} refused"
         )
         record_block(db_path, stats["blocked"] > 0)
         # Nothing attempted is a quiet hour or an empty channel list, and all
