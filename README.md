@@ -182,11 +182,11 @@ Design rationale: `docs/superpowers/specs/2026-05-04-brand-extraction-design.md`
 
 ## Email delivery
 
-Sending goes through a Graph CLI mail helper: a small command that sends through a Microsoft Graph CLI, adds the sender's signature, and keeps outlook-cli's exit codes (0 sent, 4 sign in again, 5 network or upstream, anything else 1). The integration point is one function, `send_email()` in `news/deliver.py`, which shells out to:
+Sending goes through a Graph CLI mail helper: a small command that sends through a Microsoft Graph CLI (the digests pass `--no-signature`, as before) and keeps outlook-cli's exit codes (0 sent, 4 sign in again, 5 network or upstream, anything else 1). The integration point is one function, `send_email()` in `news/deliver.py`, which shells out to:
 
 ```text
 m365-mail --to <recipient> --subject <s> --html <tempfile> \
-          --send-now --no-cc-self --fallback-outlook-cli
+          --send-now --no-cc-self --no-signature --fallback-outlook-cli
 ```
 
 `--fallback-outlook-cli` retries once through [`outlook-cli`](https://github.com/weirdapps/outlook-cli) when the Graph leg fails. `--no-cc-self` is meant for a recipient who is the sender; the scheduled profiles are set up that way. `NEWS_MAIL_CMD` names the command (on `$PATH` or an absolute path; on a systemd host, check that the unit's `PATH` reaches it).

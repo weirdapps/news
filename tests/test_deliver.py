@@ -201,10 +201,10 @@ def test_send_email_calls_the_mail_helper_by_default(monkeypatch):
         html_path,
         "--send-now",
         "--no-cc-self",
+        "--no-signature",
         "--fallback-outlook-cli",
     ]
-    # The helper adds the signature by default; no opt-out is passed.
-    assert "--no-signature" not in argv
+    # Same as the legacy path: the digests go out without a signature.
     assert html_path.endswith(".html")
 
 
