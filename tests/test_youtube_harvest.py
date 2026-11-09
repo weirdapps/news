@@ -27,6 +27,11 @@ from scripts.youtube_harvest import (
     youtube_channels,
 )
 
+# Transcripts long enough to pass the speech gate (MIN_SPEECH_WORDS), for tests
+# whose subject is something else.
+SPOKEN = " ".join(["spoken words"] * 40)
+EXPENSIVE = " ".join(["the expensive transcript"] * 20)
+
 SAMPLE_ATOM = """<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns:yt="http://www.youtube.com/xml/schemas/2015"
       xmlns="http://www.w3.org/2005/Atom">
@@ -194,9 +199,7 @@ def test_harvest_skips_videos_already_settled_in_the_store(tmp_path):
 
     with (
         patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
-        patch(
-            "scripts.youtube_harvest.fetch_transcript", return_value=("spoken words", "ok")
-        ) as fetch,
+        patch("scripts.youtube_harvest.fetch_transcript", return_value=(SPOKEN, "ok")) as fetch,
         patch("scripts.youtube_harvest.distil", return_value="the abstract"),
     ):
         stats = harvest(_FIRESHIP_SOURCES, db_path, limit=10)
@@ -213,7 +216,7 @@ def test_harvest_records_summary_failed_but_keeps_the_transcript(tmp_path):
 
     with (
         patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
-        patch("scripts.youtube_harvest.fetch_transcript", return_value=("spoken words", "ok")),
+        patch("scripts.youtube_harvest.fetch_transcript", return_value=(SPOKEN, "ok")),
         patch("scripts.youtube_harvest.distil", return_value=""),
     ):
         harvest(_FIRESHIP_SOURCES, db_path, limit=10)
@@ -224,7 +227,7 @@ def test_harvest_records_summary_failed_but_keeps_the_transcript(tmp_path):
     conn.close()
 
     assert row["status"] == "summary_failed"
-    assert row["transcript"] == "spoken words"
+    assert row["transcript"] == SPOKEN
 
 
 def test_harvest_respects_the_run_limit(tmp_path):
@@ -233,9 +236,7 @@ def test_harvest_respects_the_run_limit(tmp_path):
 
     with (
         patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
-        patch(
-            "scripts.youtube_harvest.fetch_transcript", return_value=("spoken words", "ok")
-        ) as fetch,
+        patch("scripts.youtube_harvest.fetch_transcript", return_value=(SPOKEN, "ok")) as fetch,
         patch("scripts.youtube_harvest.distil", return_value="the abstract"),
     ):
         stats = harvest(_FIRESHIP_SOURCES, db_path, limit=1)
@@ -304,7 +305,7 @@ def test_harvest_stores_an_abstract_trimmed_to_the_synthesis_allowance(tmp_path)
 
     with (
         patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
-        patch("scripts.youtube_harvest.fetch_transcript", return_value=("words", "ok")),
+        patch("scripts.youtube_harvest.fetch_transcript", return_value=(SPOKEN, "ok")),
         patch("scripts.youtube_harvest.distil", return_value=long_abstract),
     ):
         harvest(_FIRESHIP_SOURCES, db_path, limit=1)
@@ -333,7 +334,7 @@ def test_harvest_reuses_a_stored_transcript_instead_of_refetching(tmp_path):
         "Fireship",
         "Meta's new model",
         None,
-        "the expensive transcript",
+        EXPENSIVE,
         "",
         "summary_failed",
     )
@@ -348,7 +349,7 @@ def test_harvest_reuses_a_stored_transcript_instead_of_refetching(tmp_path):
 
     # The transcript was already in hand, so no refetch for that video.
     assert "G55HSGpuh1M" not in [c.args[0] for c in fetch.call_args_list]
-    assert distil_mock.call_args[0][0] == "the expensive transcript"
+    assert distil_mock.call_args[0][0] == EXPENSIVE
 
 
 def test_harvest_never_overwrites_a_stored_transcript_with_an_empty_one(tmp_path):
@@ -363,7 +364,7 @@ def test_harvest_never_overwrites_a_stored_transcript_with_an_empty_one(tmp_path
         "Fireship",
         "Meta's new model",
         None,
-        "the expensive transcript",
+        EXPENSIVE,
         "",
         "summary_failed",
     )
@@ -380,7 +381,7 @@ def test_harvest_never_overwrites_a_stored_transcript_with_an_empty_one(tmp_path
     conn.row_factory = sqlite3.Row
     row = conn.execute("SELECT transcript FROM transcripts WHERE video_id='G55HSGpuh1M'").fetchone()
     conn.close()
-    assert row["transcript"] == "the expensive transcript"
+    assert row["transcript"] == EXPENSIVE
 
 
 def test_harvest_treats_an_empty_caption_track_as_no_captions(tmp_path):
@@ -619,7 +620,7 @@ def test_a_refused_distillation_is_settled_and_never_retried(tmp_path):
     db_path = tmp_path / "transcripts.db"
     with (
         patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
-        patch("scripts.youtube_harvest.fetch_transcript", return_value=("words", "ok")),
+        patch("scripts.youtube_harvest.fetch_transcript", return_value=(SPOKEN, "ok")),
         patch("scripts.youtube_harvest.distil", side_effect=DistilRefused("cyber")),
     ):
         stats = harvest(_FIRESHIP_SOURCES, db_path, limit=10)
@@ -634,7 +635,7 @@ def test_a_refused_distillation_is_settled_and_never_retried(tmp_path):
     row = conn.execute("SELECT * FROM transcripts WHERE video_id='G55HSGpuh1M'").fetchone()
     conn.close()
     assert row["status"] == "refused"
-    assert row["transcript"] == "words"
+    assert row["transcript"] == SPOKEN
 
 
 @pytest.mark.parametrize(
@@ -649,7 +650,7 @@ def test_main_passes_a_run_of_only_upcoming_or_refused_videos(tmp_path, monkeypa
 def test_an_upcoming_video_does_not_take_a_slot_of_the_run_limit(tmp_path):
     """Premieres held 2 of the 3 hourly slots on 2026-11-09, so 1 real video an hour got through."""
     db_path = tmp_path / "transcripts.db"
-    results = {"G55HSGpuh1M": ("", "upcoming"), "abc12345678": ("words", "ok")}
+    results = {"G55HSGpuh1M": ("", "upcoming"), "abc12345678": (SPOKEN, "ok")}
 
     with (
         patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
@@ -750,7 +751,7 @@ def test_a_video_without_usable_captions_is_transcribed_from_its_audio(tmp_path,
     with (
         patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
         patch("scripts.youtube_harvest.fetch_transcript", return_value=("", caption_status)),
-        patch("scripts.youtube_harvest.transcribe_audio", return_value=("spoken words", "ok")),
+        patch("scripts.youtube_harvest.transcribe_audio", return_value=(SPOKEN, "ok")),
         patch("scripts.youtube_harvest.distil", return_value="the abstract"),
     ):
         stats = harvest(_FIRESHIP_SOURCES, db_path, limit=10)
@@ -763,7 +764,7 @@ def test_a_video_without_usable_captions_is_transcribed_from_its_audio(tmp_path,
     conn.close()
     assert (row["status"], row["transcript"], row["abstract"]) == (
         "ok",
-        "spoken words",
+        SPOKEN,
         "the abstract",
     )
 
@@ -839,7 +840,7 @@ def test_backfill_transcribes_recent_failures_from_the_store_without_the_feed(tm
 
     with (
         patch("scripts.youtube_harvest.fetch_transcript") as captions,
-        patch("scripts.youtube_harvest.transcribe_audio", return_value=("words", "ok")) as audio,
+        patch("scripts.youtube_harvest.transcribe_audio", return_value=(SPOKEN, "ok")) as audio,
         patch("scripts.youtube_harvest.distil", return_value="the abstract"),
     ):
         stats = backfill(db_path, days=30, limit=10)
@@ -866,7 +867,7 @@ def test_backfill_respects_its_limit(tmp_path):
     _seed(db_path, [(f"vid{i:08d}", "no_captions", recent) for i in range(5)])
 
     with (
-        patch("scripts.youtube_harvest.transcribe_audio", return_value=("words", "ok")) as audio,
+        patch("scripts.youtube_harvest.transcribe_audio", return_value=(SPOKEN, "ok")) as audio,
         patch("scripts.youtube_harvest.distil", return_value="the abstract"),
     ):
         backfill(db_path, days=30, limit=2)
@@ -987,9 +988,120 @@ def test_backfill_can_be_limited_to_named_channels(tmp_path):
     conn.close()
 
     with (
-        patch("scripts.youtube_harvest.transcribe_audio", return_value=("words", "ok")) as audio,
+        patch("scripts.youtube_harvest.transcribe_audio", return_value=(SPOKEN, "ok")) as audio,
         patch("scripts.youtube_harvest.distil", return_value="the abstract"),
     ):
         backfill(db_path, days=120, limit=10, channels=["YouTube: Anthropic"])
 
     assert [c.args[0] for c in audio.call_args_list] == ["anthropic01"]
+
+
+# --- Transcripts too thin to summarise ----------------------------------------
+# 36 stored "abstracts" (2026-11-09) were the model explaining that there was
+# nothing to abstract: music-only launch videos, trailers, two-sentence clips.
+# Stored as ok, they reached the digest as if they were summaries.
+
+
+def test_speech_words_ignores_music_and_applause_cues():
+    from scripts.youtube_harvest import speech_words
+
+    assert speech_words("[music] [Music] ♪ >> Mhm. [Applause] Heat. Heat.") == 3
+    assert speech_words("Today we ship Claude Code 3.0 with hooks.") == 8
+
+
+def test_a_short_clip_with_real_speech_still_gets_summarised(tmp_path):
+    """The gate is for silence, not brevity: a 35-word clip that says something passes."""
+    db_path = tmp_path / "transcripts.db"
+    clip = " ".join(["Black Hat Arsenal lets developers demo security tools live."] * 4)
+    with (
+        patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
+        patch("scripts.youtube_harvest.fetch_transcript", return_value=(clip, "ok")),
+        patch("scripts.youtube_harvest.distil", return_value="Arsenal hosts live tool demos."),
+    ):
+        stats = harvest(_FIRESHIP_SOURCES, db_path, limit=1)
+
+    assert stats["ok"] == 1
+
+
+def test_a_transcript_with_almost_no_speech_is_never_sent_to_the_model(tmp_path):
+    db_path = tmp_path / "transcripts.db"
+    with (
+        patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
+        patch(
+            "scripts.youtube_harvest.fetch_transcript",
+            return_value=("[music] [music] >> I love you. I love you. [music]", "ok"),
+        ),
+        patch("scripts.youtube_harvest.distil") as distil_mock,
+    ):
+        stats = harvest(_FIRESHIP_SOURCES, db_path, limit=10)
+
+    distil_mock.assert_not_called()
+    assert stats["failed"] == 0
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT * FROM transcripts WHERE video_id='G55HSGpuh1M'").fetchone()
+    from news.transcripts import pending_video_ids
+
+    assert pending_video_ids(conn, ["G55HSGpuh1M"]) == []  # settled, never retried
+    conn.close()
+    assert (row["status"], row["abstract"]) == ("too_thin", "")
+
+
+@pytest.mark.parametrize(
+    "reply",
+    [
+        "NO_CONTENT",
+        "I can't write an abstract because the transcript contains only a single word.",
+        "I cannot produce an abstract of this video.",
+        "The transcript contains no usable content: only music cues.",
+        "The transcript is too short to support a 600-800 character abstract.",
+        "The transcript you've provided is too sparse to produce the abstract.",
+        "The transcript you have provided contains no usable factual content.",
+        "The transcript you've pasted is too short and contains no technical content.",
+        "The transcript gives no benchmarks, versions, tool names or licences.",
+        "This excerpt is a single sentence of welcome.",
+    ],
+)
+def test_a_reply_that_declines_to_abstract_is_never_stored_as_a_summary(tmp_path, reply):
+    db_path = tmp_path / "transcripts.db"
+    words = " ".join(["speech"] * 80)
+    with (
+        patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
+        patch("scripts.youtube_harvest.fetch_transcript", return_value=(words, "ok")),
+        patch("scripts.youtube_harvest.distil", return_value=reply),
+    ):
+        harvest(_FIRESHIP_SOURCES, db_path, limit=10)
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT * FROM transcripts WHERE video_id='G55HSGpuh1M'").fetchone()
+    conn.close()
+    assert (row["status"], row["abstract"]) == ("too_thin", "")
+    assert row["transcript"] == words  # kept, as for every other settled outcome
+
+
+def test_a_real_abstract_that_mentions_a_transcript_is_kept(tmp_path):
+    """Only a reply that OPENS by declining counts; a summary may say 'transcript'."""
+    db_path = tmp_path / "transcripts.db"
+    abstract = "Anthropic released a transcript search tool for Claude Code sessions."
+    with (
+        patch("scripts.youtube_harvest.httpx.get", return_value=_atom_response()),
+        patch(
+            "scripts.youtube_harvest.fetch_transcript", return_value=(" ".join(["w"] * 80), "ok")
+        ),
+        patch("scripts.youtube_harvest.distil", return_value=abstract),
+    ):
+        harvest(_FIRESHIP_SOURCES, db_path, limit=10)
+
+    conn = sqlite3.connect(db_path)
+    status = conn.execute("SELECT status FROM transcripts WHERE video_id='G55HSGpuh1M'").fetchone()
+    conn.close()
+    assert status[0] == "ok"
+
+
+def test_the_prompt_offers_the_model_a_way_to_say_there_is_nothing():
+    completed = Mock(returncode=0, stdout="NO_CONTENT", stderr="")
+    with patch("scripts.youtube_harvest.subprocess.run", return_value=completed) as run:
+        distil("[music]", "Introducing Claude Sonnet 5.5")
+
+    assert "NO_CONTENT" in run.call_args.kwargs["input"]

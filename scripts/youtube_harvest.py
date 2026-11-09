@@ -15,6 +15,7 @@ Run hourly via launchd. Idempotent: a video already settled is never refetched.
 
 import argparse
 import logging
+import re
 import sqlite3
 import subprocess
 import sys
@@ -88,6 +89,8 @@ Rules:
 - Drop hype framing ("insane", "game-changer", "you won't believe").
 - Write plain declarative prose. No preamble, no markdown, no bullet points.
 - Output the abstract only.
+- If the transcript has too little substance for an abstract (music only, a
+  trailer, a few sentences), output exactly NO_CONTENT and nothing else.
 
 TRANSCRIPT:
 {transcript}
@@ -333,6 +336,25 @@ def _audio_fallback(video_id: str, caption_status: str, stats: dict[str, int]) -
     return "", caption_status
 
 
+# Below this many spoken words there is nothing to abstract: Anthropic's launch
+# videos are music, trailers are a sentence or two. Sent anyway, the model wrote
+# "I can't write an abstract..." and 36 of those were stored as summaries.
+MIN_SPEECH_WORDS = 30
+_CUES = re.compile(r"\[[^\]]*\]|\u266a|>>")
+# A reply that opens by declining, or the sentinel the prompt offers. A real
+# abstract mentions "the transcript" only mid-sentence, never as its opening.
+_DECLINES = re.compile(
+    r"^\s*(?:NO_CONTENT|I can['\u2019]?t\b|I cannot\b|I['\u2019]m unable\b|I am unable\b"
+    r"|(?:The|This) (?:transcript|excerpt)\b)",
+    re.IGNORECASE,
+)
+
+
+def speech_words(transcript: str) -> int:
+    """Words actually spoken, with music and applause cues taken out."""
+    return len(_CUES.sub(" ", transcript).split())
+
+
 def _settle(
     conn: sqlite3.Connection,
     video_id: str,
@@ -345,20 +367,26 @@ def _settle(
 ) -> None:
     """Distil a fetched transcript, record the outcome, and count it."""
     abstract = ""
+    if status == "ok" and speech_words(text) < MIN_SPEECH_WORDS:
+        status = "too_thin"
     if status == "ok":
         try:
-            abstract = trim_to_sentence(distil(text, title), ABSTRACT_MAX_CHARS)
+            reply = distil(text, title)
         except DistilRefused:
             status = "refused"
         else:
-            if not abstract:
-                status = "summary_failed"
+            if _DECLINES.match(reply):
+                status = "too_thin"
+            else:
+                abstract = trim_to_sentence(reply, ABSTRACT_MAX_CHARS)
+                if not abstract:
+                    status = "summary_failed"
 
     upsert_transcript(conn, video_id, channel, title, published, text, abstract, status)
 
     if status == "ok":
         stats["ok"] += 1
-    elif status in ("no_captions", "too_long"):
+    elif status in ("no_captions", "too_long", "too_thin"):
         stats["no_captions"] += 1
     elif status == "refused":
         stats["refused"] += 1

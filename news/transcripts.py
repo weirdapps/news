@@ -32,7 +32,8 @@ MAX_ATTEMPTS = 8
 # simply has no captions and never will, or the model declined to distil it
 # (the transcript is kept; only the abstract is missing), or its audio runs past
 # the harvester's cap (a livestream or a conference day).
-_TERMINAL_STATUSES = frozenset({"ok", "no_captions", "refused", "too_long"})
+# too_thin: almost no speech, or the model found nothing to abstract.
+_TERMINAL_STATUSES = frozenset({"ok", "no_captions", "refused", "too_long", "too_thin"})
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS transcripts (
