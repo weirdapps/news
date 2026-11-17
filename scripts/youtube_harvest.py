@@ -242,6 +242,11 @@ def probe_duration(video_id: str) -> tuple[float | None, str]:
         return float((probe.stdout or "").strip().splitlines()[-1]), ""
     except (ValueError, IndexError):
         pass
+    # A stream that is live right now: yt-dlp exits 0, prints NA, says nothing on
+    # stderr. It has a length once it ends, so it waits like a premiere does.
+    if probe.returncode == 0 and (probe.stdout or "").strip().splitlines()[-1:] == ["NA"]:
+        logger.info(f"{video_id}: live now, no length yet; will check again next run")
+        return None, "upcoming"
     # A premiere or a live event has no duration yet; yt-dlp says why on stderr.
     detail = (probe.stderr or "").strip()[-300:] or (probe.stdout or "").strip()[:100]
     if any(f": {prefix}" in detail for prefix in _NOT_AIRED_PREFIXES):

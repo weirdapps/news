@@ -1132,3 +1132,14 @@ def test_the_push_goes_only_to_the_fixed_vps_store(tmp_path):
         assert push_to_vps(tmp_path / "transcripts.db") is True
 
     assert run.call_args.args[0][-1] == VPS_STORE == "vps:~/SourceCode/news/data/transcripts.db"
+
+
+def test_a_stream_that_is_live_now_is_upcoming_not_failed():
+    """yt-dlp prints duration NA, exits 0 and says nothing on stderr for a stream that
+    is live right now (ZBTegd8DUZM, 2026-11-16 20:09 to 11-17 01:15): every hourly run
+    graded it failed, and two runs exited 1 on it alone. It gets a length once it ends."""
+    from scripts.youtube_harvest import probe_duration
+
+    done = Mock(returncode=0, stdout="NA\n", stderr="")
+    with patch("scripts.youtube_harvest.subprocess.run", return_value=done):
+        assert probe_duration("ZBTegd8DUZM") == (None, "upcoming")
