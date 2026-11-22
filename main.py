@@ -22,6 +22,7 @@ from news.changelog_digest import enrich_changelog_digests
 from news.config import (
     VALID_PROFILES,
     get_categories,
+    get_community_settings,
     get_keywords,
     get_settings,
     get_sources,
@@ -60,6 +61,7 @@ from news.storage import (
     get_articles_since,
     get_borrowed_articles,
     get_connection,
+    get_digest_texts_since,
     get_last_digest,
     init_db,
     insert_article,
@@ -1451,6 +1453,28 @@ def _backfill_changelog(conn, pending: list) -> None:
             )
 
 
+async def _stack_community(conn, start_time: datetime):
+    """The weekly community block (news/community.py); None when not configured.
+
+    Items a stack brief already cited inside the lookback window are dropped, so the
+    block carries only what the daily briefs missed. Never raises.
+    """
+    from news.community import gather_community
+
+    settings = get_community_settings(profile="stack")
+    if not settings:
+        return None
+    since = start_time - timedelta(days=int(settings.get("lookback_days", 7)))
+    seen = get_digest_texts_since(conn, since, pipeline="stack")
+    result = await gather_community(settings, start_time, seen_text=seen, env=dict(os.environ))
+    if result.groups or result.failed:
+        counts = {name: len(items) for name, items in result.groups.items()}
+        logging.getLogger(__name__).info(
+            f"Community block: {counts}, failed: {result.failed or 'none'}"
+        )
+    return result
+
+
 async def run_stack_pipeline(run_type: str = "scheduled") -> bool:
     """Execute the stack (AI/dev intelligence) pipeline."""
     start_time = datetime.now(UTC)
@@ -1586,6 +1610,7 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> bool:
     next_run = get_next_digest_time(time_display, config["schedule"]["runs"])
 
     source_count = len(_configured_source_names(sources))
+    community = await _stack_community(conn, start_time)
 
     def render() -> tuple[str, str]:
         subject = build_stack_subject(
@@ -1609,6 +1634,7 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> bool:
             # Every profile counts: the stack shares feeds with the digest, and a shared
             # url is stored under whichever ran first (see get_borrowed_articles).
             health_note=_source_health_note(conn, sources, None),
+            community=community,
         )
         return subject, html_output
 

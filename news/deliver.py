@@ -589,8 +589,12 @@ def render_stack_html(
     subject: str = "",
     transcript_coverage: str = "",
     health_note: str = "",
+    community=None,
 ) -> str:
     """Render the stack HTML using Jinja2 template.
+
+    ``community`` is the weekly CommunityResult (news/community.py), or None on the
+    other days; the block renders only when it holds at least one item.
 
     ``transcript_coverage`` surfaces how many YouTube items had a transcript
     abstract available. The harvester runs on the Mac, so a stale store is a
@@ -648,6 +652,8 @@ def render_stack_html(
         next_run=next_run,
         transcript_coverage=transcript_coverage,
         health_note=health_note,
+        community_groups=community.groups if community else {},
+        community_failed=community.failed if community else [],
     )
 
 

@@ -608,6 +608,15 @@ def get_last_digest(conn: sqlite3.Connection, pipeline: str = "digest") -> Diges
     )
 
 
+def get_digest_texts_since(conn: sqlite3.Connection, since: datetime, pipeline: str) -> str:
+    """Every synthesis text one pipeline stored since ``since``, joined, for url checks."""
+    cursor = conn.execute(
+        "SELECT synthesis_text FROM digests WHERE pipeline = ? AND created_at >= ?",
+        (pipeline, _dt_to_str(since)),
+    )
+    return "\n".join(row["synthesis_text"] or "" for row in cursor.fetchall())
+
+
 def update_digest_sent(conn: sqlite3.Connection, digest_id: int) -> None:
     """Mark digest as sent with current timestamp."""
     conn.execute(

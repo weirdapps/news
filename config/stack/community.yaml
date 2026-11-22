@@ -1,0 +1,43 @@
+# Stack profile: weekly community block (news/community.py)
+#
+# On `weekday` (Athens time) the stack brief adds a "Community, last 7 days" section:
+# what the RSS feeds missed on Reddit, Hacker News, Bluesky and new GitHub repos.
+# Rendered without an LLM call; items a stack brief already cited in the window drop out.
+#
+# Credentials, read from the environment (or the gitignored .env at the repo root):
+#   SCRAPECREATORS_API_KEY        Reddit. 1 credit per subreddit per run.
+#   BSKY_HANDLE, BSKY_APP_PASSWORD  Bluesky. Skipped quietly when unset.
+#   GITHUB_TOKEN                  optional; raises the GitHub search rate limit.
+# The accounts behind these keys are dedicated ones (owner rule 2026-11-22: never his own).
+
+enabled: true
+weekday: sunday
+timezone: Europe/Athens
+lookback_days: 7
+
+reddit:
+  # r/LocalLLaMA dropped after the first live run: its top-of-week was off-stack chatter.
+  subreddits: [ClaudeAI, ClaudeCode, ChatGPTCoding, mcp]
+  # Top-of-week on r/ClaudeAI is mostly memes (measured 2026-11-22: 6 of the top 15),
+  # and memes are images: text, link, video and gallery posts carry the substance.
+  exclude_flairs: [Humor, Meme, Funny, Comedy]
+  exclude_post_types: [image]
+  # Low on purpose: r/mcp and r/ChatGPTCoding top out near 40 a week. The per-subreddit
+  # cap keeps the big subs to their best three anyway.
+  min_upvotes: 25
+  per_subreddit: 3
+
+hackernews:
+  queries: [Claude, Anthropic, MCP, "coding agent", LLM]
+  min_points: 100
+  limit: 8
+
+bluesky:
+  queries: ["claude code", anthropic, "coding agent", mcp]
+  min_likes: 50
+  limit: 5
+
+github:
+  topics: [claude-code, mcp, ai-agents, llm]
+  min_stars: 50
+  per_topic: 5

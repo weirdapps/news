@@ -172,6 +172,12 @@ def get_settings(path: Path | None = None, profile: str = "digest") -> dict:
     return load_config(path)
 
 
+def get_community_settings(profile: str = "stack") -> dict:
+    """Load the profile's community.yaml (weekly community block); {} when absent."""
+    path = _profile_config_dir(profile) / "community.yaml"
+    return load_config(path) if path.exists() else {}
+
+
 def get_keywords(path: Path | None = None, profile: str = "monitor") -> dict:
     """Load keyword definitions for entity monitoring.
 

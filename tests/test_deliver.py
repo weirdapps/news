@@ -523,3 +523,55 @@ def test_a_send_that_times_out_says_how_long_it_waited(caplog):
     with patch("news.deliver.subprocess.run", side_effect=sp.TimeoutExpired("outlook-cli", 1)):
         assert send_email(subject="s", html_body="<p>x</p>", recipient="a@example.com") is False
     assert f"after {deliver.SEND_TIMEOUT_SECONDS}s" in caplog.text
+
+
+def _stack_html(**kwargs):
+    return render_stack_html(
+        synthesis={"executive_brief": [], "sections": []},
+        article_count=10,
+        source_count=3,
+        time_display="13:00",
+        date_display="Sun 22 NOV",
+        **kwargs,
+    )
+
+
+def test_stack_html_renders_the_weekly_community_block():
+    from news.community import CommunityItem, CommunityResult
+
+    community = CommunityResult(
+        groups={
+            "Reddit": [
+                CommunityItem(
+                    "r/ClaudeCode", "Opus deleted my data", "https://reddit.com/x", 1271, 300
+                )
+            ],
+            "New GitHub repos": [
+                CommunityItem(
+                    "GitHub", "acme/kit: Agents & tools", "https://github.com/acme/kit", 420, 0
+                )
+            ],
+        }
+    )
+    html = _stack_html(community=community)
+
+    assert "COMMUNITY, LAST 7 DAYS" in html
+    assert 'href="https://reddit.com/x"' in html
+    assert "Opus deleted my data" in html
+    assert "r/ClaudeCode" in html and "1,271" in html and "300 comments" in html
+    assert "420 stars" in html
+    assert "acme/kit: Agents &amp; tools" in html  # escaped, not raw
+
+
+def test_stack_html_omits_the_community_block_on_other_days():
+    assert "COMMUNITY, LAST 7 DAYS" not in _stack_html()
+
+
+def test_stack_html_names_community_sources_that_failed():
+    from news.community import CommunityItem, CommunityResult
+
+    community = CommunityResult(
+        groups={"Reddit": [CommunityItem("r/A", "t", "https://r/t", 200, 1)]},
+        failed=["Hacker News"],
+    )
+    assert "unavailable this week: Hacker News" in _stack_html(community=community)
