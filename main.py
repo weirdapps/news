@@ -58,6 +58,7 @@ from news.storage import (
     backfill_transcript_abstracts,
     get_article_by_hash,
     get_articles_since,
+    get_borrowed_articles,
     get_connection,
     get_last_digest,
     init_db,
@@ -680,7 +681,7 @@ def _configured_source_names(sources: dict) -> list[str]:
     return [src["name"] for key in _SOURCE_KEYS for src in sources.get(key, []) if src.get("name")]
 
 
-def _source_health_note(conn, sources: dict, pipeline: str) -> str:
+def _source_health_note(conn, sources: dict, pipeline: str | None) -> str:
     """One-line footer note naming sources that have gone quiet for real.
 
     Keyed on when each source last produced an article, not on this run's yield,
@@ -1376,6 +1377,7 @@ async def _enrich_stack_fetch(conn, raw_articles: list, sources: dict, config: d
         raw_articles,
         sources,
         min_words=config["pipeline"]["min_article_length_words"],
+        default_max_age_hours=config["pipeline"]["max_article_age_hours"],
     )
     if body_tried:
         logger.info(f"Content enrichment: {body_filled}/{body_tried} thin articles filled")
@@ -1532,8 +1534,18 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> bool:
 
     _backfill_changelog(conn, changelog_pending)
 
-    # POOL: pull recent stack articles
+    # POOL: pull recent stack articles, plus the ones this run's feeds returned that
+    # another profile had already stored (a shared url is stored once, under the first
+    # profile to fetch it, so without this the shared feeds never reach the brief).
     all_recent = get_articles_since(conn, digest_since, min_score=0, pipeline="stack")
+    own_urls = {a.url for a in all_recent}
+    all_recent += [
+        a
+        for a in get_borrowed_articles(
+            conn, [a.url for a in raw_articles], digest_since, pipeline="stack"
+        )
+        if a.url not in own_urls
+    ]
 
     capped_articles = _select_digest_articles(all_recent, config["pipeline"])
     logger.info(f"Stack pool: {len(all_recent)} articles, selected top {len(capped_articles)}")
@@ -1594,7 +1606,9 @@ async def run_stack_pipeline(run_type: str = "scheduled") -> bool:
             transcript_coverage=(
                 f"{brief_enriched}/{len(brief_videos)} videos transcribed" if brief_videos else ""
             ),
-            health_note=_source_health_note(conn, sources, "stack"),
+            # Every profile counts: the stack shares feeds with the digest, and a shared
+            # url is stored under whichever ran first (see get_borrowed_articles).
+            health_note=_source_health_note(conn, sources, None),
         )
         return subject, html_output
 

@@ -518,6 +518,36 @@ def get_articles_since(
     return [_row_to_article(conn, row) for row in cursor.fetchall()]
 
 
+def get_borrowed_articles(
+    conn: sqlite3.Connection,
+    urls: list[str],
+    since: datetime,
+    pipeline: str,
+) -> list[Article]:
+    """Rows another profile stored for urls this profile's own feeds just returned.
+
+    ``url`` is the primary key, so a feed two profiles share is stored once, under
+    whichever ran first. The stack profile shares Claude Code Releases, Simon Willison
+    and a dozen more with the digest, which runs first, so their items always landed as
+    'digest' and a pool scoped to 'stack' never saw one. Only urls fetched this run, and
+    only rows fetched inside the window, so nothing old or unrelated is pulled in.
+    """
+    if not urls:
+        return []
+    found: list[Article] = []
+    unique = list(dict.fromkeys(urls))
+    for start in range(0, len(unique), 500):
+        chunk = unique[start : start + 500]
+        placeholders = ",".join("?" * len(chunk))
+        cursor = conn.execute(
+            f"SELECT * FROM articles WHERE url IN ({placeholders}) "
+            f"AND pipeline != ? AND fetched_at >= ?",
+            [*chunk, pipeline, _dt_to_str(since)],
+        )
+        found.extend(_row_to_article(conn, row) for row in cursor.fetchall())
+    return found
+
+
 def insert_digest(conn: sqlite3.Connection, digest: Digest) -> int:
     """
     Insert digest and return its ID.

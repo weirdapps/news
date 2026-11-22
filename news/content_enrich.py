@@ -37,6 +37,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -69,10 +70,39 @@ def _word_count(text: str | None) -> int:
     return len((text or "").split())
 
 
-def candidates(articles: list[Any], opted_in: set[str], min_words: int) -> list[Any]:
-    """Articles from opted-in sources whose body is too thin to survive the gate."""
+def _age_ceilings(
+    sources: dict[str, Any], opted_in: set[str], default: float | None
+) -> dict[str, float]:
+    """Each opted-in source's age ceiling: its own max_age_hours, else the profile's."""
+    ceilings: dict[str, float] = {}
+    for key in ("rss_feeds", "html_sources", "api_sources", "changelog_sources"):
+        for source in sources.get(key) or []:
+            if not isinstance(source, dict) or source.get("name") not in opted_in:
+                continue
+            hours = source.get("max_age_hours", default)
+            if hours is not None:
+                ceilings[source["name"]] = float(hours)
+    return ceilings
+
+
+def candidates(
+    articles: list[Any],
+    opted_in: set[str],
+    min_words: int,
+    max_age_hours: dict[str, float] | None = None,
+) -> list[Any]:
+    """Articles from opted-in sources whose body is too thin to survive the gate.
+
+    Newest first, and nothing older than its source's age ceiling, because the fetch
+    cap is spent in list order. Measured 2026-11-22: Google Research Blog's 100 thin
+    entries came first and took all 40 fetches, 35 of them for posts older than 14 days
+    that the age gate then dropped, so Hugging Face Blog's fresh posts were never
+    fetched and that source produced nothing for months.
+    """
     if not opted_in:
         return []
+    ceilings = max_age_hours or {}
+    now = datetime.now(UTC)
     out: list[Any] = []
     for article in articles:
         source = getattr(article, "source", None)
@@ -81,9 +111,24 @@ def candidates(articles: list[Any], opted_in: set[str], min_words: int) -> list[
         url = getattr(article, "url", None)
         if not isinstance(url, str) or not url:
             continue
+        published = getattr(article, "published_at", None)
+        ceiling = ceilings.get(source)
+        if ceiling is not None and isinstance(published, datetime):
+            if published.tzinfo is None:
+                published = published.replace(tzinfo=UTC)
+            if now - published > timedelta(hours=ceiling):
+                continue
         if _word_count(getattr(article, "content", None)) < min_words:
             out.append(article)
+    out.sort(key=_published_key, reverse=True)
     return out
+
+
+def _published_key(article: Any) -> datetime:
+    published = getattr(article, "published_at", None)
+    if not isinstance(published, datetime):
+        return datetime.min.replace(tzinfo=UTC)
+    return published if published.tzinfo else published.replace(tzinfo=UTC)
 
 
 def _extract(html: str) -> str:
@@ -121,6 +166,7 @@ async def enrich_thin_articles(
     min_words: int,
     max_fetches: int = DEFAULT_MAX_FETCHES,
     budget_seconds: int = DEFAULT_BUDGET_SECONDS,
+    default_max_age_hours: float | None = None,
 ) -> tuple[int, int]:
     """Fill in bodies in place. Returns (enriched, attempted).
 
@@ -128,7 +174,9 @@ async def enrich_thin_articles(
     two is a degraded run, never a failed one.
     """
     opted_in = sources_opting_in(sources)
-    targets = candidates(articles, opted_in, min_words)
+    targets = candidates(
+        articles, opted_in, min_words, _age_ceilings(sources, opted_in, default_max_age_hours)
+    )
     if not targets:
         return (0, 0)
 

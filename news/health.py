@@ -21,7 +21,7 @@ _MAX_NAMED = 6
 def stale_sources(
     conn: sqlite3.Connection,
     configured: list[str],
-    pipeline: str = "digest",
+    pipeline: str | None = "digest",
     days: int = 7,
 ) -> list[tuple[str, int | None]]:
     """Return configured sources that have produced nothing recently.
@@ -30,7 +30,9 @@ def stale_sources(
         conn: open database connection
         configured: every source name the profile has configured
         pipeline: profile to scope the history to; a source can be healthy in
-            one profile and dead in another
+            one profile and dead in another. ``None`` counts every profile, for a
+            profile whose feeds overlap another's: a shared url is stored once,
+            under whichever profile fetched it first
         days: silence beyond this many days counts as stale
 
     Returns:
@@ -42,10 +44,11 @@ def stale_sources(
         return []
 
     placeholders = ",".join("?" * len(configured))
+    scope = "" if pipeline is None else "pipeline = ? AND "
     rows = conn.execute(
         f"SELECT source, MAX(fetched_at) AS last_seen FROM articles "
-        f"WHERE pipeline = ? AND source IN ({placeholders}) GROUP BY source",
-        [pipeline, *configured],
+        f"WHERE {scope}source IN ({placeholders}) GROUP BY source",
+        [*([] if pipeline is None else [pipeline]), *configured],
     ).fetchall()
     last_seen = {row["source"]: row["last_seen"] for row in rows}
 

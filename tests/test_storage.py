@@ -798,3 +798,53 @@ def test_a_writer_holding_the_lock_does_not_raise_database_is_locked(tmp_path):
 
     writer_thread.join()
     holder_thread.join()
+
+
+def _shared(url, pipeline, hours_old):
+    when = datetime.now(UTC) - timedelta(hours=hours_old)
+    art = Article(
+        url=url,
+        title=f"t {url}",
+        source="Claude Code Releases",
+        content="release notes body text " * 5,
+        categories=["releases"],
+        language="en",
+        published_at=when,
+        fetched_at=when,
+        pipeline=pipeline,
+    )
+    art.compute_hash()
+    return art
+
+
+def test_borrowed_articles_returns_other_pipelines_rows_for_this_runs_urls(db):
+    """The url is the primary key, so a feed two profiles share stores once, under the first.
+
+    The digest runs at 09:00 and the stack at 13:00, so Claude Code Releases items were
+    always stored as 'digest' and the stack pool (pipeline='stack') never saw one.
+    """
+    from news.storage import get_borrowed_articles
+
+    for url, pipe, age in [
+        ("https://x/shared-new", "digest", 4),
+        ("https://x/shared-old", "digest", 24 * 5),
+        ("https://x/own", "stack", 2),
+        ("https://x/not-fetched", "digest", 1),
+    ]:
+        insert_article(db, _shared(url, pipe, age))
+
+    since = datetime.now(UTC) - timedelta(hours=36)
+    got = get_borrowed_articles(
+        db,
+        ["https://x/shared-new", "https://x/shared-old", "https://x/own"],
+        since,
+        pipeline="stack",
+    )
+
+    assert [a.url for a in got] == ["https://x/shared-new"]
+
+
+def test_borrowed_articles_with_no_urls_is_empty(db):
+    from news.storage import get_borrowed_articles
+
+    assert get_borrowed_articles(db, [], datetime.now(UTC), pipeline="stack") == []
