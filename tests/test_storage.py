@@ -16,6 +16,7 @@ from news.storage import (
     get_article_by_hash,
     get_article_by_url,
     get_articles_since,
+    get_digest_texts_since,
     get_last_digest,
     get_run_stats,
     insert_article,
@@ -848,3 +849,30 @@ def test_borrowed_articles_with_no_urls_is_empty(db):
     from news.storage import get_borrowed_articles
 
     assert get_borrowed_articles(db, [], datetime.now(UTC), pipeline="stack") == []
+
+
+def test_get_digest_texts_since_joins_the_window_for_one_pipeline(db):
+    now = datetime.now(UTC)
+
+    def add(text, pipeline, age_days):
+        insert_digest(
+            db,
+            Digest(
+                digest_type="scheduled",
+                created_at=now - timedelta(days=age_days),
+                article_count=1,
+                synthesis_text=text,
+                html_output="",
+                pipeline=pipeline,
+            ),
+        )
+
+    add("stack cites https://a", "stack", 2)
+    add("stack cites https://old", "stack", 9)
+    add("digest cites https://b", "digest", 1)
+
+    text = get_digest_texts_since(db, now - timedelta(days=7), pipeline="stack")
+
+    assert "https://a" in text
+    assert "https://old" not in text
+    assert "https://b" not in text

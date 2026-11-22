@@ -90,3 +90,14 @@ def sample_article():
     )
     article.compute_hash()
     return article
+
+
+@pytest.fixture(autouse=True)
+def _no_community_network(monkeypatch):
+    """Keep the weekly community block off the network in every pipeline test.
+
+    The block runs on Sundays from config/stack/community.yaml, so without this any
+    stack pipeline test run on a Sunday would call Reddit, Hacker News and GitHub.
+    Tests that exercise the block patch ``main.get_community_settings`` themselves.
+    """
+    monkeypatch.setattr("main.get_community_settings", lambda profile="stack": {}, raising=False)

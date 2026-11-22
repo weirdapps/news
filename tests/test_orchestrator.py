@@ -13,6 +13,7 @@ from main import (
     _select_digest_articles,
     _setup_digest_pipeline,
     _source_health_note,
+    _stack_community,
     acquire_lock,
     get_next_digest_time,
     get_time_window,
@@ -1046,3 +1047,48 @@ def test_run_pipeline_propagates_every_profiles_verdict(
 
     monkeypatch.setattr(m, target, _fake)
     assert asyncio.run(m.run_pipeline(profile=profile, **kwargs)) is verdict
+
+
+def test_stack_community_passes_this_weeks_stack_citations_as_seen(monkeypatch):
+    from news.community import CommunityResult
+    from news.models import Digest
+    from news.storage import insert_digest
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+    now = datetime(2026, 11, 22, 11, 0, tzinfo=UTC)
+    insert_digest(
+        conn,
+        Digest(
+            digest_type="scheduled",
+            created_at=now - timedelta(days=3),
+            article_count=1,
+            synthesis_text="cited https://news.ycombinator.com/item?id=1",
+            html_output="",
+            pipeline="stack",
+        ),
+    )
+    settings = {"enabled": True, "lookback_days": 7}
+    monkeypatch.setattr("main.get_community_settings", lambda profile="stack": settings)
+    captured = {}
+
+    async def fake_gather(cfg, when, *, seen_text, env):
+        captured.update(cfg=cfg, when=when, seen=seen_text)
+        return CommunityResult()
+
+    monkeypatch.setattr("news.community.gather_community", fake_gather)
+
+    result = asyncio.run(_stack_community(conn, now))
+
+    assert isinstance(result, CommunityResult)
+    assert captured["cfg"] is settings and captured["when"] == now
+    assert "https://news.ycombinator.com/item?id=1" in captured["seen"]
+
+
+def test_stack_community_is_none_without_a_config():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    init_db(conn)
+    # conftest's autouse fixture already returns {} for the settings.
+    assert asyncio.run(_stack_community(conn, datetime.now(UTC))) is None
