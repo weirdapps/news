@@ -68,6 +68,21 @@ def is_community_day(now: datetime, weekday: str, tz_name: str) -> bool:
     return now.astimezone(ZoneInfo(tz_name)).strftime("%A").lower() == weekday.lower()
 
 
+def _upvotes(post: dict) -> int:
+    return int(post.get("ups") or post.get("score") or 0)
+
+
+def _keep_post(
+    post: dict, flairs: set[str], post_types: set[str], since_ts: int, min_upvotes: int
+) -> bool:
+    return (
+        (post.get("link_flair_text") or "").lower() not in flairs
+        and (post.get("post_hint") or "").lower() not in post_types
+        and float(post.get("created_utc") or 0) >= since_ts
+        and _upvotes(post) >= min_upvotes
+    )
+
+
 async def fetch_reddit(
     client: httpx.AsyncClient,
     *,
@@ -90,24 +105,17 @@ async def fetch_reddit(
             timeout=_TIMEOUT,
         )
         resp.raise_for_status()
-        kept = []
-        for post in resp.json().get("posts") or []:
-            ups = int(post.get("ups") or post.get("score") or 0)
-            if (post.get("link_flair_text") or "").lower() in excluded:
-                continue
-            if (post.get("post_hint") or "").lower() in excluded_types:
-                continue
-            if float(post.get("created_utc") or 0) < since_ts or ups < min_upvotes:
-                continue
-            kept.append(
-                CommunityItem(
-                    source=f"r/{sub}",
-                    title=post.get("title") or "",
-                    url=f"https://www.reddit.com{post.get('permalink', '')}",
-                    score=ups,
-                    comments=int(post.get("num_comments") or 0),
-                )
+        kept = [
+            CommunityItem(
+                source=f"r/{sub}",
+                title=post.get("title") or "",
+                url=f"https://www.reddit.com{post.get('permalink', '')}",
+                score=_upvotes(post),
+                comments=int(post.get("num_comments") or 0),
             )
+            for post in resp.json().get("posts") or []
+            if _keep_post(post, excluded, excluded_types, since_ts, min_upvotes)
+        ]
         kept.sort(key=lambda i: i.score, reverse=True)
         items += kept[:per_subreddit]
     return items
