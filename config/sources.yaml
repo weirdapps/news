@@ -64,11 +64,6 @@ rss_feeds:
     category: "ai"
     tier: 1
     language: "en"
-  - name: "AI News"
-    url: "https://www.artificialintelligence-news.com/feed/"
-    category: "ai"
-    tier: 2
-    language: "en"
   - name: "The Batch (deeplearning.ai)"
     url: "https://news.google.com/rss/search?q=when:7d+site:deeplearning.ai&ceid=US:en&hl=en-US&gl=US"
     category: "ai"
