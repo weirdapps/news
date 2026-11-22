@@ -105,3 +105,16 @@ def test_format_health_note_truncates_a_long_list_but_says_how_many():
     assert "Source 0" in note
     # Must not dump all twelve into an email footer.
     assert "Source 11" not in note
+
+
+def test_any_pipeline_counts_when_pipeline_is_none(db):
+    """A source shared with another profile stores under whichever ran first.
+
+    The stack profile reads Simon Willison and Claude Code Releases from the same URLs
+    the digest does, and the digest runs first, so every item lands as pipeline='digest'.
+    Scoped to 'stack' those feeds read as "never" although they work.
+    """
+    _store(db, "Shared Feed", age_hours=3, pipeline="digest")
+
+    assert stale_sources(db, ["Shared Feed"], pipeline="stack", days=7) == [("Shared Feed", None)]
+    assert stale_sources(db, ["Shared Feed"], pipeline=None, days=7) == []

@@ -257,3 +257,33 @@ async def test_the_wall_clock_budget_stops_the_pass_and_says_so(monkeypatch, cap
 
     assert (filled, tried) == (0, 3)
     assert any("budget" in r.getMessage() for r in caplog.records)
+
+
+def _dated(source, hours_old, url):
+    from datetime import UTC, datetime, timedelta
+
+    art = _article(source, "", url=url)
+    art.published_at = datetime.now(UTC) - timedelta(hours=hours_old)
+    return art
+
+
+def test_candidates_skip_items_too_old_to_enter_the_brief():
+    """An old headline would be dropped by the age gate anyway; fetching its body wastes the cap.
+
+    Measured 2026-11-22: Google Research Blog's 100 undated-body entries sat first in the
+    list and took all 40 fetches, 35 of them older than 14 days, so Hugging Face Blog's 18
+    fresh posts were never fetched and the source produced nothing for months.
+    """
+    arts = [_dated("Thin Feed", 24 * 30, "https://x/old"), _dated("Thin Feed", 5, "https://x/new")]
+    got = candidates(arts, {"Thin Feed"}, min_words=10, max_age_hours={"Thin Feed": 72})
+    assert [a.url for a in got] == ["https://x/new"]
+
+
+def test_candidates_are_served_newest_first_so_the_cap_lands_on_fresh_items():
+    arts = [
+        _dated("Thin Feed", 50, "https://x/older"),
+        _dated("Other Thin", 2, "https://x/newest"),
+        _dated("Thin Feed", 10, "https://x/mid"),
+    ]
+    got = candidates(arts, {"Thin Feed", "Other Thin"}, min_words=10)
+    assert [a.url for a in got] == ["https://x/newest", "https://x/mid", "https://x/older"]

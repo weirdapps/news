@@ -12,29 +12,38 @@
 # logs a warning and tells the model the description may be out of date, so a stale
 # block degrades loudly instead of silently misaiming every recommendation.
 
-last_reviewed: 2026-08-27
+last_reviewed: 2026-11-22
 
 profile: |
-  - Primary AI tool: Claude Code CLI (Opus 5 via Vertex AI, region eu) — daily power user
+  - Primary AI tool: Claude Code CLI, daily power user. Two backends: Vertex AI
+    (region eu), whose allowlist permits ONE model, Sonnet 5.5, since 2026-10-06; and a
+    direct subscription running Opus 5.5. Advice that assumes "switch to Opus" or
+    "compare Sonnet 5 vs 5.5" on Vertex cannot be acted on.
   - Agentic patterns: named agent teams in split panes, parallel worktree agents,
-    settings.json hooks across 9 event types, plugins, skills, deterministic Workflow
-    orchestration. Tool schemas are deferred behind ToolSearch, so MCP tool
-    descriptions are NOT loaded on every turn.
-  - MCP servers: ~13 distinct, ~15 registrations. Owner-built: news-reader,
-    second-brain, sch-mail, yahoo-mail, whatsapp, trading-data, outlook-bridge,
-    teams-bridge. Third-party: playwright, chrome-devtools, context7,
-    microsoft-learn, imessage. Traffic is dominated by the two browser servers.
+    PreToolUse/SessionStart hooks as the real guardrails (permission mode is bypass),
+    plugins, skills, deterministic Workflow orchestration. Tool schemas are deferred
+    behind ToolSearch, so MCP tool descriptions are NOT loaded on every turn.
+  - MCP servers: ~15. Owner-built: news-reader, second-brain, an MIS metrics server,
+    sch-mail, yahoo-mail, whatsapp, trading-data, plus mail and Teams bridges kept as
+    fallback; five of them are served once over local HTTP and shared by every session.
+    Third-party: playwright, chrome-devtools, context7, imessage. Traffic is dominated
+    by the two browser servers.
   - Languages: Python 3.12+ with uv (primary), TypeScript/Node (secondary)
   - Frameworks: FastMCP, Jinja2, httpx, SQLite + FTS5
-  - LLM access: always the local `claude` CLI via subprocess, routed through Vertex AI.
-    Never the anthropic SDK. Model and region must be pinned together.
-  - Infrastructure: macOS (launchd) + a Hetzner VPS (systemd timers) running the
+  - LLM access in code: always the local `claude` CLI via subprocess with `--tools ""`,
+    routed through Vertex AI. Never the anthropic SDK. Model and region pinned together.
+  - Infrastructure: macOS (launchd) + a Hetzner VPS (systemd user timers) running the
     unattended pipelines; GitHub Actions; gcloud/Vertex AI. ~30 repos.
-  - Office automation: one Microsoft Graph CLI for mail, calendar, Teams and
-    SharePoint, with a small mail helper that adds the signature and falls back to
-    the older outlook-cli. The older per-surface CLIs (outlook-cli, teams-cli,
-    sharepoint-cli) and their outlook-bridge / teams-bridge MCPs are being retired.
+  - Office automation: one Microsoft Graph CLI is the default for mail, calendar, Teams,
+    SharePoint, OneNote and Planner since 2026-11-06; the older per-surface CLIs stay
+    installed as fallback.
   - Presentations: python-pptx with a brand system and a validator
   - Trading intelligence: signals, census tracking, a multi-agent investment committee
-  - Role context: AGM at a large bank — leads Cards & Digital Business, AI adoption
+  - Role context: AGM at a large bank, leads Cards & Digital Business, AI adoption
     champion. Reads this brief daily and acts on the "FOR YOUR STACK" section.
+  - ALREADY IN PLACE, do not recommend again: start timeouts on every VPS oneshot unit
+    (measured ceilings, below each timer's cadence); a worktree-residue check after
+    every parallel run; Code Mode measured (55-81% fewer input tokens) and used through
+    a hand-off script for browser-heavy and bulk-read tasks; CLAUDE.md already trimmed
+    to rules, with procedures in skills; auto-compact and context-window caps were
+    considered and declined.
