@@ -42,9 +42,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Floors, the same as [dependency-groups].dev below. Bare names broke Dependabot's
+# uv updater: bumping pytest it rewrote the bare "pytest" as "pytest*", which is
+# not PEP 508, so the build failed and no uv update PR for pytest could open
+# (failed runs 2026-11-09, 11-16, 11-22).
 dev = [
-    "pytest",
-    "pytest-asyncio",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.5.0",
 ]
 
 [project.scripts]
