@@ -43,11 +43,11 @@ dependencies = [
 
 [project.optional-dependencies]
 # Floors, the same as [dependency-groups].dev below. Bare names broke Dependabot's
-# uv updater: bumping pytest it rewrote the bare "pytest" as "pytest*", which is
+# uv updater: bumping pytest it rewrote the bare "pytest" as "pytest>=9.2.0", which is
 # not PEP 508, so the build failed and no uv update PR for pytest could open
 # (failed runs 2026-11-09, 11-16, 11-22).
 dev = [
-    "pytest>=9.1.1",
+    "pytest>=9.2.0",
     "pytest-asyncio>=1.5.0",
 ]
 
@@ -95,6 +95,6 @@ ignore_errors = true
 # (`pip install -e ".[dev]"`); keep the two in sync.
 [dependency-groups]
 dev = [
-    "pytest>=9.1.1",
+    "pytest>=9.2.0",
     "pytest-asyncio>=1.5.0",
 ]
